@@ -1,2 +1,2 @@
-# ts-llvm
+# Minits
 TypeScript to LLVM compiler
