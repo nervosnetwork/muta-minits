@@ -56,7 +56,7 @@ function mainBuild(): void {
 }
 
 function mainRun(): void {
-  if (typeof argv.output === undefined) {
+  if (typeof argv.output === 'undefined') {
     argv.output = '/tmp/minits.ll';
   }
   mainBuild();
