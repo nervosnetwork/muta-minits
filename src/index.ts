@@ -3,26 +3,38 @@
 // [1] https://github.com/microsoft/TypeScript/blob/master/doc/spec.md
 
 import child_process from 'child_process';
-import argv from 'commander';
+import commander from 'commander';
 import fs from 'fs';
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import { LLVMCodeGen } from './codegen';
+import LLVMCodeGen from './llvm-codegen';
 
-const help = `usage: minits <command> [<args>]
-The most commonly used daze commands are:
-  build     compile packages and dependencies
-  run       compile and run ts program
+const program = new commander.Command();
 
-Run 'minits <command> -h' for more information on a command.`;
+program
+  .version('v0.0.1')
+  .option(
+    '-o, --output <output>',
+    'place the output into <file>',
+    '/tmp/minits.ll' // default
+  )
+  .option('-t, --triple <triple>', 'LLVM triple');
 
-argv.option('-o, --output <output>', 'place the output into <file>');
-argv.option('--triple <triple>', 'LLVM triple');
-argv.parse(process.argv);
+program
+  .command('build <file>')
+  .description('compile packages and dependencies')
+  .action(build);
 
-function mainBuild(): void {
-  const fileName = argv.args[argv.args.length - 1];
+program
+  .command('run <file>')
+  .description('compile and run ts program')
+  .action(run);
+
+program.parse(process.argv);
+
+function build(cm: commander.Command): void {
+  const fileName = cm.args[cm.args.length - 1];
   const sourceFile = ts.createSourceFile(
     fileName,
     fs.readFileSync(fileName).toString(),
@@ -39,51 +51,27 @@ function mainBuild(): void {
   const cg = new LLVMCodeGen();
   cg.genSourceFile(sourceFile);
 
-  const triple: string = argv.triple
-    ? argv.triple
+  const triple: string = cm.triple
+    ? cm.triple
     : llvm.config.LLVM_DEFAULT_TARGET_TRIPLE;
   const target = llvm.TargetRegistry.lookupTarget(triple);
   const m = target.createTargetMachine(triple, 'generic');
   cg.module.dataLayout = m.createDataLayout();
   cg.module.targetTriple = triple;
 
-  if (argv.output) {
-    fs.writeFileSync(argv.output, cg.genText());
+  if (cm.output) {
+    fs.writeFileSync(cm.output, cg.genText());
   } else {
     process.stdout.write(cg.genText());
   }
   llvm.verifyModule(cg.module);
 }
 
-function mainRun(): void {
-  if (typeof argv.output === 'undefined') {
-    argv.output = '/tmp/minits.ll';
-  }
-  mainBuild();
-  const p = child_process.spawn('lli', [argv.output]);
-  p.stdout.on('data', data => {
-    process.stdout.write(data);
-  });
-  p.stderr.on('data', data => {
-    process.stderr.write(data);
-  });
-  p.on('close', code => {
-    process.exit(code);
-  });
-}
+function run(cm: commander.Command): void {
+  build(cm);
+  const p = child_process.spawn('lli', [cm.output]);
 
-function main(): void {
-  switch (argv.args[0]) {
-    case 'build':
-      mainBuild();
-      break;
-    case 'run':
-      mainRun();
-      break;
-    default:
-      process.stdout.write(help);
-      break;
-  }
+  p.stdout.on('data', process.stdout.write);
+  p.stderr.on('data', process.stderr.write);
+  p.on('close', process.exit);
 }
-
-main();

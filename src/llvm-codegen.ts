@@ -1,9 +1,9 @@
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import { Symtab } from './symtab';
+import Symtab from './symtab';
 
-export class LLVMCodeGen {
+export default class LLVMCodeGen {
   public readonly builder: llvm.IRBuilder;
   public readonly context: llvm.LLVMContext;
   public readonly module: llvm.Module;
