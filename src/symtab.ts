@@ -1,4 +1,4 @@
-import * as llvm from 'llvm-node';
+import llvm from 'llvm-node';
 
 export class Symtab {
   protected readonly data: Map<string, llvm.Value>;

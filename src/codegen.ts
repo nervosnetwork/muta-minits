@@ -1,13 +1,13 @@
-import * as llvm from 'llvm-node';
-import * as ts from 'typescript';
+import llvm from 'llvm-node';
+import ts from 'typescript';
 
-import * as symtab from './symtab';
+import { Symtab } from './symtab';
 
 export class LLVMCodeGen {
   public readonly builder: llvm.IRBuilder;
   public readonly context: llvm.LLVMContext;
   public readonly module: llvm.Module;
-  public readonly symtab: symtab.Symtab;
+  public readonly symtab: Symtab;
 
   private currentFunction: llvm.Function | undefined;
 
@@ -15,7 +15,7 @@ export class LLVMCodeGen {
     this.context = new llvm.LLVMContext();
     this.module = new llvm.Module('main', this.context);
     this.builder = new llvm.IRBuilder(this.context);
-    this.symtab = new symtab.Symtab();
+    this.symtab = new Symtab();
     this.currentFunction = undefined;
   }
 

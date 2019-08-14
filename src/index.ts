@@ -2,13 +2,13 @@
 // [0] https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API
 // [1] https://github.com/microsoft/TypeScript/blob/master/doc/spec.md
 
-import * as child_process from 'child_process';
+import child_process from 'child_process';
 import argv from 'commander';
-import * as fs from 'fs';
-import * as llvm from 'llvm-node';
-import * as ts from 'typescript';
+import fs from 'fs';
+import llvm from 'llvm-node';
+import ts from 'typescript';
 
-import * as codegen from './codegen';
+import { LLVMCodeGen } from './codegen';
 
 const help = `usage: minits <command> [<args>]
 The most commonly used daze commands are:
@@ -36,7 +36,7 @@ function mainBuild(): void {
   llvm.initializeAllAsmParsers();
   llvm.initializeAllAsmPrinters();
 
-  const cg = new codegen.LLVMCodeGen();
+  const cg = new LLVMCodeGen();
   cg.genSourceFile(sourceFile);
 
   const triple: string = argv.triple
