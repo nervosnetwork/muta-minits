@@ -55,8 +55,7 @@
     "@types/node": "^12.7.1",
     "commander": "^3.0.0",
     "llvm-node": "^2.1.0",
-    "typescript": "^3.5.3",
-    "yarn": "^1.17.3"
+    "typescript": "^3.5.3"
   },
   "devDependencies": {
     "@bitjson/npm-scripts-info": "^1.0.0",
