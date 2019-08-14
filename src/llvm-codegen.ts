@@ -24,9 +24,7 @@ export default class LLVMCodeGen {
   }
 
   public genSourceFile(sourceFile: ts.SourceFile): void {
-    sourceFile.forEachChild(node => {
-      this.genNode(node);
-    });
+    sourceFile.forEachChild(node => this.genNode(node));
   }
 
   public genNode(
