@@ -16,7 +16,7 @@ test('test llvm add', async t => {
   const context = new llvm.LLVMContext();
   const module = new llvm.Module('add_module', context);
 
-  const mainFn = llvm.Function.create(
+  llvm.Function.create(
     llvm.FunctionType.get(llvm.Type.getVoidTy(context), false),
     llvm.LinkageTypes.ExternalLinkage,
     'main',
@@ -44,7 +44,6 @@ test('test llvm add', async t => {
 });
 
 function parserNode(node: ts.Node): void {
-  debug('\n\n', node);
   switch (node.kind) {
     case ts.SyntaxKind.EndOfFileToken:
       return;
