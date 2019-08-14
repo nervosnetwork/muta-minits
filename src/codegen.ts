@@ -144,7 +144,26 @@ export class LLVMCodeGen {
   public genPostfixUnaryExpression(
     expr: ts.PostfixUnaryExpression
   ): llvm.Value {
-    return this.genExpression(expr);
+    const e = expr.operand as ts.Expression;
+    const lhs = this.genExpression(e);
+    switch (expr.operator) {
+      case ts.SyntaxKind.PlusPlusToken:
+        const rpp = this.builder.createAdd(
+          lhs,
+          llvm.ConstantInt.get(this.context, 1, 64)
+        );
+        this.symtab.set(e.getText(), rpp);
+        return lhs;
+      case ts.SyntaxKind.MinusMinusToken:
+        const rmm = this.builder.createSub(
+          lhs,
+          llvm.ConstantInt.get(this.context, 1, 64)
+        );
+        this.symtab.set(e.getText(), rmm);
+        return lhs;
+      default:
+        throw new Error('Unsupported grammar');
+    }
   }
 
   public genBinaryExpression(expr: ts.BinaryExpression): llvm.Value {

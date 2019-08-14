@@ -3,5 +3,6 @@ function main(): number {
     a++;
     a++;
     a--;
-    return a;
+    let b: number = a--;
+    return b;
 }
