@@ -1,11 +1,11 @@
 {
-  "name": "ts-llvm",
+  "name": "minits",
   "version": "1.0.0",
   "description": "TypeScript to LLVM compiler",
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
   "module": "build/module/index.js",
-  "repository": "git@github.com:cryptape/ts-llvm.git",
+  "repository": "git@github.com:cryptape/minits.git",
   "license": "MIT",
   "keywords": [],
   "scripts": {
