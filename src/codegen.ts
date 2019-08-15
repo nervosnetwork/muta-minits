@@ -129,6 +129,10 @@ export class LLVMCodeGen {
         return this.genIdentifier(expr as ts.Identifier);
       case ts.SyntaxKind.CallExpression:
         return this.genCallExpression(expr as ts.CallExpression);
+      case ts.SyntaxKind.PrefixUnaryExpression:
+        return this.genPrefixUnaryExpression(
+          expr as ts.PrefixUnaryExpression
+        );
       case ts.SyntaxKind.PostfixUnaryExpression:
         return this.genPostfixUnaryExpression(
           expr as ts.PostfixUnaryExpression
@@ -147,6 +151,15 @@ export class LLVMCodeGen {
     });
     const func = this.module.getFunction(name)!;
     return this.builder.createCall(func, args);
+  }
+
+  public genPrefixUnaryExpression(expr: ts.PrefixUnaryExpression): llvm.Value {
+    switch (expr.operator) {
+      case ts.SyntaxKind.TildeToken:
+        return this.builder.createXor(this.genExpression(expr.operand), llvm.ConstantInt.get(this.context, -1, 64));
+      default:
+        throw new Error('Unsupported grammar');
+    }
   }
 
   public genPostfixUnaryExpression(
@@ -211,6 +224,10 @@ export class LLVMCodeGen {
         return this.builder.createSDiv(lhs, rhs);
       case ts.SyntaxKind.PercentToken: // %
         return this.builder.createSRem(lhs, rhs);
+      case ts.SyntaxKind.AmpersandToken: // &
+        return this.builder.createAnd(lhs, rhs);
+      case ts.SyntaxKind.BarToken: // |
+        return this.builder.createOr(lhs, rhs);
       case ts.SyntaxKind.EqualsToken: // =
         return this.builder.createStore(rhs, lhs);
       default:
