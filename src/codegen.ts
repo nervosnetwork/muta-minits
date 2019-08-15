@@ -71,7 +71,15 @@ export class LLVMCodeGen {
   }
 
   public genNumeric(node: ts.NumericLiteral): llvm.ConstantInt {
-    return llvm.ConstantInt.get(this.context, parseInt(node.getText(), 10), 64);
+    const text = node.getText();
+    const bits = (() => {
+      if (text.startsWith('0x')) {
+        return 16;
+      } else {
+        return 10;
+      }
+    })();
+    return llvm.ConstantInt.get(this.context, parseInt(text, bits), 64);
   }
 
   public genBoolean(node: ts.BooleanLiteral): llvm.ConstantInt {
