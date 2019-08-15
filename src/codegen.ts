@@ -106,7 +106,7 @@ export class LLVMCodeGen {
   }
 
   public genBlock(node: ts.Block): void {
-    node.statements.forEach(function(this: LLVMCodeGen, b: ts.Statement): void {
+    node.statements.forEach(function (this: LLVMCodeGen, b: ts.Statement): void {
       this.genStatement(b);
     }, this);
   }
@@ -201,6 +201,8 @@ export class LLVMCodeGen {
         return this.builder.createMul(lhs, rhs);
       case ts.SyntaxKind.SlashToken: // /
         return this.builder.createSDiv(lhs, rhs);
+      case ts.SyntaxKind.PercentToken: // %
+        return this.builder.createSRem(lhs, rhs);
       case ts.SyntaxKind.EqualsToken: // =
         return this.builder.createStore(rhs, lhs);
       default:
@@ -226,7 +228,7 @@ export class LLVMCodeGen {
   }
 
   public genVariableStatement(node: ts.VariableStatement): void {
-    node.declarationList.declarations.forEach(function(
+    node.declarationList.declarations.forEach(function (
       this: LLVMCodeGen,
       item
     ): llvm.AllocaInst {
@@ -238,7 +240,7 @@ export class LLVMCodeGen {
       this.symtab.set(name, alloca);
       return alloca;
     },
-    this);
+      this);
   }
 
   public genExpressionStatement(node: ts.ExpressionStatement): llvm.Value {
