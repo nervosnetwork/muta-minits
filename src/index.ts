@@ -2,14 +2,15 @@
 // [0] https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API
 // [1] https://github.com/microsoft/TypeScript/blob/master/doc/spec.md
 
-import child_process from 'child_process';
+import path from 'path';
 import commander from 'commander';
 import Debug from 'debug';
 import fs from 'fs';
 import llvm from 'llvm-node';
 import ts from 'typescript';
+import shell from 'shelljs';
 
-import LLVMCodeGen from './llvm-codegen';
+import LLVMCodeGen from './codegen';
 
 const debug = Debug('minits');
 const program = new commander.Command();
@@ -21,11 +22,11 @@ program
   .description('compile packages and dependencies')
   .option('-o, --output <output>', 'place the output into <file>')
   .option('-t, --triple <triple>', 'LLVM triple')
-  .action(cm => {
-    const codeText = build(cm);
+  .action(args => {
+    const codeText = build(args);
 
-    if (cm.output) {
-      fs.writeFileSync(cm.output, codeText);
+    if (program.opts().output) {
+      fs.writeFileSync(program.opts().output, codeText);
     } else {
       process.stdout.write(codeText);
     }
@@ -34,12 +35,12 @@ program
 program
   .command('run <file>')
   .description('compile and run ts program')
-  .action(run);
+  .action(args => run(args));
 
 program.parse(process.argv);
 
-function build(cm: commander.Command): string {
-  const fileName = cm.args[cm.args.length - 1];
+function build(...args: any[]): string {
+  const fileName = args[args.length - 1];
   const sourceFile = ts.createSourceFile(
     fileName,
     fs.readFileSync(fileName).toString(),
@@ -56,8 +57,8 @@ function build(cm: commander.Command): string {
   const cg = new LLVMCodeGen();
   cg.genSourceFile(sourceFile);
 
-  const triple: string = cm.triple
-    ? cm.triple
+  const triple: string = program.opts().triple
+    ? program.opts().triple
     : llvm.config.LLVM_DEFAULT_TARGET_TRIPLE;
   const target = llvm.TargetRegistry.lookupTarget(triple);
   const m = target.createTargetMachine(triple, 'generic');
@@ -65,16 +66,27 @@ function build(cm: commander.Command): string {
   cg.module.targetTriple = triple;
 
   const codeText = cg.genText();
-  debug(codeText);
+  debug(`
+    ${codeText}
+  `);
   llvm.verifyModule(cg.module);
   return codeText;
 }
 
-function run(cm: commander.Command): void {
-  const codeText = build(cm);
-  const p = child_process.spawn(`echo ${codeText} | lli`);
+function run(...args: any[]): void {
+  const codeText = build(...args);
+  const tempFile = path.join(shell.tempdir(), 'minits.ll');
 
-  p.stdout.on('data', process.stdout.write);
-  p.stderr.on('data', process.stderr.write);
-  p.on('close', process.exit);
+  fs.writeFileSync(tempFile, codeText);
+  const execResp = shell.exec(`lli ${tempFile}`, {
+    async: false
+  });
+
+  if (execResp.stderr) {
+    process.stderr.write(execResp.toString());
+  } else {
+    process.stdout.write(execResp.toString());
+  }
+
+  process.exit(execResp.code);
 }
