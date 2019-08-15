@@ -77,4 +77,8 @@ export class Symtab {
   public set(name: string, data: llvm.Value): void {
     this.getLowScopes(this.data, this.prefix).data.set(name, data);
   }
+
+  public depths(): number {
+    return this.prefix.length;
+  }
 }
