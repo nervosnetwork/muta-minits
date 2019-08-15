@@ -85,9 +85,9 @@ export class LLVMCodeGen {
   public genBoolean(node: ts.BooleanLiteral): llvm.ConstantInt {
     switch (node.kind) {
       case ts.SyntaxKind.FalseKeyword:
-        return llvm.ConstantInt.get(this.context, 1, 1);
-      case ts.SyntaxKind.TrueKeyword:
         return llvm.ConstantInt.get(this.context, 0, 1);
+      case ts.SyntaxKind.TrueKeyword:
+        return llvm.ConstantInt.get(this.context, 1, 1);
       default:
         throw new Error('Unsupported grammar');
     }
@@ -123,10 +123,12 @@ export class LLVMCodeGen {
     switch (expr.kind) {
       case ts.SyntaxKind.NumericLiteral:
         return this.genNumeric(expr as ts.NumericLiteral);
-      case ts.SyntaxKind.BooleanKeyword:
-        return this.genBoolean(expr as ts.BooleanLiteral);
       case ts.SyntaxKind.Identifier:
         return this.genIdentifier(expr as ts.Identifier);
+      case ts.SyntaxKind.FalseKeyword:
+        return this.genBoolean(expr as ts.BooleanLiteral)
+      case ts.SyntaxKind.TrueKeyword:
+        return this.genBoolean(expr as ts.BooleanLiteral);
       case ts.SyntaxKind.CallExpression:
         return this.genCallExpression(expr as ts.CallExpression);
       case ts.SyntaxKind.PrefixUnaryExpression:
@@ -232,6 +234,30 @@ export class LLVMCodeGen {
         return this.builder.createOr(lhs, rhs);
       case ts.SyntaxKind.CaretToken: // ^
         return this.builder.createXor(lhs, rhs);
+      case ts.SyntaxKind.AmpersandAmpersandToken: // &&
+        const aaInitBlock = this.builder.getInsertBlock()!;
+        const aaNextBlock = llvm.BasicBlock.create(this.context, 'next', this.currentFunction);
+        const aaQuitBlock = llvm.BasicBlock.create(this.context, 'quit', this.currentFunction);
+        this.builder.createCondBr(lhs, aaNextBlock, aaQuitBlock);
+        this.builder.setInsertionPoint(aaNextBlock);
+        this.builder.createBr(aaQuitBlock);
+        this.builder.setInsertionPoint(aaQuitBlock);
+        const aaPhi = this.builder.createPhi(llvm.Type.getInt1Ty(this.context), 2);
+        aaPhi.addIncoming(llvm.ConstantInt.get(this.context, 0, 1), aaInitBlock);
+        aaPhi.addIncoming(rhs, aaNextBlock);
+        return aaPhi;
+      case ts.SyntaxKind.BarBarToken: // ||
+        const bbInitBlock = this.builder.getInsertBlock()!;
+        const bbNextBlock = llvm.BasicBlock.create(this.context, 'next', this.currentFunction);
+        const bbQuitBlock = llvm.BasicBlock.create(this.context, 'quit', this.currentFunction);
+        this.builder.createCondBr(lhs, bbQuitBlock, bbNextBlock);
+        this.builder.setInsertionPoint(bbNextBlock);
+        this.builder.createBr(bbQuitBlock);
+        this.builder.setInsertionPoint(bbQuitBlock);
+        const bbPhi = this.builder.createPhi(llvm.Type.getInt1Ty(this.context), 2);
+        bbPhi.addIncoming(llvm.ConstantInt.get(this.context, 1, 1), bbInitBlock);
+        bbPhi.addIncoming(rhs, bbNextBlock);
+        return bbPhi;
       case ts.SyntaxKind.EqualsToken: // =
         return this.builder.createStore(rhs, lhs);
       case ts.SyntaxKind.GreaterThanGreaterThanToken: // >>
