@@ -330,6 +330,8 @@ export class LLVMCodeGen {
     })();
     const linkage = llvm.LinkageTypes.ExternalLinkage;
     const func = llvm.Function.create(fnty, linkage, name, this.module);
+
+    this.symtab.into(name!);
     func.getArguments().forEach(item => {
       item.name = node.parameters[item.argumentNumber].name.getText();
       this.symtab.set(item.name, item);
@@ -340,6 +342,7 @@ export class LLVMCodeGen {
       this.builder.setInsertionPoint(body);
       this.genBlock(node.body);
     }
+    this.symtab.exit()
     return func;
   }
 
