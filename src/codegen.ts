@@ -290,14 +290,23 @@ export class LLVMCodeGen {
     node.declarationList.declarations.forEach(function (
       this: LLVMCodeGen,
       item
-    ): llvm.AllocaInst {
+    ): llvm.Value {
       const name = item.name.getText();
       const initializer = this.genExpression(item.initializer!);
       const type = this.genType(item.type!);
-      const alloca = this.builder.createAlloca(type, undefined, name);
-      this.builder.createStore(initializer, alloca);
-      this.symtab.set(name, alloca);
-      return alloca;
+
+      if (this.symtab.depths() == 0) {
+        // Global variables
+        const r = new llvm.GlobalVariable(this.module, type, false, llvm.LinkageTypes.ExternalLinkage, initializer as llvm.Constant, name);
+        this.symtab.set(name, r);
+        return r;
+      } else {
+        // Locale variables
+        const alloca = this.builder.createAlloca(type, undefined, name);
+        this.builder.createStore(initializer, alloca);
+        this.symtab.set(name, alloca);
+        return alloca;
+      }
     },
       this);
   }
@@ -330,6 +339,8 @@ export class LLVMCodeGen {
     })();
     const linkage = llvm.LinkageTypes.ExternalLinkage;
     const func = llvm.Function.create(fnty, linkage, name, this.module);
+
+    this.symtab.into(name!);
     func.getArguments().forEach(item => {
       item.name = node.parameters[item.argumentNumber].name.getText();
       this.symtab.set(item.name, item);
@@ -340,6 +351,7 @@ export class LLVMCodeGen {
       this.builder.setInsertionPoint(body);
       this.genBlock(node.body);
     }
+    this.symtab.exit()
     return func;
   }
 
