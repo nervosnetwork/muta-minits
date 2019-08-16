@@ -2,13 +2,13 @@
 // [0] https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API
 // [1] https://github.com/microsoft/TypeScript/blob/master/doc/spec.md
 
-import path from 'path';
 import commander from 'commander';
 import Debug from 'debug';
 import fs from 'fs';
 import llvm from 'llvm-node';
-import ts from 'typescript';
+import path from 'path';
 import shell from 'shelljs';
+import ts from 'typescript';
 
 import LLVMCodeGen from './codegen';
 
@@ -39,7 +39,7 @@ program
 
 program.parse(process.argv);
 
-function build(...args: any[]): string {
+function build(...args: readonly any[]): string {
   const fileName = args[args.length - 1];
   const sourceFile = ts.createSourceFile(
     fileName,
@@ -73,7 +73,7 @@ function build(...args: any[]): string {
   return codeText;
 }
 
-function run(...args: any[]): void {
+function run(...args: readonly any[]): void {
   const codeText = build(...args);
   const tempFile = path.join(shell.tempdir(), 'minits.ll');
 

@@ -2,20 +2,16 @@
   "extends": ["tslint:latest", "tslint-config-prettier", "tslint-immutable"],
   "rules": {
     "max-line-length": [true, 120],
+    "max-classes-per-file": false,
     "interface-name": [true, "never-prefix"],
-
     "no-implicit-dependencies": [true, "dev"],
-
     "no-var-keyword": true,
     "no-parameter-reassignment": true,
     "typedef": [true, "call-signature"],
-
     "readonly-keyword": false,
-    "readonly-array": true,
-    "no-let": true,
+    "readonly-array": false,
     "no-delete": true,
     "no-method-signature": true,
-
     "no-mixed-interface": true
   }
 }

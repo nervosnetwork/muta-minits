@@ -324,7 +324,7 @@ export default class LLVMCodeGen {
       const initializer = this.genExpression(item.initializer!);
       const type = this.genType(item.type!);
 
-      if (this.symtab.depths() == 0) {
+      if (this.symtab.depths() === 0) {
         // Global variables
         const r = new llvm.GlobalVariable(
           this.module,

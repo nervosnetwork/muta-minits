@@ -11,7 +11,7 @@
 import llvm from 'llvm-node';
 
 class Scopes {
-  public data: Map<String, Scopes | llvm.Value>;
+  public data: Map<string, Scopes | llvm.Value>;
 
   constructor() {
     this.data = new Map();
@@ -27,44 +27,11 @@ export default class Symtab {
     this.prefix = [];
   }
 
-  private getLowScopes(scopes: Scopes, prefix: string[]): Scopes {
-    if (prefix.length === 0) {
-      return scopes;
-    }
-    const current = prefix[0];
-    const remains = prefix.slice(1);
-    const next = scopes.data.get(current);
-    if (next === undefined) {
-      const r = new Scopes();
-      this.data.data.set(current, r);
-      return r;
-    }
-    if (next instanceof llvm.Value) {
-      throw new Error('Unsupported grammar');
-    }
-    return this.getLowScopes(next as Scopes, remains);
-  }
-
-  private getLowValue(
-    scopes: Scopes,
-    prefix: string[],
-    name: string
-  ): llvm.Value | undefined {
-    const r = this.getLowScopes(scopes, prefix).data.get(name);
-    if (r === undefined) {
-      return undefined;
-    }
-    if (r instanceof Scopes) {
-      throw new Error('Unsupported grammar');
-    }
-    return r as llvm.Value;
-  }
-
-  public into(name: string) {
+  public into(name: string): void {
     this.prefix.push(name);
   }
 
-  public exit() {
+  public exit(): void {
     this.prefix.pop();
   }
 
@@ -84,5 +51,38 @@ export default class Symtab {
 
   public depths(): number {
     return this.prefix.length;
+  }
+
+  private getLowScopes(scopes: Scopes, prefix: readonly string[]): Scopes {
+    if (prefix.length === 0) {
+      return scopes;
+    }
+    const current = prefix[0];
+    const remains = prefix.slice(1);
+    const next = scopes.data.get(current);
+    if (next === undefined) {
+      const r = new Scopes();
+      this.data.data.set(current, r);
+      return r;
+    }
+    if (next instanceof llvm.Value) {
+      throw new Error('Unsupported grammar');
+    }
+    return this.getLowScopes(next as Scopes, remains);
+  }
+
+  private getLowValue(
+    scopes: Scopes,
+    prefix: readonly string[],
+    name: string
+  ): llvm.Value | undefined {
+    const r = this.getLowScopes(scopes, prefix).data.get(name);
+    if (r === undefined) {
+      return undefined;
+    }
+    if (r instanceof Scopes) {
+      throw new Error('Unsupported grammar');
+    }
+    return r as llvm.Value;
   }
 }
