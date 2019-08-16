@@ -14,11 +14,11 @@ class Scopes {
   public data: Map<String, Scopes | llvm.Value>;
 
   constructor() {
-    this.data = new Map()
+    this.data = new Map();
   }
 }
 
-export class Symtab {
+export default class Symtab {
   protected readonly data: Scopes;
   protected prefix: string[];
 
@@ -45,7 +45,11 @@ export class Symtab {
     return this.getLowScopes(next as Scopes, remains);
   }
 
-  private getLowValue(scopes: Scopes, prefix: string[], name: string): llvm.Value | undefined {
+  private getLowValue(
+    scopes: Scopes,
+    prefix: string[],
+    name: string
+  ): llvm.Value | undefined {
     const r = this.getLowScopes(scopes, prefix).data.get(name);
     if (r === undefined) {
       return undefined;
@@ -57,11 +61,11 @@ export class Symtab {
   }
 
   public into(name: string) {
-    this.prefix.push(name)
+    this.prefix.push(name);
   }
 
   public exit() {
-    this.prefix.pop()
+    this.prefix.pop();
   }
 
   public get(name: string): llvm.Value {

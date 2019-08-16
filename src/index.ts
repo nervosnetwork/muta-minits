@@ -2,27 +2,45 @@
 // [0] https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API
 // [1] https://github.com/microsoft/TypeScript/blob/master/doc/spec.md
 
-import child_process from 'child_process';
-import argv from 'commander';
+import path from 'path';
+import commander from 'commander';
+import Debug from 'debug';
 import fs from 'fs';
 import llvm from 'llvm-node';
 import ts from 'typescript';
+import shell from 'shelljs';
 
-import { LLVMCodeGen } from './codegen';
+import LLVMCodeGen from './codegen';
 
-const help = `usage: minits <command> [<args>]
-The most commonly used daze commands are:
-  build     compile packages and dependencies
-  run       compile and run ts program
+const debug = Debug('minits');
+const program = new commander.Command();
 
-Run 'minits <command> -h' for more information on a command.`;
+program.version('v0.0.1');
 
-argv.option('-o, --output <output>', 'place the output into <file>');
-argv.option('--triple <triple>', 'LLVM triple');
-argv.parse(process.argv);
+program
+  .command('build <file>')
+  .description('compile packages and dependencies')
+  .option('-o, --output <output>', 'place the output into <file>')
+  .option('-t, --triple <triple>', 'LLVM triple')
+  .action(args => {
+    const codeText = build(args);
 
-function mainBuild(): void {
-  const fileName = argv.args[argv.args.length - 1];
+    if (program.opts().output) {
+      fs.writeFileSync(program.opts().output, codeText);
+    } else {
+      process.stdout.write(codeText);
+    }
+  });
+
+program
+  .command('run <file>')
+  .description('compile and run ts program')
+  .action(args => run(args));
+
+program.parse(process.argv);
+
+function build(...args: any[]): string {
+  const fileName = args[args.length - 1];
   const sourceFile = ts.createSourceFile(
     fileName,
     fs.readFileSync(fileName).toString(),
@@ -39,51 +57,36 @@ function mainBuild(): void {
   const cg = new LLVMCodeGen();
   cg.genSourceFile(sourceFile);
 
-  const triple: string = argv.triple
-    ? argv.triple
+  const triple: string = program.opts().triple
+    ? program.opts().triple
     : llvm.config.LLVM_DEFAULT_TARGET_TRIPLE;
   const target = llvm.TargetRegistry.lookupTarget(triple);
   const m = target.createTargetMachine(triple, 'generic');
   cg.module.dataLayout = m.createDataLayout();
   cg.module.targetTriple = triple;
 
-  if (argv.output) {
-    fs.writeFileSync(argv.output, cg.genText());
-  } else {
-    process.stdout.write(cg.genText());
-  }
+  const codeText = cg.genText();
+  debug(`
+    ${codeText}
+  `);
   llvm.verifyModule(cg.module);
+  return codeText;
 }
 
-function mainRun(): void {
-  if (typeof argv.output === 'undefined') {
-    argv.output = '/tmp/minits.ll';
+function run(...args: any[]): void {
+  const codeText = build(...args);
+  const tempFile = path.join(shell.tempdir(), 'minits.ll');
+
+  fs.writeFileSync(tempFile, codeText);
+  const execResp = shell.exec(`lli ${tempFile}`, {
+    async: false
+  });
+
+  if (execResp.stderr) {
+    process.stderr.write(execResp.toString());
+  } else {
+    process.stdout.write(execResp.toString());
   }
-  mainBuild();
-  const p = child_process.spawn('lli', [argv.output]);
-  p.stdout.on('data', data => {
-    process.stdout.write(data);
-  });
-  p.stderr.on('data', data => {
-    process.stderr.write(data);
-  });
-  p.on('close', code => {
-    process.exit(code);
-  });
-}
 
-function main(): void {
-  switch (argv.args[0]) {
-    case 'build':
-      mainBuild();
-      break;
-    case 'run':
-      mainRun();
-      break;
-    default:
-      process.stdout.write(help);
-      break;
-  }
+  process.exit(execResp.code);
 }
-
-main();
