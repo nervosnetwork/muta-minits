@@ -24,7 +24,9 @@ export default class LLVMCodeGen {
   }
 
   public genSourceFile(sourceFile: ts.SourceFile): void {
-    sourceFile.forEachChild(node => this.genNode(node));
+    sourceFile.forEachChild(node => {
+      this.genNode(node);
+    });
   }
 
   public genNode(
@@ -112,7 +114,7 @@ export default class LLVMCodeGen {
   }
 
   public genBlock(node: ts.Block): void {
-    node.statements.forEach(function (this: LLVMCodeGen, b: ts.Statement): void {
+    node.statements.forEach(function(this: LLVMCodeGen, b: ts.Statement): void {
       this.genStatement(b);
     }, this);
   }
@@ -124,15 +126,13 @@ export default class LLVMCodeGen {
       case ts.SyntaxKind.Identifier:
         return this.genIdentifier(expr as ts.Identifier);
       case ts.SyntaxKind.FalseKeyword:
-        return this.genBoolean(expr as ts.BooleanLiteral)
+        return this.genBoolean(expr as ts.BooleanLiteral);
       case ts.SyntaxKind.TrueKeyword:
         return this.genBoolean(expr as ts.BooleanLiteral);
       case ts.SyntaxKind.CallExpression:
         return this.genCallExpression(expr as ts.CallExpression);
       case ts.SyntaxKind.PrefixUnaryExpression:
-        return this.genPrefixUnaryExpression(
-          expr as ts.PrefixUnaryExpression
-        );
+        return this.genPrefixUnaryExpression(expr as ts.PrefixUnaryExpression);
       case ts.SyntaxKind.PostfixUnaryExpression:
         return this.genPostfixUnaryExpression(
           expr as ts.PostfixUnaryExpression
@@ -156,7 +156,10 @@ export default class LLVMCodeGen {
   public genPrefixUnaryExpression(expr: ts.PrefixUnaryExpression): llvm.Value {
     switch (expr.operator) {
       case ts.SyntaxKind.TildeToken:
-        return this.builder.createXor(this.genExpression(expr.operand), llvm.ConstantInt.get(this.context, -1, 64));
+        return this.builder.createXor(
+          this.genExpression(expr.operand),
+          llvm.ConstantInt.get(this.context, -1, 64)
+        );
       default:
         throw new Error('Unsupported grammar');
     }
@@ -234,26 +237,54 @@ export default class LLVMCodeGen {
         return this.builder.createXor(lhs, rhs);
       case ts.SyntaxKind.AmpersandAmpersandToken: // &&
         const aaInitBlock = this.builder.getInsertBlock()!;
-        const aaNextBlock = llvm.BasicBlock.create(this.context, 'next', this.currentFunction);
-        const aaQuitBlock = llvm.BasicBlock.create(this.context, 'quit', this.currentFunction);
+        const aaNextBlock = llvm.BasicBlock.create(
+          this.context,
+          'next',
+          this.currentFunction
+        );
+        const aaQuitBlock = llvm.BasicBlock.create(
+          this.context,
+          'quit',
+          this.currentFunction
+        );
         this.builder.createCondBr(lhs, aaNextBlock, aaQuitBlock);
         this.builder.setInsertionPoint(aaNextBlock);
         this.builder.createBr(aaQuitBlock);
         this.builder.setInsertionPoint(aaQuitBlock);
-        const aaPhi = this.builder.createPhi(llvm.Type.getInt1Ty(this.context), 2);
-        aaPhi.addIncoming(llvm.ConstantInt.get(this.context, 0, 1), aaInitBlock);
+        const aaPhi = this.builder.createPhi(
+          llvm.Type.getInt1Ty(this.context),
+          2
+        );
+        aaPhi.addIncoming(
+          llvm.ConstantInt.get(this.context, 0, 1),
+          aaInitBlock
+        );
         aaPhi.addIncoming(rhs, aaNextBlock);
         return aaPhi;
       case ts.SyntaxKind.BarBarToken: // ||
         const bbInitBlock = this.builder.getInsertBlock()!;
-        const bbNextBlock = llvm.BasicBlock.create(this.context, 'next', this.currentFunction);
-        const bbQuitBlock = llvm.BasicBlock.create(this.context, 'quit', this.currentFunction);
+        const bbNextBlock = llvm.BasicBlock.create(
+          this.context,
+          'next',
+          this.currentFunction
+        );
+        const bbQuitBlock = llvm.BasicBlock.create(
+          this.context,
+          'quit',
+          this.currentFunction
+        );
         this.builder.createCondBr(lhs, bbQuitBlock, bbNextBlock);
         this.builder.setInsertionPoint(bbNextBlock);
         this.builder.createBr(bbQuitBlock);
         this.builder.setInsertionPoint(bbQuitBlock);
-        const bbPhi = this.builder.createPhi(llvm.Type.getInt1Ty(this.context), 2);
-        bbPhi.addIncoming(llvm.ConstantInt.get(this.context, 1, 1), bbInitBlock);
+        const bbPhi = this.builder.createPhi(
+          llvm.Type.getInt1Ty(this.context),
+          2
+        );
+        bbPhi.addIncoming(
+          llvm.ConstantInt.get(this.context, 1, 1),
+          bbInitBlock
+        );
         bbPhi.addIncoming(rhs, bbNextBlock);
         return bbPhi;
       case ts.SyntaxKind.EqualsToken: // =
@@ -285,7 +316,7 @@ export default class LLVMCodeGen {
   }
 
   public genVariableStatement(node: ts.VariableStatement): void {
-    node.declarationList.declarations.forEach(function (
+    node.declarationList.declarations.forEach(function(
       this: LLVMCodeGen,
       item
     ): llvm.Value {
@@ -295,7 +326,14 @@ export default class LLVMCodeGen {
 
       if (this.symtab.depths() == 0) {
         // Global variables
-        const r = new llvm.GlobalVariable(this.module, type, false, llvm.LinkageTypes.ExternalLinkage, initializer as llvm.Constant, name);
+        const r = new llvm.GlobalVariable(
+          this.module,
+          type,
+          false,
+          llvm.LinkageTypes.ExternalLinkage,
+          initializer as llvm.Constant,
+          name
+        );
         this.symtab.set(name, r);
         return r;
       } else {
@@ -306,7 +344,7 @@ export default class LLVMCodeGen {
         return alloca;
       }
     },
-      this);
+    this);
   }
 
   public genExpressionStatement(node: ts.ExpressionStatement): llvm.Value {
@@ -349,7 +387,7 @@ export default class LLVMCodeGen {
       this.builder.setInsertionPoint(body);
       this.genBlock(node.body);
     }
-    this.symtab.exit()
+    this.symtab.exit();
     return func;
   }
 

@@ -18,7 +18,7 @@ class Scopes {
   }
 }
 
-export class Symtab {
+export default class Symtab {
   protected readonly data: Scopes;
   protected prefix: string[];
 
