@@ -458,7 +458,9 @@ export default class LLVMCodeGen {
     this.genStatement(node.statement);
 
     // Loop End
-    this.genExpression(node.incrementor!);
+    if (node.incrementor) {
+      this.genExpression(node.incrementor);
+    }
     const loopCond2 = this.genExpression(node.condition!);
     this.builder.createCondBr(loopCond2, loopBody, loopQuit);
     this.builder.setInsertionPoint(loopQuit);
