@@ -61,6 +61,8 @@ export default class LLVMCodeGen {
         return this.genStatement(node as ts.Statement);
       case ts.SyntaxKind.IfStatement:
         return this.genStatement(node as ts.Statement);
+      case ts.SyntaxKind.ForStatement:
+        return this.genStatement(node as ts.Statement);
       case ts.SyntaxKind.ReturnStatement:
         return this.genStatement(node as ts.Statement);
       case ts.SyntaxKind.FunctionDeclaration:
@@ -324,8 +326,14 @@ export default class LLVMCodeGen {
   public genVariableDeclaration(node: ts.VariableDeclaration): llvm.Value {
     const name = node.name.getText();
     const initializer = this.genExpression(node.initializer!);
-    const type = this.genType(node.type!);
-
+    const type = (() => {
+      // Type inferences
+      if (node.type) {
+        return this.genType(node.type);
+      } else {
+        return initializer.type;
+      }
+    })();
     if (this.symtab.depths() === 0) {
       // Global variables
       const r = new llvm.GlobalVariable(
