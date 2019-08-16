@@ -114,9 +114,9 @@ export default class LLVMCodeGen {
   }
 
   public genBlock(node: ts.Block): void {
-    node.statements.forEach(function(this: LLVMCodeGen, b: ts.Statement): void {
+    node.statements.forEach(b => {
       this.genStatement(b);
-    }, this);
+    });
   }
 
   public genExpression(expr: ts.Expression): llvm.Value {
@@ -172,18 +172,22 @@ export default class LLVMCodeGen {
     const lhs = this.genExpression(e);
     switch (expr.operator) {
       case ts.SyntaxKind.PlusPlusToken:
-        const rpp = this.builder.createAdd(
+        const ppR = this.builder.createAdd(
           lhs,
           llvm.ConstantInt.get(this.context, 1, 64)
         );
-        this.symtab.set(e.getText(), rpp);
+        const ppPtr = this.symtab.get(e.getText());
+        this.builder.createStore(ppR, ppPtr);
+        this.symtab.set(e.getText(), ppPtr);
         return lhs;
       case ts.SyntaxKind.MinusMinusToken:
-        const rmm = this.builder.createSub(
+        const mmR = this.builder.createSub(
           lhs,
           llvm.ConstantInt.get(this.context, 1, 64)
         );
-        this.symtab.set(e.getText(), rmm);
+        const mmPtr = this.symtab.get(e.getText());
+        this.builder.createStore(mmR, mmPtr);
+        this.symtab.set(e.getText(), mmPtr);
         return lhs;
       default:
         throw new Error('Unsupported grammar');
@@ -308,6 +312,8 @@ export default class LLVMCodeGen {
         return this.genExpressionStatement(node as ts.ExpressionStatement);
       case ts.SyntaxKind.IfStatement:
         return this.genIfStatement(node as ts.IfStatement);
+      case ts.SyntaxKind.ForStatement:
+        return this.genForStatement(node as ts.ForStatement);
       case ts.SyntaxKind.ReturnStatement:
         return this.genReturnStatement(node as ts.ReturnStatement);
       default:
@@ -315,36 +321,36 @@ export default class LLVMCodeGen {
     }
   }
 
-  public genVariableStatement(node: ts.VariableStatement): void {
-    node.declarationList.declarations.forEach(function(
-      this: LLVMCodeGen,
-      item
-    ): llvm.Value {
-      const name = item.name.getText();
-      const initializer = this.genExpression(item.initializer!);
-      const type = this.genType(item.type!);
+  public genVariableDeclaration(node: ts.VariableDeclaration): llvm.Value {
+    const name = node.name.getText();
+    const initializer = this.genExpression(node.initializer!);
+    const type = this.genType(node.type!);
 
-      if (this.symtab.depths() === 0) {
-        // Global variables
-        const r = new llvm.GlobalVariable(
-          this.module,
-          type,
-          false,
-          llvm.LinkageTypes.ExternalLinkage,
-          initializer as llvm.Constant,
-          name
-        );
-        this.symtab.set(name, r);
-        return r;
-      } else {
-        // Locale variables
-        const alloca = this.builder.createAlloca(type, undefined, name);
-        this.builder.createStore(initializer, alloca);
-        this.symtab.set(name, alloca);
-        return alloca;
-      }
-    },
-    this);
+    if (this.symtab.depths() === 0) {
+      // Global variables
+      const r = new llvm.GlobalVariable(
+        this.module,
+        type,
+        false,
+        llvm.LinkageTypes.ExternalLinkage,
+        initializer as llvm.Constant,
+        name
+      );
+      this.symtab.set(name, r);
+      return r;
+    } else {
+      // Locale variables
+      const alloca = this.builder.createAlloca(type, undefined, name);
+      this.builder.createStore(initializer, alloca);
+      this.symtab.set(name, alloca);
+      return alloca;
+    }
+  }
+
+  public genVariableStatement(node: ts.VariableStatement): void {
+    node.declarationList.declarations.forEach(item => {
+      this.genVariableDeclaration(item);
+    });
   }
 
   public genExpressionStatement(node: ts.ExpressionStatement): llvm.Value {
@@ -395,17 +401,17 @@ export default class LLVMCodeGen {
     const condition = this.genExpression(node.expression);
     const thenBlock = llvm.BasicBlock.create(
       this.context,
-      'then',
+      'if.then',
       this.currentFunction
     );
     const elseBlock = llvm.BasicBlock.create(
       this.context,
-      'else',
+      'if.else',
       this.currentFunction
     );
     const quitBlock = llvm.BasicBlock.create(
       this.context,
-      'quit',
+      'if.quit',
       this.currentFunction
     );
     this.builder.createCondBr(condition, thenBlock, elseBlock);
@@ -423,5 +429,40 @@ export default class LLVMCodeGen {
       this.builder.createBr(quitBlock);
     }
     this.builder.setInsertionPoint(quitBlock);
+  }
+
+  public genForStatement(node: ts.ForStatement): void {
+    if (node.initializer) {
+      if (ts.isVariableDeclarationList(node.initializer)) {
+        node.initializer.declarations.forEach(item => {
+          this.genVariableDeclaration(item);
+        });
+      } else {
+        throw new Error('Unsupported grammar');
+      }
+    }
+    const loopBody = llvm.BasicBlock.create(
+      this.context,
+      'loop.body',
+      this.currentFunction
+    );
+    const loopQuit = llvm.BasicBlock.create(
+      this.context,
+      'loop.quit',
+      this.currentFunction
+    );
+    // Loop Header
+    const loopCond1 = this.genExpression(node.condition!);
+    this.builder.createCondBr(loopCond1, loopBody, loopQuit);
+    this.builder.setInsertionPoint(loopBody);
+    this.genStatement(node.statement);
+
+    // Loop End
+    if (node.incrementor) {
+      this.genExpression(node.incrementor);
+    }
+    const loopCond2 = this.genExpression(node.condition!);
+    this.builder.createCondBr(loopCond2, loopBody, loopQuit);
+    this.builder.setInsertionPoint(loopQuit);
   }
 }
