@@ -1,7 +1,12 @@
 import llvm from 'llvm-node';
 import ts from 'typescript';
+import Debug from 'debug';
 
 import Symtab from './symtab';
+
+const debug = Debug('minits:codegen');
+
+debug('codegen');
 
 export default class LLVMCodeGen {
   public readonly builder: llvm.IRBuilder;
@@ -68,7 +73,7 @@ export default class LLVMCodeGen {
       case ts.SyntaxKind.FunctionDeclaration:
         return this.genFunctionDeclaration(node as ts.FunctionDeclaration);
       default:
-        throw new Error('Unsupported grammar');
+        throw new Error('Unsupported node');
     }
   }
 
@@ -91,7 +96,7 @@ export default class LLVMCodeGen {
       case ts.SyntaxKind.TrueKeyword:
         return llvm.ConstantInt.get(this.context, 1, 1);
       default:
-        throw new Error('Unsupported grammar');
+        throw new Error('Unsupported boolean value');
     }
   }
 
@@ -111,7 +116,7 @@ export default class LLVMCodeGen {
       case ts.SyntaxKind.NumberKeyword:
         return llvm.Type.getInt64Ty(this.context);
       default:
-        throw new Error('Unsupported grammar');
+        throw new Error('Unsupported type');
     }
   }
 
@@ -142,7 +147,7 @@ export default class LLVMCodeGen {
       case ts.SyntaxKind.BinaryExpression:
         return this.genBinaryExpression(expr as ts.BinaryExpression);
       default:
-        throw new Error('Unsupported grammar');
+        throw new Error('Unsupported expression');
     }
   }
 
@@ -163,7 +168,7 @@ export default class LLVMCodeGen {
           llvm.ConstantInt.get(this.context, -1, 64)
         );
       default:
-        throw new Error('Unsupported grammar');
+        throw new Error('Unsupported prefix unary expression');
     }
   }
 
@@ -192,18 +197,14 @@ export default class LLVMCodeGen {
         this.symtab.set(e.getText(), mmPtr);
         return lhs;
       default:
-        throw new Error('Unsupported grammar');
+        throw new Error('Unsupported post unary expression');
     }
   }
 
   public genBinaryExpression(expr: ts.BinaryExpression): llvm.Value {
-    const lhs = (() => {
-      if (expr.operatorToken.kind !== ts.SyntaxKind.EqualsToken) {
-        return this.genExpression(expr.left);
-      } else {
-        return this.symtab.get(expr.left.getText());
-      }
-    })();
+    const lhs = isOperatorEqualsToken(expr.operatorToken.kind)
+      ? this.symtab.get(expr.left.getText())
+      : this.genExpression(expr.left);
     const rhs = this.genExpression(expr.right);
 
     switch (expr.operatorToken.kind) {
@@ -225,22 +226,58 @@ export default class LLVMCodeGen {
         return this.builder.createICmpNE(lhs, rhs);
       case ts.SyntaxKind.PlusToken: // +
         return this.builder.createAdd(lhs, rhs);
+      case ts.SyntaxKind.PlusEqualsToken: // +=
+        return this.variableRestore(lhs, rhs, (l, r) =>
+          this.builder.createAdd(l, r)
+        );
       case ts.SyntaxKind.MinusToken: // -
         return this.builder.createSub(lhs, rhs);
+      case ts.SyntaxKind.MinusEqualsToken: // -=
+        return this.variableRestore(lhs, rhs, (l, r) =>
+          this.builder.createSub(l, r)
+        );
       case ts.SyntaxKind.AsteriskToken: // *
         return this.builder.createMul(lhs, rhs);
+      case ts.SyntaxKind.AsteriskEqualsToken: // *=
+        return this.variableRestore(lhs, rhs, (l, r) =>
+          this.builder.createMul(l, r)
+        );
       case ts.SyntaxKind.SlashToken: // /
         return this.builder.createSDiv(lhs, rhs);
+      case ts.SyntaxKind.SlashEqualsToken: // /=
+        return this.variableRestore(lhs, rhs, (l, r) =>
+          this.builder.createSDiv(l, r)
+        );
       case ts.SyntaxKind.PercentToken: // %
         return this.builder.createSRem(lhs, rhs);
+      case ts.SyntaxKind.PercentEqualsToken:
+        return this.variableRestore(lhs, rhs, (l, r) =>
+          this.builder.createSRem(l, r)
+        );
       case ts.SyntaxKind.LessThanLessThanToken: // <<
         return this.builder.createShl(lhs, rhs);
+      case ts.SyntaxKind.LessThanLessThanEqualsToken: // <<=
+        return this.variableRestore(lhs, rhs, (l, r) =>
+          this.builder.createShl(l, r)
+        );
       case ts.SyntaxKind.AmpersandToken: // &
         return this.builder.createAnd(lhs, rhs);
+      case ts.SyntaxKind.AmpersandEqualsToken: // &=
+        return this.variableRestore(lhs, rhs, (l, r) =>
+          this.builder.createAnd(l, r)
+        );
       case ts.SyntaxKind.BarToken: // |
         return this.builder.createOr(lhs, rhs);
+      case ts.SyntaxKind.BarEqualsToken: // |=
+        return this.variableRestore(lhs, rhs, (l, r) =>
+          this.builder.createOr(l, r)
+        );
       case ts.SyntaxKind.CaretToken: // ^
         return this.builder.createXor(lhs, rhs);
+      case ts.SyntaxKind.CaretEqualsToken: // ^=
+        return this.variableRestore(lhs, rhs, (l, r) =>
+          this.builder.createXor(l, r)
+        );
       case ts.SyntaxKind.AmpersandAmpersandToken: // &&
         const aaInitBlock = this.builder.getInsertBlock()!;
         const aaNextBlock = llvm.BasicBlock.create(
@@ -297,10 +334,18 @@ export default class LLVMCodeGen {
         return this.builder.createStore(rhs, lhs);
       case ts.SyntaxKind.GreaterThanGreaterThanToken: // >>
         return this.builder.createAShr(lhs, rhs);
+      case ts.SyntaxKind.GreaterThanGreaterThanEqualsToken: // >>=
+        return this.variableRestore(lhs, rhs, (l, r) =>
+          this.builder.createAShr(l, r)
+        );
       case ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken: // >>>
         return this.builder.createLShr(lhs, rhs);
+      case ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken: // >>>=
+        return this.variableRestore(lhs, rhs, (l, r) =>
+          this.builder.createLShr(l, r)
+        );
       default:
-        throw new Error('Unsupported grammar');
+        throw new Error('Unsupported binaryexpression');
     }
   }
 
@@ -319,7 +364,7 @@ export default class LLVMCodeGen {
       case ts.SyntaxKind.ReturnStatement:
         return this.genReturnStatement(node as ts.ReturnStatement);
       default:
-        throw new Error('Unsupported grammar');
+        throw new Error('Unsupported statement');
     }
   }
 
@@ -446,7 +491,7 @@ export default class LLVMCodeGen {
           this.genVariableDeclaration(item);
         });
       } else {
-        throw new Error('Unsupported grammar');
+        throw new Error('Unsupported for statement');
       }
     }
     const loopBody = llvm.BasicBlock.create(
@@ -472,5 +517,38 @@ export default class LLVMCodeGen {
     const loopCond2 = this.genExpression(node.condition!);
     this.builder.createCondBr(loopCond2, loopBody, loopQuit);
     this.builder.setInsertionPoint(loopQuit);
+  }
+
+  public variableRestore(
+    lhs: llvm.Value,
+    rhs: llvm.Value,
+    cb: (lhs: llvm.Value, rhs: llvm.Value) => llvm.Value
+  ): llvm.Value {
+    const realLHS = this.builder.createLoad(lhs);
+    const realRHS = rhs.type.isPointerTy() ? this.builder.createLoad(rhs) : rhs;
+
+    const result = cb(realLHS, realRHS);
+    this.builder.createStore(result, lhs);
+    return lhs;
+  }
+}
+
+function isOperatorEqualsToken(kind: ts.SyntaxKind): boolean {
+  switch (kind) {
+    case ts.SyntaxKind.EqualsToken:
+    case ts.SyntaxKind.BarEqualsToken:
+    case ts.SyntaxKind.PlusEqualsToken:
+    case ts.SyntaxKind.CaretEqualsToken:
+    case ts.SyntaxKind.MinusEqualsToken:
+    case ts.SyntaxKind.SlashEqualsToken:
+    case ts.SyntaxKind.PercentEqualsToken:
+    case ts.SyntaxKind.AsteriskEqualsToken:
+    case ts.SyntaxKind.AmpersandEqualsToken:
+    case ts.SyntaxKind.LessThanLessThanEqualsToken:
+    case ts.SyntaxKind.GreaterThanGreaterThanEqualsToken:
+    case ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken:
+      return true;
+    default:
+      return false;
   }
 }
