@@ -15,6 +15,7 @@ export default class LLVMCodeGen {
   public readonly symtab: Symtab;
 
   private currentFunction: llvm.Function | undefined;
+  private currentType: ts.TypeNode | undefined;
 
   constructor() {
     this.context = new llvm.LLVMContext();
@@ -22,6 +23,7 @@ export default class LLVMCodeGen {
     this.builder = new llvm.IRBuilder(this.context);
     this.symtab = new Symtab();
     this.currentFunction = undefined;
+    this.currentType = undefined;
   }
 
   public genText(): string {
@@ -136,6 +138,8 @@ export default class LLVMCodeGen {
         return this.genBoolean(expr as ts.BooleanLiteral);
       case ts.SyntaxKind.TrueKeyword:
         return this.genBoolean(expr as ts.BooleanLiteral);
+      case ts.SyntaxKind.ArrayLiteralExpression:
+        return this.genArrayLiteral(expr as ts.ArrayLiteralExpression);
       case ts.SyntaxKind.CallExpression:
         return this.genCallExpression(expr as ts.CallExpression);
       case ts.SyntaxKind.PrefixUnaryExpression:
@@ -149,6 +153,36 @@ export default class LLVMCodeGen {
       default:
         throw new Error('Unsupported expression');
     }
+  }
+
+  // [0] https://stackoverflow.com/questions/38548680/confused-about-llvm-arrays
+  // [1] https://stackoverflow.com/questions/33003928/allow-llvm-generate-code-to-access-a-global-array
+  public genArrayLiteral(expr: ts.ArrayLiteralExpression): llvm.Value {
+    const length = expr.elements.length;
+    const elementType = (() => {
+      if (length === 0) {
+        return this.genType(
+          (this.currentType! as ts.ArrayTypeNode).elementType
+        );
+      } else {
+        return this.genExpression(expr.elements[0]).type;
+      }
+    })();
+    const arrayType = llvm.ArrayType.get(elementType, length);
+    const arrayPtr = this.builder.createAlloca(
+      arrayType,
+      llvm.ConstantInt.get(this.context, length, 64)
+    );
+
+    expr.elements.forEach((item, i) => {
+      const v = this.genExpression(item);
+      const ptr = this.builder.createInBoundsGEP(arrayPtr, [
+        llvm.ConstantInt.get(this.context, 0, 64),
+        llvm.ConstantInt.get(this.context, i, 64)
+      ]);
+      this.builder.createStore(v, ptr);
+    });
+    return arrayPtr;
   }
 
   public genCallExpression(expr: ts.CallExpression): llvm.Value {
@@ -384,14 +418,8 @@ export default class LLVMCodeGen {
   public genVariableDeclaration(node: ts.VariableDeclaration): llvm.Value {
     const name = node.name.getText();
     const initializer = this.genExpression(node.initializer!);
-    const type = (() => {
-      // Type inferences
-      if (node.type) {
-        return this.genType(node.type);
-      } else {
-        return initializer.type;
-      }
-    })();
+    this.currentType = node.type;
+    const type = initializer.type;
     if (this.symtab.depths() === 0) {
       // Global variables
       const r = new llvm.GlobalVariable(
