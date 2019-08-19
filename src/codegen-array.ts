@@ -55,10 +55,12 @@ export function genArrayElementAccess(
   node: ts.ElementAccessExpression
 ): llvm.Value {
   const identifier = cgen.genExpression(node.expression);
-  const argumentExpression = cgen.genExpression(node.argumentExpression);
+  const argumentExpression = cgen.genAutoDereference(
+    cgen.genExpression(node.argumentExpression)
+  );
   const ptr = cgen.builder.createInBoundsGEP(identifier, [
     llvm.ConstantInt.get(cgen.context, 0, 64),
     argumentExpression
   ]);
-  return cgen.builder.createLoad(ptr);
+  return ptr;
 }

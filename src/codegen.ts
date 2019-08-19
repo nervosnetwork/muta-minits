@@ -73,16 +73,14 @@ export default class LLVMCodeGen {
   }
 
   public genIdentifier(node: ts.Identifier): llvm.Value {
-    const p = this.symtab.get(node.getText());
-    if (!p.type.isPointerTy()) {
-      return p;
-    } else {
-      const real = p.type as llvm.PointerType;
-      if (real.elementType.isArrayTy()) {
-        return p;
-      }
-      return this.builder.createLoad(p, node.getText());
+    return this.symtab.get(node.getText());
+  }
+
+  public genAutoDereference(node: llvm.Value): llvm.Value {
+    if (node.type.isPointerTy()) {
+      return this.builder.createLoad(node);
     }
+    return node;
   }
 
   public genType(type: ts.TypeNode): llvm.Type {
@@ -152,7 +150,7 @@ export default class LLVMCodeGen {
     switch (expr.operator) {
       case ts.SyntaxKind.TildeToken:
         return this.builder.createXor(
-          this.genExpression(expr.operand),
+          this.genAutoDereference(this.genExpression(expr.operand)),
           llvm.ConstantInt.get(this.context, -1, 64)
         );
       default:
@@ -167,33 +165,46 @@ export default class LLVMCodeGen {
     const lhs = this.genExpression(e);
     switch (expr.operator) {
       case ts.SyntaxKind.PlusPlusToken:
-        const ppR = this.builder.createAdd(
-          lhs,
-          llvm.ConstantInt.get(this.context, 1, 64)
-        );
-        const ppPtr = this.symtab.get(e.getText());
-        this.builder.createStore(ppR, ppPtr);
-        this.symtab.set(e.getText(), ppPtr);
-        return lhs;
+        return this.genPostfixUnaryExpressionPlusPlus(lhs, e.getText());
       case ts.SyntaxKind.MinusMinusToken:
-        const mmR = this.builder.createSub(
-          lhs,
-          llvm.ConstantInt.get(this.context, 1, 64)
-        );
-        const mmPtr = this.symtab.get(e.getText());
-        this.builder.createStore(mmR, mmPtr);
-        this.symtab.set(e.getText(), mmPtr);
-        return lhs;
-      default:
-        throw new Error('Unsupported post unary expression');
+        return this.genPostfixUnaryExpressionMinusMinus(lhs, e.getText());
     }
+    return lhs;
+  }
+
+  public genPostfixUnaryExpressionPlusPlus(
+    node: llvm.Value,
+    name: string
+  ): llvm.Value {
+    const raw = this.builder.createLoad(node);
+    const one = llvm.ConstantInt.get(this.context, 1, 64);
+    const r = this.builder.createAdd(raw, one);
+    const ptr = this.symtab.get(name);
+    this.builder.createStore(r, ptr);
+    return raw;
+  }
+
+  public genPostfixUnaryExpressionMinusMinus(
+    node: llvm.Value,
+    name: string
+  ): llvm.Value {
+    const raw = this.builder.createLoad(node);
+    const one = llvm.ConstantInt.get(this.context, 1, 64);
+    const r = this.builder.createSub(raw, one);
+    const ptr = this.symtab.get(name);
+    this.builder.createStore(r, ptr);
+    return raw;
   }
 
   public genBinaryExpression(expr: ts.BinaryExpression): llvm.Value {
-    const lhs = AssignmentOperator.includes(expr.operatorToken.kind)
-      ? this.symtab.get(expr.left.getText())
-      : this.genExpression(expr.left);
-    const rhs = this.genExpression(expr.right);
+    const lhs = (() => {
+      const val = this.genExpression(expr.left);
+      if (AssignmentOperator.includes(expr.operatorToken.kind)) {
+        return val;
+      }
+      return this.genAutoDereference(val);
+    })();
+    const rhs = this.genAutoDereference(this.genExpression(expr.right));
 
     switch (expr.operatorToken.kind) {
       case ts.SyntaxKind.LessThanToken: // <
@@ -385,7 +396,9 @@ export default class LLVMCodeGen {
 
   public genReturnStatement(node: ts.ReturnStatement): llvm.Value {
     if (node.expression) {
-      return this.builder.createRet(this.genExpression(node.expression));
+      return this.builder.createRet(
+        this.genAutoDereference(this.genExpression(node.expression))
+      );
     } else {
       return this.builder.createRetVoid();
     }

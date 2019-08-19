@@ -19,8 +19,13 @@ def cmppath(path: str):
         if e.is_dir():
             cmppath(e.path)
             continue
-        compare(os.path.abspath(e.path))
-        print('[v]', e.path)
+        try:
+            compare(os.path.abspath(e.path))
+        except Exception as err:
+            print('[x]', e.path, err)
+            break
+        else:
+            print('[v]', e.path)
 
 
 def main():
