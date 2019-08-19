@@ -1,5 +1,7 @@
-let a: number = 10;
+let a: number = 1;
+let b: number[] = [2, 3];
 
 function main(): number {
-    return a + 10;
+    let c = 4;
+    return a + b[0] + c;
 }

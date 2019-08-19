@@ -2,6 +2,8 @@ import Debug from 'debug';
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
+import { genArrayElementAccess, genArrayLiteral } from './codegen-array';
+import { genVariableDeclaration } from './codegen-var-decl';
 import Symtab from './symtab';
 
 const debug = Debug('minits:codegen');
@@ -14,8 +16,8 @@ export default class LLVMCodeGen {
   public readonly module: llvm.Module;
   public readonly symtab: Symtab;
 
-  private currentFunction: llvm.Function | undefined;
-  private currentType: ts.TypeNode | undefined;
+  public currentFunction: llvm.Function | undefined;
+  public currentType: ts.TypeNode | undefined;
 
   constructor() {
     this.context = new llvm.LLVMContext();
@@ -32,51 +34,19 @@ export default class LLVMCodeGen {
 
   public genSourceFile(sourceFile: ts.SourceFile): void {
     sourceFile.forEachChild(node => {
-      this.genNode(node);
+      switch (node.kind) {
+        case ts.SyntaxKind.EndOfFileToken:
+          return;
+        case ts.SyntaxKind.VariableStatement:
+          this.genVariableStatement(node as ts.VariableStatement);
+          break;
+        case ts.SyntaxKind.FunctionDeclaration:
+          this.genFunctionDeclaration(node as ts.FunctionDeclaration);
+          break;
+        default:
+          throw new Error('Unsupported grammar');
+      }
     });
-  }
-
-  public genNode(
-    node: ts.Node
-  ): llvm.Constant | llvm.Type | llvm.Value | undefined | void {
-    switch (node.kind) {
-      case ts.SyntaxKind.EndOfFileToken:
-        return;
-      case ts.SyntaxKind.NumericLiteral:
-        return this.genNumeric(node as ts.NumericLiteral);
-      case ts.SyntaxKind.Identifier:
-        return this.genIdentifier(node as ts.Identifier);
-      case ts.SyntaxKind.FalseKeyword:
-        return this.genBoolean(node as ts.BooleanLiteral);
-      case ts.SyntaxKind.TrueKeyword:
-        return this.genBoolean(node as ts.BooleanLiteral);
-      case ts.SyntaxKind.CallExpression:
-        return this.genCallExpression(node as ts.CallExpression);
-      case ts.SyntaxKind.BooleanKeyword:
-        return this.genType(node as ts.TypeNode);
-      case ts.SyntaxKind.NumberKeyword:
-        return this.genType(node as ts.TypeNode);
-      case ts.SyntaxKind.PostfixUnaryExpression:
-        return this.genExpression(node as ts.PostfixUnaryExpression);
-      case ts.SyntaxKind.BinaryExpression:
-        return this.genBinaryExpression(node as ts.BinaryExpression);
-      case ts.SyntaxKind.Block:
-        return this.genStatement(node as ts.Block);
-      case ts.SyntaxKind.VariableStatement:
-        return this.genStatement(node as ts.Statement);
-      case ts.SyntaxKind.ExpressionStatement:
-        return this.genStatement(node as ts.Statement);
-      case ts.SyntaxKind.IfStatement:
-        return this.genStatement(node as ts.Statement);
-      case ts.SyntaxKind.ForStatement:
-        return this.genStatement(node as ts.Statement);
-      case ts.SyntaxKind.ReturnStatement:
-        return this.genStatement(node as ts.Statement);
-      case ts.SyntaxKind.FunctionDeclaration:
-        return this.genFunctionDeclaration(node as ts.FunctionDeclaration);
-      default:
-        throw new Error('Unsupported node');
-    }
   }
 
   public genNumeric(node: ts.NumericLiteral): llvm.ConstantInt {
@@ -104,10 +74,14 @@ export default class LLVMCodeGen {
 
   public genIdentifier(node: ts.Identifier): llvm.Value {
     const p = this.symtab.get(node.getText());
-    if (p.type.isPointerTy()) {
-      return this.builder.createLoad(p, node.getText());
-    } else {
+    if (!p.type.isPointerTy()) {
       return p;
+    } else {
+      const real = p.type as llvm.PointerType;
+      if (real.elementType.isArrayTy()) {
+        return p;
+      }
+      return this.builder.createLoad(p, node.getText());
     }
   }
 
@@ -157,44 +131,12 @@ export default class LLVMCodeGen {
     }
   }
 
-  // [0] https://stackoverflow.com/questions/38548680/confused-about-llvm-arrays
-  // [1] https://stackoverflow.com/questions/33003928/allow-llvm-generate-code-to-access-a-global-array
-  public genArrayLiteral(expr: ts.ArrayLiteralExpression): llvm.Value {
-    const length = expr.elements.length;
-    const elementType = (() => {
-      if (length === 0) {
-        return this.genType(
-          (this.currentType! as ts.ArrayTypeNode).elementType
-        );
-      } else {
-        return this.genExpression(expr.elements[0]).type;
-      }
-    })();
-    const arrayType = llvm.ArrayType.get(elementType, length);
-    const arrayPtr = this.builder.createAlloca(
-      arrayType,
-      llvm.ConstantInt.get(this.context, length, 64)
-    );
-
-    expr.elements.forEach((item, i) => {
-      const v = this.genExpression(item);
-      const ptr = this.builder.createInBoundsGEP(arrayPtr, [
-        llvm.ConstantInt.get(this.context, 0, 64),
-        llvm.ConstantInt.get(this.context, i, 64)
-      ]);
-      this.builder.createStore(v, ptr);
-    });
-    return arrayPtr;
+  public genArrayLiteral(node: ts.ArrayLiteralExpression): llvm.Value {
+    return genArrayLiteral(this, node);
   }
 
-  public genElementAccess(expr: ts.ElementAccessExpression): llvm.Value {
-    const identifier = this.genExpression(expr.expression);
-    const argumentExpression = this.genExpression(expr.argumentExpression);
-    const ptr = this.builder.createInBoundsGEP(identifier, [
-      llvm.ConstantInt.get(this.context, 0, 64),
-      argumentExpression
-    ]);
-    return this.builder.createLoad(ptr);
+  public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
+    return genArrayElementAccess(this, node);
   }
 
   public genCallExpression(expr: ts.CallExpression): llvm.Value {
@@ -428,29 +370,7 @@ export default class LLVMCodeGen {
   }
 
   public genVariableDeclaration(node: ts.VariableDeclaration): llvm.Value {
-    const name = node.name.getText();
-    const initializer = this.genExpression(node.initializer!);
-    this.currentType = node.type;
-    const type = initializer.type;
-    if (this.symtab.depths() === 0) {
-      // Global variables
-      const r = new llvm.GlobalVariable(
-        this.module,
-        type,
-        false,
-        llvm.LinkageTypes.ExternalLinkage,
-        initializer as llvm.Constant,
-        name
-      );
-      this.symtab.set(name, r);
-      return r;
-    } else {
-      // Locale variables
-      const alloca = this.builder.createAlloca(type, undefined, name);
-      this.builder.createStore(initializer, alloca);
-      this.symtab.set(name, alloca);
-      return alloca;
-    }
+    return genVariableDeclaration(this, node);
   }
 
   public genVariableStatement(node: ts.VariableStatement): void {
