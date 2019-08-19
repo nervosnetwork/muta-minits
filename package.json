@@ -9,7 +9,7 @@
   "license": "MIT",
   "keywords": [],
   "scripts": {
-    "start": "npm run build && DEBUG=minits node ./build/main/index.js",
+    "start": "npm run build && DEBUG=minits:* node ./build/main/index.js",
     "describe": "npm-scripts-info",
     "build": "run-s clean && run-p build:*",
     "build:main": "tsc -p tsconfig.json",
