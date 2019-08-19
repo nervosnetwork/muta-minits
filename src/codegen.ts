@@ -140,6 +140,8 @@ export default class LLVMCodeGen {
         return this.genBoolean(expr as ts.BooleanLiteral);
       case ts.SyntaxKind.ArrayLiteralExpression:
         return this.genArrayLiteral(expr as ts.ArrayLiteralExpression);
+      case ts.SyntaxKind.ElementAccessExpression:
+        return this.genElementAccess(expr as ts.ElementAccessExpression);
       case ts.SyntaxKind.CallExpression:
         return this.genCallExpression(expr as ts.CallExpression);
       case ts.SyntaxKind.PrefixUnaryExpression:
@@ -183,6 +185,16 @@ export default class LLVMCodeGen {
       this.builder.createStore(v, ptr);
     });
     return arrayPtr;
+  }
+
+  public genElementAccess(expr: ts.ElementAccessExpression): llvm.Value {
+    const identifier = this.genExpression(expr.expression);
+    const argumentExpression = this.genExpression(expr.argumentExpression);
+    const ptr = this.builder.createInBoundsGEP(identifier, [
+      llvm.ConstantInt.get(this.context, 0, 64),
+      argumentExpression
+    ]);
+    return this.builder.createLoad(ptr);
   }
 
   public genCallExpression(expr: ts.CallExpression): llvm.Value {
