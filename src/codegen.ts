@@ -1,6 +1,6 @@
+import Debug from 'debug';
 import llvm from 'llvm-node';
 import ts from 'typescript';
-import Debug from 'debug';
 
 import Symtab from './symtab';
 
@@ -202,7 +202,7 @@ export default class LLVMCodeGen {
   }
 
   public genBinaryExpression(expr: ts.BinaryExpression): llvm.Value {
-    const lhs = isOperatorEqualsToken(expr.operatorToken.kind)
+    const lhs = AssignmentOperator.includes(expr.operatorToken.kind)
       ? this.symtab.get(expr.left.getText())
       : this.genExpression(expr.left);
     const rhs = this.genExpression(expr.right);
@@ -227,55 +227,55 @@ export default class LLVMCodeGen {
       case ts.SyntaxKind.PlusToken: // +
         return this.builder.createAdd(lhs, rhs);
       case ts.SyntaxKind.PlusEqualsToken: // +=
-        return this.variableRestore(lhs, rhs, (l, r) =>
+        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
           this.builder.createAdd(l, r)
         );
       case ts.SyntaxKind.MinusToken: // -
         return this.builder.createSub(lhs, rhs);
       case ts.SyntaxKind.MinusEqualsToken: // -=
-        return this.variableRestore(lhs, rhs, (l, r) =>
+        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
           this.builder.createSub(l, r)
         );
       case ts.SyntaxKind.AsteriskToken: // *
         return this.builder.createMul(lhs, rhs);
       case ts.SyntaxKind.AsteriskEqualsToken: // *=
-        return this.variableRestore(lhs, rhs, (l, r) =>
+        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
           this.builder.createMul(l, r)
         );
       case ts.SyntaxKind.SlashToken: // /
         return this.builder.createSDiv(lhs, rhs);
       case ts.SyntaxKind.SlashEqualsToken: // /=
-        return this.variableRestore(lhs, rhs, (l, r) =>
+        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
           this.builder.createSDiv(l, r)
         );
       case ts.SyntaxKind.PercentToken: // %
         return this.builder.createSRem(lhs, rhs);
       case ts.SyntaxKind.PercentEqualsToken:
-        return this.variableRestore(lhs, rhs, (l, r) =>
+        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
           this.builder.createSRem(l, r)
         );
       case ts.SyntaxKind.LessThanLessThanToken: // <<
         return this.builder.createShl(lhs, rhs);
       case ts.SyntaxKind.LessThanLessThanEqualsToken: // <<=
-        return this.variableRestore(lhs, rhs, (l, r) =>
+        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
           this.builder.createShl(l, r)
         );
       case ts.SyntaxKind.AmpersandToken: // &
         return this.builder.createAnd(lhs, rhs);
       case ts.SyntaxKind.AmpersandEqualsToken: // &=
-        return this.variableRestore(lhs, rhs, (l, r) =>
+        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
           this.builder.createAnd(l, r)
         );
       case ts.SyntaxKind.BarToken: // |
         return this.builder.createOr(lhs, rhs);
       case ts.SyntaxKind.BarEqualsToken: // |=
-        return this.variableRestore(lhs, rhs, (l, r) =>
+        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
           this.builder.createOr(l, r)
         );
       case ts.SyntaxKind.CaretToken: // ^
         return this.builder.createXor(lhs, rhs);
       case ts.SyntaxKind.CaretEqualsToken: // ^=
-        return this.variableRestore(lhs, rhs, (l, r) =>
+        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
           this.builder.createXor(l, r)
         );
       case ts.SyntaxKind.AmpersandAmpersandToken: // &&
@@ -335,18 +335,31 @@ export default class LLVMCodeGen {
       case ts.SyntaxKind.GreaterThanGreaterThanToken: // >>
         return this.builder.createAShr(lhs, rhs);
       case ts.SyntaxKind.GreaterThanGreaterThanEqualsToken: // >>=
-        return this.variableRestore(lhs, rhs, (l, r) =>
+        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
           this.builder.createAShr(l, r)
         );
       case ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken: // >>>
         return this.builder.createLShr(lhs, rhs);
       case ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken: // >>>=
-        return this.variableRestore(lhs, rhs, (l, r) =>
+        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
           this.builder.createLShr(l, r)
         );
       default:
         throw new Error('Unsupported binaryexpression');
     }
+  }
+
+  public genCompoundAssignment(
+    lhs: llvm.Value,
+    rhs: llvm.Value,
+    cb: (lhs: llvm.Value, rhs: llvm.Value) => llvm.Value
+  ): llvm.Value {
+    const realLHS = this.builder.createLoad(lhs);
+    const realRHS = rhs.type.isPointerTy() ? this.builder.createLoad(rhs) : rhs;
+
+    const result = cb(realLHS, realRHS);
+    this.builder.createStore(result, lhs);
+    return lhs;
   }
 
   public genStatement(node: ts.Statement): llvm.Value | void {
@@ -518,37 +531,22 @@ export default class LLVMCodeGen {
     this.builder.createCondBr(loopCond2, loopBody, loopQuit);
     this.builder.setInsertionPoint(loopQuit);
   }
-
-  public variableRestore(
-    lhs: llvm.Value,
-    rhs: llvm.Value,
-    cb: (lhs: llvm.Value, rhs: llvm.Value) => llvm.Value
-  ): llvm.Value {
-    const realLHS = this.builder.createLoad(lhs);
-    const realRHS = rhs.type.isPointerTy() ? this.builder.createLoad(rhs) : rhs;
-
-    const result = cb(realLHS, realRHS);
-    this.builder.createStore(result, lhs);
-    return lhs;
-  }
 }
 
-function isOperatorEqualsToken(kind: ts.SyntaxKind): boolean {
-  switch (kind) {
-    case ts.SyntaxKind.EqualsToken:
-    case ts.SyntaxKind.BarEqualsToken:
-    case ts.SyntaxKind.PlusEqualsToken:
-    case ts.SyntaxKind.CaretEqualsToken:
-    case ts.SyntaxKind.MinusEqualsToken:
-    case ts.SyntaxKind.SlashEqualsToken:
-    case ts.SyntaxKind.PercentEqualsToken:
-    case ts.SyntaxKind.AsteriskEqualsToken:
-    case ts.SyntaxKind.AmpersandEqualsToken:
-    case ts.SyntaxKind.LessThanLessThanEqualsToken:
-    case ts.SyntaxKind.GreaterThanGreaterThanEqualsToken:
-    case ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken:
-      return true;
-    default:
-      return false;
-  }
-}
+const CompoundAssignmentOperator = [
+  ts.SyntaxKind.PlusEqualsToken,
+  ts.SyntaxKind.MinusEqualsToken,
+  ts.SyntaxKind.AsteriskAsteriskEqualsToken,
+  ts.SyntaxKind.AsteriskEqualsToken,
+  ts.SyntaxKind.SlashEqualsToken,
+  ts.SyntaxKind.PercentEqualsToken,
+  ts.SyntaxKind.AmpersandEqualsToken,
+  ts.SyntaxKind.BarEqualsToken,
+  ts.SyntaxKind.CaretEqualsToken,
+  ts.SyntaxKind.LessThanLessThanEqualsToken,
+  ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken,
+  ts.SyntaxKind.GreaterThanGreaterThanEqualsToken
+];
+const AssignmentOperator = [ts.SyntaxKind.EqualsToken].concat(
+  CompoundAssignmentOperator
+);
