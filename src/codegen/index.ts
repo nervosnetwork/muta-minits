@@ -188,7 +188,7 @@ export default class LLVMCodeGen {
   }
 
   public genBinaryExpression(node: ts.BinaryExpression): llvm.Value {
-    return this.cgBinary.genBinaryExpression(node)
+    return this.cgBinary.genBinaryExpression(node);
   }
 
   public genStatement(node: ts.Statement): llvm.Value | void {

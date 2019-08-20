@@ -12,8 +12,6 @@
     "readonly-array": false,
     "no-delete": true,
     "no-method-signature": true,
-    "no-mixed-interface": true,
-    "align": false,
-    "indent": [true, "spaces", 4]
+    "no-mixed-interface": true
   }
 }
