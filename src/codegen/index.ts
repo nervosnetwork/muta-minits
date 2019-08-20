@@ -2,10 +2,14 @@ import Debug from 'debug';
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import { genArrayElementAccess, genArrayLiteral } from './codegen-array';
-import { genForOfStatement } from './codegen-for-of';
-import { genVariableDeclaration } from './codegen-var-decl';
-import Symtab from './symtab';
+import Symtab from '../symtab';
+import CodeGenArray from './array-literal-expression';
+import CodeGenForOf from './for-of-statement';
+import CodeGenFor from './for-statement';
+import CodeGenFuncDecl from './function-declaration';
+import CodeGenIf from './if-statement';
+import CodeGenReturn from './return-statement';
+import CodeGenVarDecl from './variable-declaration';
 
 const debug = Debug('minits:codegen');
 
@@ -17,6 +21,14 @@ export default class LLVMCodeGen {
   public readonly module: llvm.Module;
   public readonly symtab: Symtab;
 
+  public readonly cgArray: CodeGenArray;
+  public readonly cgForOf: CodeGenForOf;
+  public readonly cgFor: CodeGenFor;
+  public readonly cgFuncDecl: CodeGenFuncDecl;
+  public readonly cgIf: CodeGenIf;
+  public readonly cgReturn: CodeGenReturn;
+  public readonly cgVarDecl: CodeGenVarDecl;
+
   public currentFunction: llvm.Function | undefined;
   public currentType: ts.TypeNode | undefined;
 
@@ -25,6 +37,15 @@ export default class LLVMCodeGen {
     this.module = new llvm.Module('main', this.context);
     this.builder = new llvm.IRBuilder(this.context);
     this.symtab = new Symtab();
+
+    this.cgArray = new CodeGenArray(this);
+    this.cgForOf = new CodeGenForOf(this);
+    this.cgFor = new CodeGenFor(this);
+    this.cgFuncDecl = new CodeGenFuncDecl(this);
+    this.cgIf = new CodeGenIf(this);
+    this.cgReturn = new CodeGenReturn(this);
+    this.cgVarDecl = new CodeGenVarDecl(this);
+
     this.currentFunction = undefined;
     this.currentType = undefined;
   }
@@ -131,11 +152,11 @@ export default class LLVMCodeGen {
   }
 
   public genArrayLiteral(node: ts.ArrayLiteralExpression): llvm.AllocaInst {
-    return genArrayLiteral(this, node);
+    return this.cgArray.genArrayLiteral(node);
   }
 
   public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
-    return genArrayElementAccess(this, node);
+    return this.cgArray.genArrayElementAccess(node);
   }
 
   public genCallExpression(expr: ts.CallExpression): llvm.Value {
@@ -384,7 +405,7 @@ export default class LLVMCodeGen {
   }
 
   public genVariableDeclaration(node: ts.VariableDeclaration): llvm.Value {
-    return genVariableDeclaration(this, node);
+    return this.cgVarDecl.genVariableDeclaration(node);
   }
 
   public genVariableStatement(node: ts.VariableStatement): void {
@@ -398,118 +419,23 @@ export default class LLVMCodeGen {
   }
 
   public genReturnStatement(node: ts.ReturnStatement): llvm.Value {
-    if (node.expression) {
-      return this.builder.createRet(
-        this.genAutoDereference(this.genExpression(node.expression))
-      );
-    } else {
-      return this.builder.createRetVoid();
-    }
+    return this.cgReturn.genReturnStatement(node);
   }
 
   public genFunctionDeclaration(node: ts.FunctionDeclaration): llvm.Function {
-    const funcReturnType = this.genType(node.type!);
-    const funcArgsType = node.parameters.map(item => {
-      return this.genType(item.type!);
-    });
-    const fnty = llvm.FunctionType.get(funcReturnType, funcArgsType, false);
-    const name = (() => {
-      if (node.name) {
-        const real = node.name as ts.Identifier;
-        return real.getText();
-      } else {
-        return undefined;
-      }
-    })();
-    const linkage = llvm.LinkageTypes.ExternalLinkage;
-    const func = llvm.Function.create(fnty, linkage, name, this.module);
-
-    this.symtab.into(name!);
-    func.getArguments().forEach(item => {
-      item.name = node.parameters[item.argumentNumber].name.getText();
-      this.symtab.set(item.name, item);
-    });
-    if (node.body) {
-      const body = llvm.BasicBlock.create(this.context, 'body', func);
-      this.currentFunction = func;
-      this.builder.setInsertionPoint(body);
-      this.genBlock(node.body);
-    }
-    this.symtab.exit();
-    return func;
+    return this.cgFuncDecl.genFunctionDeclaration(node);
   }
 
   public genIfStatement(node: ts.IfStatement): void {
-    const condition = this.genExpression(node.expression);
-    const thenBlock = llvm.BasicBlock.create(
-      this.context,
-      'if.then',
-      this.currentFunction
-    );
-    const elseBlock = llvm.BasicBlock.create(
-      this.context,
-      'if.else',
-      this.currentFunction
-    );
-    const quitBlock = llvm.BasicBlock.create(
-      this.context,
-      'if.quit',
-      this.currentFunction
-    );
-    this.builder.createCondBr(condition, thenBlock, elseBlock);
-
-    this.builder.setInsertionPoint(thenBlock);
-    this.genStatement(node.thenStatement);
-    if (!thenBlock.getTerminator()) {
-      this.builder.createBr(quitBlock);
-    }
-    this.builder.setInsertionPoint(elseBlock);
-    if (node.elseStatement) {
-      this.genStatement(node.elseStatement);
-    }
-    if (!elseBlock.getTerminator()) {
-      this.builder.createBr(quitBlock);
-    }
-    this.builder.setInsertionPoint(quitBlock);
+    return this.cgIf.genIfStatement(node);
   }
 
   public genForStatement(node: ts.ForStatement): void {
-    if (node.initializer) {
-      if (ts.isVariableDeclarationList(node.initializer)) {
-        node.initializer.declarations.forEach(item => {
-          this.genVariableDeclaration(item);
-        });
-      } else {
-        throw new Error('Unsupported for statement');
-      }
-    }
-    const loopBody = llvm.BasicBlock.create(
-      this.context,
-      'loop.body',
-      this.currentFunction
-    );
-    const loopQuit = llvm.BasicBlock.create(
-      this.context,
-      'loop.quit',
-      this.currentFunction
-    );
-    // Loop Header
-    const loopCond1 = this.genExpression(node.condition!);
-    this.builder.createCondBr(loopCond1, loopBody, loopQuit);
-    this.builder.setInsertionPoint(loopBody);
-    this.genStatement(node.statement);
-
-    // Loop End
-    if (node.incrementor) {
-      this.genExpression(node.incrementor);
-    }
-    const loopCond2 = this.genExpression(node.condition!);
-    this.builder.createCondBr(loopCond2, loopBody, loopQuit);
-    this.builder.setInsertionPoint(loopQuit);
+    return this.cgFor.genForStatement(node);
   }
 
   public genForOfStatement(node: ts.ForOfStatement): void {
-    return genForOfStatement(this, node);
+    return this.cgForOf.genForOfStatement(node);
   }
 }
 
