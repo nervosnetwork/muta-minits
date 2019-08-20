@@ -4,10 +4,13 @@ import ts from 'typescript';
 
 import Symtab from '../symtab';
 import CodeGenArray from './array-literal-expression';
+import CodeGenBinary from './binary-expression';
 import CodeGenForOf from './for-of-statement';
 import CodeGenFor from './for-statement';
 import CodeGenFuncDecl from './function-declaration';
 import CodeGenIf from './if-statement';
+import CodeGenPostfixUnary from './postfix-unary-expression';
+import CodeGenPrefixUnary from './prefix-unary-expression';
 import CodeGenReturn from './return-statement';
 import CodeGenVarDecl from './variable-declaration';
 
@@ -22,10 +25,13 @@ export default class LLVMCodeGen {
   public readonly symtab: Symtab;
 
   public readonly cgArray: CodeGenArray;
+  public readonly cgBinary: CodeGenBinary;
   public readonly cgForOf: CodeGenForOf;
   public readonly cgFor: CodeGenFor;
   public readonly cgFuncDecl: CodeGenFuncDecl;
   public readonly cgIf: CodeGenIf;
+  public readonly cgPostfixUnary: CodeGenPostfixUnary;
+  public readonly cgPrefixUnary: CodeGenPrefixUnary;
   public readonly cgReturn: CodeGenReturn;
   public readonly cgVarDecl: CodeGenVarDecl;
 
@@ -39,10 +45,13 @@ export default class LLVMCodeGen {
     this.symtab = new Symtab();
 
     this.cgArray = new CodeGenArray(this);
+    this.cgBinary = new CodeGenBinary(this);
     this.cgForOf = new CodeGenForOf(this);
     this.cgFor = new CodeGenFor(this);
     this.cgFuncDecl = new CodeGenFuncDecl(this);
     this.cgIf = new CodeGenIf(this);
+    this.cgPostfixUnary = new CodeGenPostfixUnary(this);
+    this.cgPrefixUnary = new CodeGenPrefixUnary(this);
     this.cgReturn = new CodeGenReturn(this);
     this.cgVarDecl = new CodeGenVarDecl(this);
 
@@ -168,219 +177,18 @@ export default class LLVMCodeGen {
     return this.builder.createCall(func, args);
   }
 
-  public genPrefixUnaryExpression(expr: ts.PrefixUnaryExpression): llvm.Value {
-    switch (expr.operator) {
-      case ts.SyntaxKind.TildeToken:
-        return this.builder.createXor(
-          this.genAutoDereference(this.genExpression(expr.operand)),
-          llvm.ConstantInt.get(this.context, -1, 64)
-        );
-      default:
-        throw new Error('Unsupported prefix unary expression');
-    }
+  public genPrefixUnaryExpression(node: ts.PrefixUnaryExpression): llvm.Value {
+    return this.cgPrefixUnary.genPrefixUnaryExpression(node);
   }
 
   public genPostfixUnaryExpression(
-    expr: ts.PostfixUnaryExpression
+    node: ts.PostfixUnaryExpression
   ): llvm.Value {
-    const e = expr.operand as ts.Expression;
-    const lhs = this.genExpression(e);
-    switch (expr.operator) {
-      case ts.SyntaxKind.PlusPlusToken:
-        return this.genPostfixUnaryExpressionPlusPlus(lhs, e.getText());
-      case ts.SyntaxKind.MinusMinusToken:
-        return this.genPostfixUnaryExpressionMinusMinus(lhs, e.getText());
-    }
-    return lhs;
+    return this.cgPostfixUnary.genPostfixUnaryExpression(node);
   }
 
-  public genPostfixUnaryExpressionPlusPlus(
-    node: llvm.Value,
-    name: string
-  ): llvm.Value {
-    const raw = this.builder.createLoad(node);
-    const one = llvm.ConstantInt.get(this.context, 1, 64);
-    const r = this.builder.createAdd(raw, one);
-    const ptr = this.symtab.get(name);
-    this.builder.createStore(r, ptr);
-    return raw;
-  }
-
-  public genPostfixUnaryExpressionMinusMinus(
-    node: llvm.Value,
-    name: string
-  ): llvm.Value {
-    const raw = this.builder.createLoad(node);
-    const one = llvm.ConstantInt.get(this.context, 1, 64);
-    const r = this.builder.createSub(raw, one);
-    const ptr = this.symtab.get(name);
-    this.builder.createStore(r, ptr);
-    return raw;
-  }
-
-  public genBinaryExpression(expr: ts.BinaryExpression): llvm.Value {
-    const lhs = (() => {
-      const val = this.genExpression(expr.left);
-      if (AssignmentOperator.includes(expr.operatorToken.kind)) {
-        return val;
-      }
-      return this.genAutoDereference(val);
-    })();
-    const rhs = this.genAutoDereference(this.genExpression(expr.right));
-
-    switch (expr.operatorToken.kind) {
-      case ts.SyntaxKind.LessThanToken: // <
-        return this.builder.createICmpSLT(lhs, rhs);
-      case ts.SyntaxKind.GreaterThanToken: // >
-        return this.builder.createICmpSGT(lhs, rhs);
-      case ts.SyntaxKind.LessThanEqualsToken: // <=
-        return this.builder.createICmpSLE(lhs, rhs);
-      case ts.SyntaxKind.GreaterThanEqualsToken: // >=
-        return this.builder.createICmpSGE(lhs, rhs);
-      case ts.SyntaxKind.EqualsEqualsToken: // ==
-        return this.builder.createICmpEQ(lhs, rhs);
-      case ts.SyntaxKind.ExclamationEqualsToken: // !=
-        return this.builder.createICmpNE(lhs, rhs);
-      case ts.SyntaxKind.EqualsEqualsEqualsToken: // ===
-        return this.builder.createICmpEQ(lhs, rhs);
-      case ts.SyntaxKind.ExclamationEqualsEqualsToken: // !==
-        return this.builder.createICmpNE(lhs, rhs);
-      case ts.SyntaxKind.PlusToken: // +
-        return this.builder.createAdd(lhs, rhs);
-      case ts.SyntaxKind.PlusEqualsToken: // +=
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
-          this.builder.createAdd(l, r)
-        );
-      case ts.SyntaxKind.MinusToken: // -
-        return this.builder.createSub(lhs, rhs);
-      case ts.SyntaxKind.MinusEqualsToken: // -=
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
-          this.builder.createSub(l, r)
-        );
-      case ts.SyntaxKind.AsteriskToken: // *
-        return this.builder.createMul(lhs, rhs);
-      case ts.SyntaxKind.AsteriskEqualsToken: // *=
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
-          this.builder.createMul(l, r)
-        );
-      case ts.SyntaxKind.SlashToken: // /
-        return this.builder.createSDiv(lhs, rhs);
-      case ts.SyntaxKind.SlashEqualsToken: // /=
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
-          this.builder.createSDiv(l, r)
-        );
-      case ts.SyntaxKind.PercentToken: // %
-        return this.builder.createSRem(lhs, rhs);
-      case ts.SyntaxKind.PercentEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
-          this.builder.createSRem(l, r)
-        );
-      case ts.SyntaxKind.LessThanLessThanToken: // <<
-        return this.builder.createShl(lhs, rhs);
-      case ts.SyntaxKind.LessThanLessThanEqualsToken: // <<=
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
-          this.builder.createShl(l, r)
-        );
-      case ts.SyntaxKind.AmpersandToken: // &
-        return this.builder.createAnd(lhs, rhs);
-      case ts.SyntaxKind.AmpersandEqualsToken: // &=
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
-          this.builder.createAnd(l, r)
-        );
-      case ts.SyntaxKind.BarToken: // |
-        return this.builder.createOr(lhs, rhs);
-      case ts.SyntaxKind.BarEqualsToken: // |=
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
-          this.builder.createOr(l, r)
-        );
-      case ts.SyntaxKind.CaretToken: // ^
-        return this.builder.createXor(lhs, rhs);
-      case ts.SyntaxKind.CaretEqualsToken: // ^=
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
-          this.builder.createXor(l, r)
-        );
-      case ts.SyntaxKind.AmpersandAmpersandToken: // &&
-        const aaInitBlock = this.builder.getInsertBlock()!;
-        const aaNextBlock = llvm.BasicBlock.create(
-          this.context,
-          'next',
-          this.currentFunction
-        );
-        const aaQuitBlock = llvm.BasicBlock.create(
-          this.context,
-          'quit',
-          this.currentFunction
-        );
-        this.builder.createCondBr(lhs, aaNextBlock, aaQuitBlock);
-        this.builder.setInsertionPoint(aaNextBlock);
-        this.builder.createBr(aaQuitBlock);
-        this.builder.setInsertionPoint(aaQuitBlock);
-        const aaPhi = this.builder.createPhi(
-          llvm.Type.getInt1Ty(this.context),
-          2
-        );
-        aaPhi.addIncoming(
-          llvm.ConstantInt.get(this.context, 0, 1),
-          aaInitBlock
-        );
-        aaPhi.addIncoming(rhs, aaNextBlock);
-        return aaPhi;
-      case ts.SyntaxKind.BarBarToken: // ||
-        const bbInitBlock = this.builder.getInsertBlock()!;
-        const bbNextBlock = llvm.BasicBlock.create(
-          this.context,
-          'next',
-          this.currentFunction
-        );
-        const bbQuitBlock = llvm.BasicBlock.create(
-          this.context,
-          'quit',
-          this.currentFunction
-        );
-        this.builder.createCondBr(lhs, bbQuitBlock, bbNextBlock);
-        this.builder.setInsertionPoint(bbNextBlock);
-        this.builder.createBr(bbQuitBlock);
-        this.builder.setInsertionPoint(bbQuitBlock);
-        const bbPhi = this.builder.createPhi(
-          llvm.Type.getInt1Ty(this.context),
-          2
-        );
-        bbPhi.addIncoming(
-          llvm.ConstantInt.get(this.context, 1, 1),
-          bbInitBlock
-        );
-        bbPhi.addIncoming(rhs, bbNextBlock);
-        return bbPhi;
-      case ts.SyntaxKind.EqualsToken: // =
-        return this.builder.createStore(rhs, lhs);
-      case ts.SyntaxKind.GreaterThanGreaterThanToken: // >>
-        return this.builder.createAShr(lhs, rhs);
-      case ts.SyntaxKind.GreaterThanGreaterThanEqualsToken: // >>=
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
-          this.builder.createAShr(l, r)
-        );
-      case ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken: // >>>
-        return this.builder.createLShr(lhs, rhs);
-      case ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken: // >>>=
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>
-          this.builder.createLShr(l, r)
-        );
-      default:
-        throw new Error('Unsupported binaryexpression');
-    }
-  }
-
-  public genCompoundAssignment(
-    lhs: llvm.Value,
-    rhs: llvm.Value,
-    cb: (lhs: llvm.Value, rhs: llvm.Value) => llvm.Value
-  ): llvm.Value {
-    const realLHS = this.builder.createLoad(lhs);
-    const realRHS = rhs.type.isPointerTy() ? this.builder.createLoad(rhs) : rhs;
-
-    const result = cb(realLHS, realRHS);
-    this.builder.createStore(result, lhs);
-    return lhs;
+  public genBinaryExpression(node: ts.BinaryExpression): llvm.Value {
+    return this.cgBinary.genBinaryExpression(node)
   }
 
   public genStatement(node: ts.Statement): llvm.Value | void {
@@ -438,21 +246,3 @@ export default class LLVMCodeGen {
     return this.cgForOf.genForOfStatement(node);
   }
 }
-
-const CompoundAssignmentOperator = [
-  ts.SyntaxKind.PlusEqualsToken,
-  ts.SyntaxKind.MinusEqualsToken,
-  ts.SyntaxKind.AsteriskAsteriskEqualsToken,
-  ts.SyntaxKind.AsteriskEqualsToken,
-  ts.SyntaxKind.SlashEqualsToken,
-  ts.SyntaxKind.PercentEqualsToken,
-  ts.SyntaxKind.AmpersandEqualsToken,
-  ts.SyntaxKind.BarEqualsToken,
-  ts.SyntaxKind.CaretEqualsToken,
-  ts.SyntaxKind.LessThanLessThanEqualsToken,
-  ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken,
-  ts.SyntaxKind.GreaterThanGreaterThanEqualsToken
-];
-const AssignmentOperator = [ts.SyntaxKind.EqualsToken].concat(
-  CompoundAssignmentOperator
-);
