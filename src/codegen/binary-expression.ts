@@ -4,21 +4,21 @@ import ts from 'typescript';
 import LLVMCodeGen from '.';
 
 const CompoundAssignmentOperator = [
-    ts.SyntaxKind.PlusEqualsToken,
-    ts.SyntaxKind.MinusEqualsToken,
-    ts.SyntaxKind.AsteriskAsteriskEqualsToken,
-    ts.SyntaxKind.AsteriskEqualsToken,
-    ts.SyntaxKind.SlashEqualsToken,
-    ts.SyntaxKind.PercentEqualsToken,
-    ts.SyntaxKind.AmpersandEqualsToken,
-    ts.SyntaxKind.BarEqualsToken,
-    ts.SyntaxKind.CaretEqualsToken,
-    ts.SyntaxKind.LessThanLessThanEqualsToken,
-    ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken,
-    ts.SyntaxKind.GreaterThanGreaterThanEqualsToken
-  ];
+  ts.SyntaxKind.PlusEqualsToken,
+  ts.SyntaxKind.MinusEqualsToken,
+  ts.SyntaxKind.AsteriskAsteriskEqualsToken,
+  ts.SyntaxKind.AsteriskEqualsToken,
+  ts.SyntaxKind.SlashEqualsToken,
+  ts.SyntaxKind.PercentEqualsToken,
+  ts.SyntaxKind.AmpersandEqualsToken,
+  ts.SyntaxKind.BarEqualsToken,
+  ts.SyntaxKind.CaretEqualsToken,
+  ts.SyntaxKind.LessThanLessThanEqualsToken,
+  ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken,
+  ts.SyntaxKind.GreaterThanGreaterThanEqualsToken
+];
 const AssignmentOperator = [ts.SyntaxKind.EqualsToken].concat(
-CompoundAssignmentOperator
+  CompoundAssignmentOperator
 );
 
 export default class CodeGenBinary {
@@ -127,37 +127,37 @@ export default class CodeGenBinary {
         return this.cgen.builder.createStore(rhs, lhs);
       // +=
       case ts.SyntaxKind.PlusEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>this.cgen.builder.createAdd(l, r));
+        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createAdd(l, r));
       // -=
       case ts.SyntaxKind.MinusEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>this.cgen.builder.createSub(l, r));
+        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createSub(l, r));
       // *=
       case ts.SyntaxKind.AsteriskEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>this.cgen.builder.createMul(l, r));
+        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createMul(l, r));
       // /=
       case ts.SyntaxKind.SlashEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>this.cgen.builder.createSDiv(l, r));
+        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createSDiv(l, r));
       // %=
       case ts.SyntaxKind.PercentEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>this.cgen.builder.createSRem(l, r));
+        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createSRem(l, r));
       // <<=
       case ts.SyntaxKind.LessThanLessThanEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>this.cgen.builder.createShl(l, r));
+        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createShl(l, r));
       // &=
       case ts.SyntaxKind.AmpersandEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>this.cgen.builder.createAnd(l, r));
+        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createAnd(l, r));
       // |=
       case ts.SyntaxKind.BarEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>this.cgen.builder.createOr(l, r));
+        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createOr(l, r));
       // ^=
       case ts.SyntaxKind.CaretEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>this.cgen.builder.createXor(l, r));
+        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createXor(l, r));
       // >>=
       case ts.SyntaxKind.GreaterThanGreaterThanEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>this.cgen.builder.createAShr(l, r));
+        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createAShr(l, r));
       // >>>=
       case ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) =>this.cgen.builder.createLShr(l, r));
+        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createLShr(l, r));
       default:
         throw new Error('Unsupported binary expression');
     }
