@@ -27,11 +27,6 @@ export default class CodeGenForOf {
         item => item.getText()
       )[0];
       const alloca = this.cgen.builder.createAlloca(type, undefined, name);
-      const p = this.cgen.builder.createInBoundsGEP(a, [
-        llvm.ConstantInt.get(this.cgen.context, 0, 64),
-        llvm.ConstantInt.get(this.cgen.context, 0, 64)
-      ]);
-      this.cgen.builder.createStore(this.cgen.builder.createLoad(p), alloca);
       this.cgen.symtab.set(name, alloca);
       return alloca;
     })();
@@ -58,6 +53,11 @@ export default class CodeGenForOf {
     );
     this.cgen.builder.createCondBr(loopCond1, loopBody, loopQuit);
     this.cgen.builder.setInsertionPoint(loopBody);
+    const p = this.cgen.builder.createInBoundsGEP(a, [
+      llvm.ConstantInt.get(this.cgen.context, 0, 64),
+      this.cgen.builder.createLoad(i)
+    ]);
+    this.cgen.builder.createStore(this.cgen.builder.createLoad(p), v);
     this.cgen.genStatement(node.statement);
 
     // Loop End
