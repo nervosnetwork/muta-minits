@@ -3,6 +3,7 @@ import llvm from 'llvm-node';
 import ts from 'typescript';
 
 import { genArrayElementAccess, genArrayLiteral } from './codegen-array';
+import { genForOfStatement } from './codegen-for-of';
 import { genVariableDeclaration } from './codegen-var-decl';
 import Symtab from './symtab';
 
@@ -129,7 +130,7 @@ export default class LLVMCodeGen {
     }
   }
 
-  public genArrayLiteral(node: ts.ArrayLiteralExpression): llvm.Value {
+  public genArrayLiteral(node: ts.ArrayLiteralExpression): llvm.AllocaInst {
     return genArrayLiteral(this, node);
   }
 
@@ -373,6 +374,8 @@ export default class LLVMCodeGen {
         return this.genIfStatement(node as ts.IfStatement);
       case ts.SyntaxKind.ForStatement:
         return this.genForStatement(node as ts.ForStatement);
+      case ts.SyntaxKind.ForOfStatement:
+        return this.genForOfStatement(node as ts.ForOfStatement);
       case ts.SyntaxKind.ReturnStatement:
         return this.genReturnStatement(node as ts.ReturnStatement);
       default:
@@ -503,6 +506,10 @@ export default class LLVMCodeGen {
     const loopCond2 = this.genExpression(node.condition!);
     this.builder.createCondBr(loopCond2, loopBody, loopQuit);
     this.builder.setInsertionPoint(loopQuit);
+  }
+
+  public genForOfStatement(node: ts.ForOfStatement): void {
+    return genForOfStatement(this, node);
   }
 }
 
