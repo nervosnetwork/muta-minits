@@ -1,7 +1,7 @@
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import LLVMCodeGen from '.';
+import LLVMCodeGen from './';
 
 export default class CodeGenIf {
   private cgen: LLVMCodeGen;

@@ -1,7 +1,7 @@
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import LLVMCodeGen from '.';
+import LLVMCodeGen from './';
 
 export default class CodeGenArray {
   private cgen: LLVMCodeGen;
@@ -25,9 +25,7 @@ export default class CodeGenArray {
   }
 
   public genArrayInitializer(node: ts.ArrayLiteralExpression): llvm.Value[] {
-    return node.elements.map(item => {
-      return this.cgen.genExpression(item);
-    });
+    return node.elements.map(item => this.cgen.genExpression(item));
   }
 
   // [0] https://stackoverflow.com/questions/38548680/confused-about-llvm-arrays
