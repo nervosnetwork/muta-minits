@@ -3,23 +3,14 @@ import ts from 'typescript';
 
 import LLVMCodeGen from './';
 
-export default class CodeGenFor {
+export default class CodeGenWhile {
   private cgen: LLVMCodeGen;
 
   constructor(cgen: LLVMCodeGen) {
     this.cgen = cgen;
   }
 
-  public genForStatement(node: ts.ForStatement): void {
-    if (node.initializer) {
-      if (ts.isVariableDeclarationList(node.initializer)) {
-        node.initializer.declarations.forEach(item => {
-          this.cgen.genVariableDeclaration(item);
-        });
-      } else {
-        throw new Error('Unsupported for statement');
-      }
-    }
+  public genWhileStatement(node: ts.WhileStatement): void {
     const loopBody = llvm.BasicBlock.create(
       this.cgen.context,
       'loop.body',
@@ -31,7 +22,7 @@ export default class CodeGenFor {
       this.cgen.currentFunction
     );
     // Loop Header
-    const loopCond1 = this.cgen.genExpression(node.condition!);
+    const loopCond1 = this.cgen.genExpression(node.expression);
     this.cgen.builder.createCondBr(loopCond1, loopBody, loopQuit);
     this.cgen.builder.setInsertionPoint(loopBody);
 
@@ -41,10 +32,7 @@ export default class CodeGenFor {
     this.cgen.genStatement(node.statement);
 
     // Loop End
-    if (node.incrementor) {
-      this.cgen.genExpression(node.incrementor);
-    }
-    const loopCond2 = this.cgen.genExpression(node.condition!);
+    const loopCond2 = this.cgen.genExpression(node.expression);
     this.cgen.builder.createCondBr(loopCond2, loopBody, loopQuit);
     this.cgen.builder.setInsertionPoint(loopQuit);
     this.cgen.currentBreakBlock = rawBreakBlock;

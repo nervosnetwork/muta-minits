@@ -13,6 +13,7 @@ import CodeGenPostfixUnary from './postfix-unary-expression';
 import CodeGenPrefixUnary from './prefix-unary-expression';
 import CodeGenReturn from './return-statement';
 import CodeGenVarDecl from './variable-declaration';
+import CodeGenWhile from './while-statement';
 
 const debug = Debug('minits:codegen');
 
@@ -34,7 +35,9 @@ export default class LLVMCodeGen {
   public readonly cgPrefixUnary: CodeGenPrefixUnary;
   public readonly cgReturn: CodeGenReturn;
   public readonly cgVarDecl: CodeGenVarDecl;
+  public readonly cgWhile: CodeGenWhile;
 
+  public currentBreakBlock: llvm.BasicBlock | undefined;
   public currentFunction: llvm.Function | undefined;
   public currentType: ts.TypeNode | undefined;
 
@@ -54,7 +57,9 @@ export default class LLVMCodeGen {
     this.cgPrefixUnary = new CodeGenPrefixUnary(this);
     this.cgReturn = new CodeGenReturn(this);
     this.cgVarDecl = new CodeGenVarDecl(this);
+    this.cgWhile = new CodeGenWhile(this);
 
+    this.currentBreakBlock = undefined;
     this.currentFunction = undefined;
     this.currentType = undefined;
   }
@@ -201,10 +206,14 @@ export default class LLVMCodeGen {
         return this.genExpressionStatement(node as ts.ExpressionStatement);
       case ts.SyntaxKind.IfStatement:
         return this.genIfStatement(node as ts.IfStatement);
+      case ts.SyntaxKind.WhileStatement:
+        return this.genWhileStatement(node as ts.WhileStatement);
       case ts.SyntaxKind.ForStatement:
         return this.genForStatement(node as ts.ForStatement);
       case ts.SyntaxKind.ForOfStatement:
         return this.genForOfStatement(node as ts.ForOfStatement);
+      case ts.SyntaxKind.BreakStatement:
+        return this.genBreakStatement();
       case ts.SyntaxKind.ReturnStatement:
         return this.genReturnStatement(node as ts.ReturnStatement);
       default:
@@ -226,6 +235,10 @@ export default class LLVMCodeGen {
     return this.genExpression(node.expression);
   }
 
+  public genBreakStatement(): void {
+    this.builder.createBr(this.currentBreakBlock!);
+  }
+
   public genReturnStatement(node: ts.ReturnStatement): llvm.Value {
     return this.cgReturn.genReturnStatement(node);
   }
@@ -236,6 +249,10 @@ export default class LLVMCodeGen {
 
   public genIfStatement(node: ts.IfStatement): void {
     return this.cgIf.genIfStatement(node);
+  }
+
+  public genWhileStatement(node: ts.WhileStatement): void {
+    return this.cgWhile.genWhileStatement(node);
   }
 
   public genForStatement(node: ts.ForStatement): void {
