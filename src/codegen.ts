@@ -2,6 +2,8 @@ import Debug from 'debug';
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
+import { genArrayElementAccess, genArrayLiteral } from './codegen-array';
+import { genVariableDeclaration } from './codegen-var-decl';
 import Symtab from './symtab';
 
 const debug = Debug('minits:codegen');
@@ -14,7 +16,8 @@ export default class LLVMCodeGen {
   public readonly module: llvm.Module;
   public readonly symtab: Symtab;
 
-  private currentFunction: llvm.Function | undefined;
+  public currentFunction: llvm.Function | undefined;
+  public currentType: ts.TypeNode | undefined;
 
   constructor() {
     this.context = new llvm.LLVMContext();
@@ -22,6 +25,7 @@ export default class LLVMCodeGen {
     this.builder = new llvm.IRBuilder(this.context);
     this.symtab = new Symtab();
     this.currentFunction = undefined;
+    this.currentType = undefined;
   }
 
   public genText(): string {
@@ -30,51 +34,19 @@ export default class LLVMCodeGen {
 
   public genSourceFile(sourceFile: ts.SourceFile): void {
     sourceFile.forEachChild(node => {
-      this.genNode(node);
+      switch (node.kind) {
+        case ts.SyntaxKind.EndOfFileToken:
+          return;
+        case ts.SyntaxKind.VariableStatement:
+          this.genVariableStatement(node as ts.VariableStatement);
+          break;
+        case ts.SyntaxKind.FunctionDeclaration:
+          this.genFunctionDeclaration(node as ts.FunctionDeclaration);
+          break;
+        default:
+          throw new Error('Unsupported grammar');
+      }
     });
-  }
-
-  public genNode(
-    node: ts.Node
-  ): llvm.Constant | llvm.Type | llvm.Value | undefined | void {
-    switch (node.kind) {
-      case ts.SyntaxKind.EndOfFileToken:
-        return;
-      case ts.SyntaxKind.NumericLiteral:
-        return this.genNumeric(node as ts.NumericLiteral);
-      case ts.SyntaxKind.Identifier:
-        return this.genIdentifier(node as ts.Identifier);
-      case ts.SyntaxKind.FalseKeyword:
-        return this.genBoolean(node as ts.BooleanLiteral);
-      case ts.SyntaxKind.TrueKeyword:
-        return this.genBoolean(node as ts.BooleanLiteral);
-      case ts.SyntaxKind.CallExpression:
-        return this.genCallExpression(node as ts.CallExpression);
-      case ts.SyntaxKind.BooleanKeyword:
-        return this.genType(node as ts.TypeNode);
-      case ts.SyntaxKind.NumberKeyword:
-        return this.genType(node as ts.TypeNode);
-      case ts.SyntaxKind.PostfixUnaryExpression:
-        return this.genExpression(node as ts.PostfixUnaryExpression);
-      case ts.SyntaxKind.BinaryExpression:
-        return this.genBinaryExpression(node as ts.BinaryExpression);
-      case ts.SyntaxKind.Block:
-        return this.genStatement(node as ts.Block);
-      case ts.SyntaxKind.VariableStatement:
-        return this.genStatement(node as ts.Statement);
-      case ts.SyntaxKind.ExpressionStatement:
-        return this.genStatement(node as ts.Statement);
-      case ts.SyntaxKind.IfStatement:
-        return this.genStatement(node as ts.Statement);
-      case ts.SyntaxKind.ForStatement:
-        return this.genStatement(node as ts.Statement);
-      case ts.SyntaxKind.ReturnStatement:
-        return this.genStatement(node as ts.Statement);
-      case ts.SyntaxKind.FunctionDeclaration:
-        return this.genFunctionDeclaration(node as ts.FunctionDeclaration);
-      default:
-        throw new Error('Unsupported node');
-    }
   }
 
   public genNumeric(node: ts.NumericLiteral): llvm.ConstantInt {
@@ -101,12 +73,14 @@ export default class LLVMCodeGen {
   }
 
   public genIdentifier(node: ts.Identifier): llvm.Value {
-    const p = this.symtab.get(node.getText());
-    if (p.type.isPointerTy()) {
-      return this.builder.createLoad(p, node.getText());
-    } else {
-      return p;
+    return this.symtab.get(node.getText());
+  }
+
+  public genAutoDereference(node: llvm.Value): llvm.Value {
+    if (node.type.isPointerTy()) {
+      return this.builder.createLoad(node);
     }
+    return node;
   }
 
   public genType(type: ts.TypeNode): llvm.Type {
@@ -136,6 +110,10 @@ export default class LLVMCodeGen {
         return this.genBoolean(expr as ts.BooleanLiteral);
       case ts.SyntaxKind.TrueKeyword:
         return this.genBoolean(expr as ts.BooleanLiteral);
+      case ts.SyntaxKind.ArrayLiteralExpression:
+        return this.genArrayLiteral(expr as ts.ArrayLiteralExpression);
+      case ts.SyntaxKind.ElementAccessExpression:
+        return this.genElementAccess(expr as ts.ElementAccessExpression);
       case ts.SyntaxKind.CallExpression:
         return this.genCallExpression(expr as ts.CallExpression);
       case ts.SyntaxKind.PrefixUnaryExpression:
@@ -151,6 +129,14 @@ export default class LLVMCodeGen {
     }
   }
 
+  public genArrayLiteral(node: ts.ArrayLiteralExpression): llvm.Value {
+    return genArrayLiteral(this, node);
+  }
+
+  public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
+    return genArrayElementAccess(this, node);
+  }
+
   public genCallExpression(expr: ts.CallExpression): llvm.Value {
     const name = expr.expression.getText();
     const args = expr.arguments.map(item => {
@@ -164,7 +150,7 @@ export default class LLVMCodeGen {
     switch (expr.operator) {
       case ts.SyntaxKind.TildeToken:
         return this.builder.createXor(
-          this.genExpression(expr.operand),
+          this.genAutoDereference(this.genExpression(expr.operand)),
           llvm.ConstantInt.get(this.context, -1, 64)
         );
       default:
@@ -179,33 +165,46 @@ export default class LLVMCodeGen {
     const lhs = this.genExpression(e);
     switch (expr.operator) {
       case ts.SyntaxKind.PlusPlusToken:
-        const ppR = this.builder.createAdd(
-          lhs,
-          llvm.ConstantInt.get(this.context, 1, 64)
-        );
-        const ppPtr = this.symtab.get(e.getText());
-        this.builder.createStore(ppR, ppPtr);
-        this.symtab.set(e.getText(), ppPtr);
-        return lhs;
+        return this.genPostfixUnaryExpressionPlusPlus(lhs, e.getText());
       case ts.SyntaxKind.MinusMinusToken:
-        const mmR = this.builder.createSub(
-          lhs,
-          llvm.ConstantInt.get(this.context, 1, 64)
-        );
-        const mmPtr = this.symtab.get(e.getText());
-        this.builder.createStore(mmR, mmPtr);
-        this.symtab.set(e.getText(), mmPtr);
-        return lhs;
-      default:
-        throw new Error('Unsupported post unary expression');
+        return this.genPostfixUnaryExpressionMinusMinus(lhs, e.getText());
     }
+    return lhs;
+  }
+
+  public genPostfixUnaryExpressionPlusPlus(
+    node: llvm.Value,
+    name: string
+  ): llvm.Value {
+    const raw = this.builder.createLoad(node);
+    const one = llvm.ConstantInt.get(this.context, 1, 64);
+    const r = this.builder.createAdd(raw, one);
+    const ptr = this.symtab.get(name);
+    this.builder.createStore(r, ptr);
+    return raw;
+  }
+
+  public genPostfixUnaryExpressionMinusMinus(
+    node: llvm.Value,
+    name: string
+  ): llvm.Value {
+    const raw = this.builder.createLoad(node);
+    const one = llvm.ConstantInt.get(this.context, 1, 64);
+    const r = this.builder.createSub(raw, one);
+    const ptr = this.symtab.get(name);
+    this.builder.createStore(r, ptr);
+    return raw;
   }
 
   public genBinaryExpression(expr: ts.BinaryExpression): llvm.Value {
-    const lhs = AssignmentOperator.includes(expr.operatorToken.kind)
-      ? this.symtab.get(expr.left.getText())
-      : this.genExpression(expr.left);
-    const rhs = this.genExpression(expr.right);
+    const lhs = (() => {
+      const val = this.genExpression(expr.left);
+      if (AssignmentOperator.includes(expr.operatorToken.kind)) {
+        return val;
+      }
+      return this.genAutoDereference(val);
+    })();
+    const rhs = this.genAutoDereference(this.genExpression(expr.right));
 
     switch (expr.operatorToken.kind) {
       case ts.SyntaxKind.LessThanToken: // <
@@ -382,35 +381,7 @@ export default class LLVMCodeGen {
   }
 
   public genVariableDeclaration(node: ts.VariableDeclaration): llvm.Value {
-    const name = node.name.getText();
-    const initializer = this.genExpression(node.initializer!);
-    const type = (() => {
-      // Type inferences
-      if (node.type) {
-        return this.genType(node.type);
-      } else {
-        return initializer.type;
-      }
-    })();
-    if (this.symtab.depths() === 0) {
-      // Global variables
-      const r = new llvm.GlobalVariable(
-        this.module,
-        type,
-        false,
-        llvm.LinkageTypes.ExternalLinkage,
-        initializer as llvm.Constant,
-        name
-      );
-      this.symtab.set(name, r);
-      return r;
-    } else {
-      // Locale variables
-      const alloca = this.builder.createAlloca(type, undefined, name);
-      this.builder.createStore(initializer, alloca);
-      this.symtab.set(name, alloca);
-      return alloca;
-    }
+    return genVariableDeclaration(this, node);
   }
 
   public genVariableStatement(node: ts.VariableStatement): void {
@@ -425,7 +396,9 @@ export default class LLVMCodeGen {
 
   public genReturnStatement(node: ts.ReturnStatement): llvm.Value {
     if (node.expression) {
-      return this.builder.createRet(this.genExpression(node.expression));
+      return this.builder.createRet(
+        this.genAutoDereference(this.genExpression(node.expression))
+      );
     } else {
       return this.builder.createRetVoid();
     }
