@@ -3,5 +3,8 @@ function echo(n: number): number {
 }
 
 function main(): number {
-    return echo(42);
+    let a = echo(42);
+    let n = 42;
+    let b = echo(n);
+    return a + b; // 84
 }

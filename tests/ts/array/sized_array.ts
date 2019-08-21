@@ -1,3 +1,8 @@
+function echo(a: number): number {
+    let array = [a, 0, 0, 1];
+    return array[0];
+}
+
 function main(): number {
     let a: number[] = [1, 2, 3];
     // Get
@@ -13,6 +18,10 @@ function main(): number {
         s += a[j];
     }
     if (s !== 6) {
+        return 1;
+    }
+    let b = [1, 2, echo(3)];
+    if (b[2] != 3) {
         return 1;
     }
     // Set

@@ -13,17 +13,30 @@ export default class CodeGenArray {
   public genArrayType(node: ts.ArrayLiteralExpression): llvm.ArrayType {
     const length = node.elements.length;
     const elementType = (() => {
+      // Typing Hints
       if (length === 0) {
         return this.cgen.genType((this.cgen.currentType! as ts.ArrayTypeNode).elementType);
-      } else {
-        return this.cgen.genExpression(node.elements[0]).type;
       }
+      // Numeric
+      if (node.elements[0].kind === ts.SyntaxKind.NumericLiteral) {
+        return llvm.Type.getInt64Ty(this.cgen.context);
+      }
+      // Identifier
+      if (node.elements[0].kind === ts.SyntaxKind.Identifier) {
+        const symbol = this.cgen.symtab.get(node.elements[0].getText());
+        if (symbol.value.type.isPointerTy()) {
+          return (symbol.value.type as llvm.PointerType).elementType;
+        }
+        return symbol.value.type;
+      }
+
+      throw new Error('Unsupported element type');
     })();
     return llvm.ArrayType.get(elementType, length);
   }
 
   public genArrayInitializer(node: ts.ArrayLiteralExpression): llvm.Value[] {
-    return node.elements.map(item => this.cgen.genExpression(item));
+    return node.elements.map(item => this.cgen.genAutoDereference(this.cgen.genExpression(item)));
   }
 
   // [0] https://stackoverflow.com/questions/38548680/confused-about-llvm-arrays

@@ -15,6 +15,7 @@ import CodeGenIf from './if-statement';
 import CodeGenPostfixUnary from './postfix-unary-expression';
 import CodeGenPrefixUnary from './prefix-unary-expression';
 import CodeGenReturn from './return-statement';
+import CodeGenString from './string-literal-expression';
 import CodeGenVarDecl from './variable-declaration';
 import CodeGenWhile from './while-statement';
 
@@ -39,6 +40,7 @@ export default class LLVMCodeGen {
   public readonly cgPostfixUnary: CodeGenPostfixUnary;
   public readonly cgPrefixUnary: CodeGenPrefixUnary;
   public readonly cgReturn: CodeGenReturn;
+  public readonly cgString: CodeGenString;
   public readonly cgVarDecl: CodeGenVarDecl;
   public readonly cgWhile: CodeGenWhile;
   public readonly cgEnum: CodeGenEnum;
@@ -65,6 +67,7 @@ export default class LLVMCodeGen {
     this.cgPostfixUnary = new CodeGenPostfixUnary(this);
     this.cgPrefixUnary = new CodeGenPrefixUnary(this);
     this.cgReturn = new CodeGenReturn(this);
+    this.cgString = new CodeGenString(this);
     this.cgVarDecl = new CodeGenVarDecl(this);
     this.cgWhile = new CodeGenWhile(this);
     this.cgEnum = new CodeGenEnum(this);
@@ -114,6 +117,10 @@ export default class LLVMCodeGen {
     return llvm.ConstantInt.get(this.context, parseInt(text, bits), 64);
   }
 
+  public genStringLiteral(node: ts.StringLiteral): llvm.Value {
+    return this.cgString.genStringLiteral(node);
+  }
+
   public genBoolean(node: ts.BooleanLiteral): llvm.ConstantInt {
     switch (node.kind) {
       case ts.SyntaxKind.FalseKeyword:
@@ -138,6 +145,8 @@ export default class LLVMCodeGen {
 
   public genType(type: ts.TypeNode): llvm.Type {
     switch (type.kind) {
+      case ts.SyntaxKind.VoidKeyword:
+        return llvm.Type.getVoidTy(this.context);
       case ts.SyntaxKind.BooleanKeyword:
         return llvm.Type.getInt1Ty(this.context);
       case ts.SyntaxKind.NumberKeyword:
@@ -153,6 +162,8 @@ export default class LLVMCodeGen {
 
         // TODO: impl struct
         throw new Error('Unsupported type');
+      case ts.SyntaxKind.StringKeyword:
+        return llvm.Type.getInt8PtrTy(this.context);
       default:
         throw new Error('Unsupported type');
     }
@@ -168,6 +179,8 @@ export default class LLVMCodeGen {
     switch (expr.kind) {
       case ts.SyntaxKind.NumericLiteral:
         return this.genNumeric(expr as ts.NumericLiteral);
+      case ts.SyntaxKind.StringLiteral:
+        return this.genStringLiteral(expr as ts.StringLiteral);
       case ts.SyntaxKind.Identifier:
         return this.genIdentifier(expr as ts.Identifier);
       case ts.SyntaxKind.FalseKeyword:
@@ -206,9 +219,21 @@ export default class LLVMCodeGen {
   public genCallExpression(node: ts.CallExpression): llvm.Value {
     const name = node.expression.getText();
     const args = node.arguments.map(item => {
-      return this.genExpression(item);
+      if (item.kind === ts.SyntaxKind.Identifier) {
+        return this.genAutoDereference(this.genExpression(item));
+      } else {
+        return this.genExpression(item);
+      }
     });
-    const func = this.module.getFunction(name)!;
+    let func: llvm.Function;
+    switch (name) {
+      case 'console.log':
+        func = this.module.getFunction('printf')!;
+        break;
+      default:
+        func = this.module.getFunction(name)!;
+        break;
+    }
     return this.builder.createCall(func, args);
   }
 
