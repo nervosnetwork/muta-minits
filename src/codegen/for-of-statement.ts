@@ -23,45 +23,20 @@ export default class CodeGenForOf {
     const a = this.cgen.genExpression(node.expression) as llvm.AllocaInst;
     const v = (() => {
       const type = (a.type.elementType as llvm.ArrayType).elementType;
-      const name = (node.initializer! as ts.VariableDeclarationList).declarations!.map(
-        item => item.getText()
-      )[0];
+      const name = (node.initializer! as ts.VariableDeclarationList).declarations!.map(item => item.getText())[0];
       const alloca = this.cgen.builder.createAlloca(type, undefined, name);
       this.cgen.symtab.set(name, alloca);
       return alloca;
     })();
-    const loopCond = llvm.BasicBlock.create(
-      this.cgen.context,
-      'loop.cond',
-      this.cgen.currentFunction
-    );
-    const loopBody = llvm.BasicBlock.create(
-      this.cgen.context,
-      'loop.body',
-      this.cgen.currentFunction
-    );
-    const loopIncr = llvm.BasicBlock.create(
-      this.cgen.context,
-      'loop.incr',
-      this.cgen.currentFunction
-    );
-    const loopQuit = llvm.BasicBlock.create(
-      this.cgen.context,
-      'loop.quit',
-      this.cgen.currentFunction
-    );
+    const loopCond = llvm.BasicBlock.create(this.cgen.context, 'loop.cond', this.cgen.currentFunction);
+    const loopBody = llvm.BasicBlock.create(this.cgen.context, 'loop.body', this.cgen.currentFunction);
+    const loopIncr = llvm.BasicBlock.create(this.cgen.context, 'loop.incr', this.cgen.currentFunction);
+    const loopQuit = llvm.BasicBlock.create(this.cgen.context, 'loop.quit', this.cgen.currentFunction);
 
     this.cgen.builder.createBr(loopCond);
-    const l = llvm.ConstantInt.get(
-      this.cgen.context,
-      (a.type.elementType as llvm.ArrayType).numElements,
-      64
-    );
+    const l = llvm.ConstantInt.get(this.cgen.context, (a.type.elementType as llvm.ArrayType).numElements, 64);
     this.cgen.builder.setInsertionPoint(loopCond);
-    const cond = this.cgen.builder.createICmpSLT(
-      this.cgen.builder.createLoad(i),
-      l
-    );
+    const cond = this.cgen.builder.createICmpSLT(this.cgen.builder.createLoad(i), l);
     this.cgen.builder.createCondBr(cond, loopBody, loopQuit);
 
     this.cgen.builder.setInsertionPoint(loopBody);
@@ -83,10 +58,7 @@ export default class CodeGenForOf {
       llvm.ConstantInt.get(this.cgen.context, 1, 64)
     );
     this.cgen.builder.createStore(n, i);
-    const ptr = this.cgen.builder.createInBoundsGEP(a, [
-      llvm.ConstantInt.get(this.cgen.context, 0, 64),
-      n
-    ]);
+    const ptr = this.cgen.builder.createInBoundsGEP(a, [llvm.ConstantInt.get(this.cgen.context, 0, 64), n]);
     this.cgen.builder.createStore(this.cgen.builder.createLoad(ptr), v);
     this.cgen.builder.createBr(loopCond);
 

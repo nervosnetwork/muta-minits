@@ -71,11 +71,7 @@ export default class Symtab {
     return this.getLowScopes(next as Scopes, remains);
   }
 
-  private getLowValue(
-    scopes: Scopes,
-    prefix: readonly string[],
-    name: string
-  ): llvm.Value | undefined {
+  private getLowValue(scopes: Scopes, prefix: readonly string[], name: string): llvm.Value | undefined {
     const r = this.getLowScopes(scopes, prefix).data.get(name);
     if (r === undefined) {
       return undefined;

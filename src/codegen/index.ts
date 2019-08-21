@@ -162,9 +162,7 @@ export default class LLVMCodeGen {
       case ts.SyntaxKind.PrefixUnaryExpression:
         return this.genPrefixUnaryExpression(expr as ts.PrefixUnaryExpression);
       case ts.SyntaxKind.PostfixUnaryExpression:
-        return this.genPostfixUnaryExpression(
-          expr as ts.PostfixUnaryExpression
-        );
+        return this.genPostfixUnaryExpression(expr as ts.PostfixUnaryExpression);
       case ts.SyntaxKind.BinaryExpression:
         return this.genBinaryExpression(expr as ts.BinaryExpression);
       default:
@@ -190,16 +188,14 @@ export default class LLVMCodeGen {
   }
 
   public genParenthesizedExpression(node: ts.ParenthesizedExpression): llvm.Value {
-    return this.genExpression(node.expression)
+    return this.genExpression(node.expression);
   }
 
   public genPrefixUnaryExpression(node: ts.PrefixUnaryExpression): llvm.Value {
     return this.cgPrefixUnary.genPrefixUnaryExpression(node);
   }
 
-  public genPostfixUnaryExpression(
-    node: ts.PostfixUnaryExpression
-  ): llvm.Value {
+  public genPostfixUnaryExpression(node: ts.PostfixUnaryExpression): llvm.Value {
     return this.cgPostfixUnary.genPostfixUnaryExpression(node);
   }
 

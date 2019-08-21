@@ -3,13 +3,7 @@ import llvm from 'llvm-node';
 import ts from 'typescript';
 
 test('test llvm add', async t => {
-  const source = ts.createSourceFile(
-    '',
-    'const a = 1 + 1;',
-    ts.ScriptTarget.ES2015,
-    true,
-    ts.ScriptKind.TS
-  );
+  const source = ts.createSourceFile('', 'const a = 1 + 1;', ts.ScriptTarget.ES2015, true, ts.ScriptKind.TS);
 
   ts.forEachChild(source, parserNode);
 

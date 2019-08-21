@@ -10,9 +10,7 @@ export default class CodeGenPostfixUnary {
     this.cgen = cgen;
   }
 
-  public genPostfixUnaryExpression(
-    expr: ts.PostfixUnaryExpression
-  ): llvm.Value {
+  public genPostfixUnaryExpression(expr: ts.PostfixUnaryExpression): llvm.Value {
     const e = expr.operand as ts.Expression;
     const lhs = this.cgen.genExpression(e);
     switch (expr.operator) {
@@ -27,10 +25,7 @@ export default class CodeGenPostfixUnary {
     }
   }
 
-  public genPostfixUnaryExpressionPlusPlus(
-    node: llvm.Value,
-    name: string
-  ): llvm.Value {
+  public genPostfixUnaryExpressionPlusPlus(node: llvm.Value, name: string): llvm.Value {
     const raw = this.cgen.builder.createLoad(node);
     const one = llvm.ConstantInt.get(this.cgen.context, 1, 64);
     const r = this.cgen.builder.createAdd(raw, one);
@@ -39,10 +34,7 @@ export default class CodeGenPostfixUnary {
     return raw;
   }
 
-  public genPostfixUnaryExpressionMinusMinus(
-    node: llvm.Value,
-    name: string
-  ): llvm.Value {
+  public genPostfixUnaryExpressionMinusMinus(node: llvm.Value, name: string): llvm.Value {
     const raw = this.cgen.builder.createLoad(node);
     const one = llvm.ConstantInt.get(this.cgen.context, 1, 64);
     const r = this.cgen.builder.createSub(raw, one);

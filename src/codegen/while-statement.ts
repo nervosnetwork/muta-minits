@@ -11,21 +11,9 @@ export default class CodeGenWhile {
   }
 
   public genWhileStatement(node: ts.WhileStatement): void {
-    const loopCond = llvm.BasicBlock.create(
-      this.cgen.context,
-      'loop.cond',
-      this.cgen.currentFunction
-    );
-    const loopBody = llvm.BasicBlock.create(
-      this.cgen.context,
-      'loop.body',
-      this.cgen.currentFunction
-    );
-    const loopQuit = llvm.BasicBlock.create(
-      this.cgen.context,
-      'loop.quit',
-      this.cgen.currentFunction
-    );
+    const loopCond = llvm.BasicBlock.create(this.cgen.context, 'loop.cond', this.cgen.currentFunction);
+    const loopBody = llvm.BasicBlock.create(this.cgen.context, 'loop.body', this.cgen.currentFunction);
+    const loopQuit = llvm.BasicBlock.create(this.cgen.context, 'loop.quit', this.cgen.currentFunction);
 
     this.cgen.builder.createBr(loopCond);
     this.cgen.builder.setInsertionPoint(loopCond);

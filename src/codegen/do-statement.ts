@@ -11,21 +11,9 @@ export default class CodeGenDo {
   }
 
   public genDoStatement(node: ts.DoStatement): void {
-    const loopBody = llvm.BasicBlock.create(
-      this.cgen.context,
-      'loop.body',
-      this.cgen.currentFunction
-    );
-    const loopCond = llvm.BasicBlock.create(
-      this.cgen.context,
-      'loop.cond',
-      this.cgen.currentFunction
-    );
-    const loopQuit = llvm.BasicBlock.create(
-      this.cgen.context,
-      'loop.quit',
-      this.cgen.currentFunction
-    );
+    const loopBody = llvm.BasicBlock.create(this.cgen.context, 'loop.body', this.cgen.currentFunction);
+    const loopCond = llvm.BasicBlock.create(this.cgen.context, 'loop.cond', this.cgen.currentFunction);
+    const loopQuit = llvm.BasicBlock.create(this.cgen.context, 'loop.quit', this.cgen.currentFunction);
 
     this.cgen.builder.createBr(loopBody);
     this.cgen.builder.setInsertionPoint(loopBody);
