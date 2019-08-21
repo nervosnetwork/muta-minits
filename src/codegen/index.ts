@@ -15,6 +15,7 @@ import CodeGenPrefixUnary from './prefix-unary-expression';
 import CodeGenReturn from './return-statement';
 import CodeGenVarDecl from './variable-declaration';
 import CodeGenWhile from './while-statement';
+import CodeGenEnum from './enum-declaration';
 
 const debug = Debug('minits:codegen');
 
@@ -38,6 +39,7 @@ export default class LLVMCodeGen {
   public readonly cgReturn: CodeGenReturn;
   public readonly cgVarDecl: CodeGenVarDecl;
   public readonly cgWhile: CodeGenWhile;
+  public readonly cgEnum: CodeGenEnum;
 
   public currentBreakBlock: llvm.BasicBlock | undefined;
   public currentConitnueBlock: llvm.BasicBlock | undefined;
@@ -62,6 +64,7 @@ export default class LLVMCodeGen {
     this.cgReturn = new CodeGenReturn(this);
     this.cgVarDecl = new CodeGenVarDecl(this);
     this.cgWhile = new CodeGenWhile(this);
+    this.cgEnum = new CodeGenEnum(this);
 
     this.currentBreakBlock = undefined;
     this.currentConitnueBlock = undefined;
@@ -83,6 +86,12 @@ export default class LLVMCodeGen {
           break;
         case ts.SyntaxKind.FunctionDeclaration:
           this.genFunctionDeclaration(node as ts.FunctionDeclaration);
+          break;
+        case ts.SyntaxKind.EnumDeclaration:
+          this.genEnumDeclaration(node as ts.EnumDeclaration);
+          break;
+        case ts.SyntaxKind.ExpressionStatement:
+          this.genExpressionStatement(node as ts.ExpressionStatement);
           break;
         default:
           throw new Error('Unsupported grammar');
@@ -158,13 +167,21 @@ export default class LLVMCodeGen {
       case ts.SyntaxKind.CallExpression:
         return this.genCallExpression(expr as ts.CallExpression);
       case ts.SyntaxKind.ParenthesizedExpression:
-        return this.genParenthesizedExpression(expr as ts.ParenthesizedExpression);
+        return this.genParenthesizedExpression(
+          expr as ts.ParenthesizedExpression
+        );
       case ts.SyntaxKind.PrefixUnaryExpression:
         return this.genPrefixUnaryExpression(expr as ts.PrefixUnaryExpression);
       case ts.SyntaxKind.PostfixUnaryExpression:
-        return this.genPostfixUnaryExpression(expr as ts.PostfixUnaryExpression);
+        return this.genPostfixUnaryExpression(
+          expr as ts.PostfixUnaryExpression
+        );
       case ts.SyntaxKind.BinaryExpression:
         return this.genBinaryExpression(expr as ts.BinaryExpression);
+      case ts.SyntaxKind.PropertyAccessExpression:
+        return this.genPropertyAccessExpression(
+          expr as ts.PropertyAccessExpression
+        );
       default:
         throw new Error('Unsupported expression');
     }
@@ -187,7 +204,9 @@ export default class LLVMCodeGen {
     return this.builder.createCall(func, args);
   }
 
-  public genParenthesizedExpression(node: ts.ParenthesizedExpression): llvm.Value {
+  public genParenthesizedExpression(
+    node: ts.ParenthesizedExpression
+  ): llvm.Value {
     return this.genExpression(node.expression);
   }
 
@@ -195,7 +214,9 @@ export default class LLVMCodeGen {
     return this.cgPrefixUnary.genPrefixUnaryExpression(node);
   }
 
-  public genPostfixUnaryExpression(node: ts.PostfixUnaryExpression): llvm.Value {
+  public genPostfixUnaryExpression(
+    node: ts.PostfixUnaryExpression
+  ): llvm.Value {
     return this.cgPostfixUnary.genPostfixUnaryExpression(node);
   }
 
@@ -227,6 +248,8 @@ export default class LLVMCodeGen {
         return this.genBreakStatement();
       case ts.SyntaxKind.ReturnStatement:
         return this.genReturnStatement(node as ts.ReturnStatement);
+      case ts.SyntaxKind.EnumDeclaration:
+        return this.genEnumDeclaration(node as ts.EnumDeclaration);
       default:
         throw new Error('Unsupported statement');
     }
@@ -281,4 +304,18 @@ export default class LLVMCodeGen {
   public genForOfStatement(node: ts.ForOfStatement): void {
     return this.cgForOf.genForOfStatement(node);
   }
+
+  public genEnumDeclaration(node: ts.EnumDeclaration): void {
+    return this.cgEnum.genEnumDeclaration(node);
+  }
+
+  public genPropertyAccessExpression(
+    node: ts.PropertyAccessExpression
+  ): llvm.Value {
+    return this.cgEnum.genEnumElementAccess(node);
+  }
+
+  // public genInitializer(node: ts.Expression!): llvm.Value {
+  //
+  // }
 }
