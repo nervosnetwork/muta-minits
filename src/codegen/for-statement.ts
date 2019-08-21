@@ -20,6 +20,11 @@ export default class CodeGenFor {
         throw new Error('Unsupported for statement');
       }
     }
+    const loopHeader = llvm.BasicBlock.create(
+      this.cgen.context,
+      'loop.header',
+      this.cgen.currentFunction
+    );
     const loopBody = llvm.BasicBlock.create(
       this.cgen.context,
       'loop.body',
@@ -30,22 +35,21 @@ export default class CodeGenFor {
       'loop.quit',
       this.cgen.currentFunction
     );
-    // Loop Header
-    const loopCond1 = this.cgen.genExpression(node.condition!);
-    this.cgen.builder.createCondBr(loopCond1, loopBody, loopQuit);
-    this.cgen.builder.setInsertionPoint(loopBody);
 
-    // Loop Body
+    this.cgen.builder.createBr(loopHeader);
+    this.cgen.builder.setInsertionPoint(loopHeader);
+    const loopCond = this.cgen.genExpression(node.condition!);
+    this.cgen.builder.createCondBr(loopCond, loopBody, loopQuit);
+
+    this.cgen.builder.setInsertionPoint(loopBody);
     const rawBreakBlock = this.cgen.currentBreakBlock;
     this.cgen.currentBreakBlock = loopQuit;
     this.cgen.genStatement(node.statement);
-
-    // Loop End
     if (node.incrementor) {
       this.cgen.genExpression(node.incrementor);
     }
-    const loopCond2 = this.cgen.genExpression(node.condition!);
-    this.cgen.builder.createCondBr(loopCond2, loopBody, loopQuit);
+    this.cgen.builder.createBr(loopHeader);
+
     this.cgen.builder.setInsertionPoint(loopQuit);
     this.cgen.currentBreakBlock = rawBreakBlock;
   }

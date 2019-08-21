@@ -30,6 +30,11 @@ export default class CodeGenForOf {
       this.cgen.symtab.set(name, alloca);
       return alloca;
     })();
+    const loopHeader = llvm.BasicBlock.create(
+      this.cgen.context,
+      'loop.header',
+      this.cgen.currentFunction
+    );
     const loopBody = llvm.BasicBlock.create(
       this.cgen.context,
       'loop.body',
@@ -41,30 +46,28 @@ export default class CodeGenForOf {
       this.cgen.currentFunction
     );
 
-    // Loop Header
+    this.cgen.builder.createBr(loopHeader);
     const l = llvm.ConstantInt.get(
       this.cgen.context,
       (a.type.elementType as llvm.ArrayType).numElements,
       64
     );
-    const loopCond1 = this.cgen.builder.createICmpSLT(
+    this.cgen.builder.setInsertionPoint(loopHeader);
+    const loopCond = this.cgen.builder.createICmpSLT(
       this.cgen.builder.createLoad(i),
       l
     );
-    this.cgen.builder.createCondBr(loopCond1, loopBody, loopQuit);
+    this.cgen.builder.createCondBr(loopCond, loopBody, loopQuit);
+
     this.cgen.builder.setInsertionPoint(loopBody);
     const p = this.cgen.builder.createInBoundsGEP(a, [
       llvm.ConstantInt.get(this.cgen.context, 0, 64),
       this.cgen.builder.createLoad(i)
     ]);
     this.cgen.builder.createStore(this.cgen.builder.createLoad(p), v);
-
-    // Loop Body
     const rawBreakBlock = this.cgen.currentBreakBlock;
     this.cgen.currentBreakBlock = loopQuit;
     this.cgen.genStatement(node.statement);
-
-    // Loop End
     const n = this.cgen.builder.createAdd(
       this.cgen.builder.createLoad(i),
       llvm.ConstantInt.get(this.cgen.context, 1, 64)
@@ -75,11 +78,8 @@ export default class CodeGenForOf {
       n
     ]);
     this.cgen.builder.createStore(this.cgen.builder.createLoad(ptr), v);
-    const loopCond2 = this.cgen.builder.createICmpSLT(
-      this.cgen.builder.createLoad(i),
-      l
-    );
-    this.cgen.builder.createCondBr(loopCond2, loopBody, loopQuit);
+    this.cgen.builder.createBr(loopHeader);
+
     this.cgen.builder.setInsertionPoint(loopQuit);
     this.cgen.currentBreakBlock = rawBreakBlock;
   }
