@@ -157,6 +157,8 @@ export default class LLVMCodeGen {
         return this.genElementAccess(expr as ts.ElementAccessExpression);
       case ts.SyntaxKind.CallExpression:
         return this.genCallExpression(expr as ts.CallExpression);
+      case ts.SyntaxKind.ParenthesizedExpression:
+        return this.genParenthesizedExpression(expr as ts.ParenthesizedExpression);
       case ts.SyntaxKind.PrefixUnaryExpression:
         return this.genPrefixUnaryExpression(expr as ts.PrefixUnaryExpression);
       case ts.SyntaxKind.PostfixUnaryExpression:
@@ -178,13 +180,17 @@ export default class LLVMCodeGen {
     return this.cgArray.genArrayElementAccess(node);
   }
 
-  public genCallExpression(expr: ts.CallExpression): llvm.Value {
-    const name = expr.expression.getText();
-    const args = expr.arguments.map(item => {
+  public genCallExpression(node: ts.CallExpression): llvm.Value {
+    const name = node.expression.getText();
+    const args = node.arguments.map(item => {
       return this.genExpression(item);
     });
     const func = this.module.getFunction(name)!;
     return this.builder.createCall(func, args);
+  }
+
+  public genParenthesizedExpression(node: ts.ParenthesizedExpression): llvm.Value {
+    return this.genExpression(node.expression)
   }
 
   public genPrefixUnaryExpression(node: ts.PrefixUnaryExpression): llvm.Value {
