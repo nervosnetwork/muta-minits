@@ -5,6 +5,7 @@ import ts from 'typescript';
 import Symtab from '../symtab';
 import CodeGenArray from './array-literal-expression';
 import CodeGenBinary from './binary-expression';
+import CodeGenDo from './do-statement';
 import CodeGenForOf from './for-of-statement';
 import CodeGenFor from './for-statement';
 import CodeGenFuncDecl from './function-declaration';
@@ -27,6 +28,7 @@ export default class LLVMCodeGen {
 
   public readonly cgArray: CodeGenArray;
   public readonly cgBinary: CodeGenBinary;
+  public readonly cgDo: CodeGenDo;
   public readonly cgForOf: CodeGenForOf;
   public readonly cgFor: CodeGenFor;
   public readonly cgFuncDecl: CodeGenFuncDecl;
@@ -50,6 +52,7 @@ export default class LLVMCodeGen {
 
     this.cgArray = new CodeGenArray(this);
     this.cgBinary = new CodeGenBinary(this);
+    this.cgDo = new CodeGenDo(this);
     this.cgForOf = new CodeGenForOf(this);
     this.cgFor = new CodeGenFor(this);
     this.cgFuncDecl = new CodeGenFuncDecl(this);
@@ -208,6 +211,8 @@ export default class LLVMCodeGen {
         return this.genExpressionStatement(node as ts.ExpressionStatement);
       case ts.SyntaxKind.IfStatement:
         return this.genIfStatement(node as ts.IfStatement);
+      case ts.SyntaxKind.DoStatement:
+        return this.genDoStatement(node as ts.DoStatement);
       case ts.SyntaxKind.WhileStatement:
         return this.genWhileStatement(node as ts.WhileStatement);
       case ts.SyntaxKind.ForStatement:
@@ -257,6 +262,10 @@ export default class LLVMCodeGen {
 
   public genIfStatement(node: ts.IfStatement): void {
     return this.cgIf.genIfStatement(node);
+  }
+
+  public genDoStatement(node: ts.DoStatement): void {
+    return this.cgDo.genDoStatement(node);
   }
 
   public genWhileStatement(node: ts.WhileStatement): void {
