@@ -38,6 +38,7 @@ export default class LLVMCodeGen {
   public readonly cgWhile: CodeGenWhile;
 
   public currentBreakBlock: llvm.BasicBlock | undefined;
+  public currentConitnueBlock: llvm.BasicBlock | undefined;
   public currentFunction: llvm.Function | undefined;
   public currentType: ts.TypeNode | undefined;
 
@@ -60,6 +61,7 @@ export default class LLVMCodeGen {
     this.cgWhile = new CodeGenWhile(this);
 
     this.currentBreakBlock = undefined;
+    this.currentConitnueBlock = undefined;
     this.currentFunction = undefined;
     this.currentType = undefined;
   }
@@ -212,6 +214,8 @@ export default class LLVMCodeGen {
         return this.genForStatement(node as ts.ForStatement);
       case ts.SyntaxKind.ForOfStatement:
         return this.genForOfStatement(node as ts.ForOfStatement);
+      case ts.SyntaxKind.ContinueStatement:
+        return this.genContinueStatement();
       case ts.SyntaxKind.BreakStatement:
         return this.genBreakStatement();
       case ts.SyntaxKind.ReturnStatement:
@@ -233,6 +237,10 @@ export default class LLVMCodeGen {
 
   public genExpressionStatement(node: ts.ExpressionStatement): llvm.Value {
     return this.genExpression(node.expression);
+  }
+
+  public genContinueStatement(): void {
+    this.builder.createBr(this.currentConitnueBlock!);
   }
 
   public genBreakStatement(): void {

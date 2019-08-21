@@ -11,9 +11,9 @@ export default class CodeGenWhile {
   }
 
   public genWhileStatement(node: ts.WhileStatement): void {
-    const loopHeader = llvm.BasicBlock.create(
+    const loopCond = llvm.BasicBlock.create(
       this.cgen.context,
-      'loop.header',
+      'loop.cond',
       this.cgen.currentFunction
     );
     const loopBody = llvm.BasicBlock.create(
@@ -27,18 +27,21 @@ export default class CodeGenWhile {
       this.cgen.currentFunction
     );
 
-    this.cgen.builder.createBr(loopHeader);
-    this.cgen.builder.setInsertionPoint(loopHeader);
-    const loopCond = this.cgen.genExpression(node.expression);
-    this.cgen.builder.createCondBr(loopCond, loopBody, loopQuit);
+    this.cgen.builder.createBr(loopCond);
+    this.cgen.builder.setInsertionPoint(loopCond);
+    const cond = this.cgen.genExpression(node.expression);
+    this.cgen.builder.createCondBr(cond, loopBody, loopQuit);
 
     this.cgen.builder.setInsertionPoint(loopBody);
     const rawBreakBlock = this.cgen.currentBreakBlock;
+    const rawContinueBlock = this.cgen.currentConitnueBlock;
     this.cgen.currentBreakBlock = loopQuit;
+    this.cgen.currentConitnueBlock = loopCond;
     this.cgen.genStatement(node.statement);
-    this.cgen.builder.createBr(loopHeader);
+    this.cgen.builder.createBr(loopCond);
 
     this.cgen.builder.setInsertionPoint(loopQuit);
     this.cgen.currentBreakBlock = rawBreakBlock;
+    this.cgen.currentConitnueBlock = rawContinueBlock;
   }
 }
