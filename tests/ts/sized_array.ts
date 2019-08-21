@@ -16,6 +16,7 @@ function main(): number {
         return 1;
     }
     // Set
+    s = 0;
     a[0] = 4;
     a[1] = 5;
     a[2] = 6;
