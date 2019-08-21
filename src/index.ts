@@ -41,12 +41,7 @@ program.parse(process.argv);
 
 function build(...args: readonly any[]): string {
   const fileName = args[args.length - 1];
-  const sourceFile = ts.createSourceFile(
-    fileName,
-    fs.readFileSync(fileName).toString(),
-    ts.ScriptTarget.ES2020,
-    true
-  );
+  const sourceFile = ts.createSourceFile(fileName, fs.readFileSync(fileName).toString(), ts.ScriptTarget.ES2020, true);
 
   llvm.initializeAllTargetInfos();
   llvm.initializeAllTargets();
@@ -57,9 +52,7 @@ function build(...args: readonly any[]): string {
   const cg = new LLVMCodeGen();
   cg.genSourceFile(sourceFile);
 
-  const triple: string = program.opts().triple
-    ? program.opts().triple
-    : llvm.config.LLVM_DEFAULT_TARGET_TRIPLE;
+  const triple: string = program.opts().triple ? program.opts().triple : llvm.config.LLVM_DEFAULT_TARGET_TRIPLE;
   const target = llvm.TargetRegistry.lookupTarget(triple);
   const m = target.createTargetMachine(triple, 'generic');
   cg.module.dataLayout = m.createDataLayout();

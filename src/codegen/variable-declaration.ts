@@ -18,9 +18,7 @@ export default class CodeGenArray {
     }
   }
 
-  public genVariableDeclarationLocale(
-    node: ts.VariableDeclaration
-  ): llvm.Value {
+  public genVariableDeclarationLocale(node: ts.VariableDeclaration): llvm.Value {
     const name = node.name.getText();
     this.cgen.currentType = node.type;
     const initializer = this.cgen.genExpression(node.initializer!);
@@ -41,31 +39,20 @@ export default class CodeGenArray {
     }
   }
 
-  public genVariableDeclarationGlobal(
-    node: ts.VariableDeclaration
-  ): llvm.Value {
+  public genVariableDeclarationGlobal(node: ts.VariableDeclaration): llvm.Value {
     const name = node.name.getText();
     this.cgen.currentType = node.type;
     switch (node.initializer!.kind) {
       case ts.SyntaxKind.NumericLiteral:
-        return this.genVariableDeclarationGlobalNumeric(
-          node.initializer! as ts.NumericLiteral,
-          name
-        );
+        return this.genVariableDeclarationGlobalNumeric(node.initializer! as ts.NumericLiteral, name);
       case ts.SyntaxKind.ArrayLiteralExpression:
-        return this.genVariableDeclarationGlobalArrayLiteral(
-          node.initializer! as ts.ArrayLiteralExpression,
-          name
-        );
+        return this.genVariableDeclarationGlobalArrayLiteral(node.initializer! as ts.ArrayLiteralExpression, name);
       default:
         throw new Error('Unsupported type');
     }
   }
 
-  public genVariableDeclarationGlobalNumeric(
-    node: ts.NumericLiteral,
-    name: string
-  ): llvm.GlobalVariable {
+  public genVariableDeclarationGlobalNumeric(node: ts.NumericLiteral, name: string): llvm.GlobalVariable {
     const initializer = this.cgen.genNumeric(node);
     const type = initializer.type;
     const r = new llvm.GlobalVariable(
@@ -80,10 +67,7 @@ export default class CodeGenArray {
     return r;
   }
 
-  public genVariableDeclarationGlobalArrayLiteral(
-    node: ts.ArrayLiteralExpression,
-    name: string
-  ): llvm.GlobalVariable {
+  public genVariableDeclarationGlobalArrayLiteral(node: ts.ArrayLiteralExpression, name: string): llvm.GlobalVariable {
     const arrayType = this.cgen.cgArray.genArrayType(node);
     const arrayData = llvm.ConstantArray.get(
       arrayType,
