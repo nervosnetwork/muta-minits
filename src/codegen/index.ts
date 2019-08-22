@@ -3,6 +3,7 @@ import llvm from 'llvm-node';
 import ts from 'typescript';
 
 import Symtab from '../symtab';
+import { StructMeta, StructMetaType } from '../types';
 import CodeGenArray from './array-literal-expression';
 import CodeGenBinary from './binary-expression';
 import CodeGenDo from './do-statement';
@@ -26,6 +27,7 @@ export default class LLVMCodeGen {
   public readonly context: llvm.LLVMContext;
   public readonly module: llvm.Module;
   public readonly symtab: Symtab;
+  public readonly structTab: Map<string, StructMeta>;
 
   public readonly cgArray: CodeGenArray;
   public readonly cgBinary: CodeGenBinary;
@@ -51,6 +53,7 @@ export default class LLVMCodeGen {
     this.module = new llvm.Module('main', this.context);
     this.builder = new llvm.IRBuilder(this.context);
     this.symtab = new Symtab();
+    this.structTab = new Map();
 
     this.cgArray = new CodeGenArray(this);
     this.cgBinary = new CodeGenBinary(this);
@@ -123,7 +126,7 @@ export default class LLVMCodeGen {
   }
 
   public genIdentifier(node: ts.Identifier): llvm.Value {
-    return this.symtab.get(node.getText());
+    return this.symtab.get(node.getText()).value;
   }
 
   public genAutoDereference(node: llvm.Value): llvm.Value {
@@ -139,6 +142,17 @@ export default class LLVMCodeGen {
         return llvm.Type.getInt1Ty(this.context);
       case ts.SyntaxKind.NumberKeyword:
         return llvm.Type.getInt64Ty(this.context);
+      case ts.SyntaxKind.TypeReference:
+        const structMeta = this.structTab.get(type.getText())!;
+        const structType = this.module.getTypeByName(type.getText())!;
+
+        // if type is enum.
+        if (structMeta.metaType === StructMetaType.Enum) {
+          return structType.getElementType(0);
+        }
+
+        // TODO: impl struct
+        throw new Error('Unsupported type');
       default:
         throw new Error('Unsupported type');
     }
@@ -167,21 +181,15 @@ export default class LLVMCodeGen {
       case ts.SyntaxKind.CallExpression:
         return this.genCallExpression(expr as ts.CallExpression);
       case ts.SyntaxKind.ParenthesizedExpression:
-        return this.genParenthesizedExpression(
-          expr as ts.ParenthesizedExpression
-        );
+        return this.genParenthesizedExpression(expr as ts.ParenthesizedExpression);
       case ts.SyntaxKind.PrefixUnaryExpression:
         return this.genPrefixUnaryExpression(expr as ts.PrefixUnaryExpression);
       case ts.SyntaxKind.PostfixUnaryExpression:
-        return this.genPostfixUnaryExpression(
-          expr as ts.PostfixUnaryExpression
-        );
+        return this.genPostfixUnaryExpression(expr as ts.PostfixUnaryExpression);
       case ts.SyntaxKind.BinaryExpression:
         return this.genBinaryExpression(expr as ts.BinaryExpression);
       case ts.SyntaxKind.PropertyAccessExpression:
-        return this.genPropertyAccessExpression(
-          expr as ts.PropertyAccessExpression
-        );
+        return this.genPropertyAccessExpression(expr as ts.PropertyAccessExpression);
       default:
         throw new Error('Unsupported expression');
     }
@@ -204,9 +212,7 @@ export default class LLVMCodeGen {
     return this.builder.createCall(func, args);
   }
 
-  public genParenthesizedExpression(
-    node: ts.ParenthesizedExpression
-  ): llvm.Value {
+  public genParenthesizedExpression(node: ts.ParenthesizedExpression): llvm.Value {
     return this.genExpression(node.expression);
   }
 
@@ -214,9 +220,7 @@ export default class LLVMCodeGen {
     return this.cgPrefixUnary.genPrefixUnaryExpression(node);
   }
 
-  public genPostfixUnaryExpression(
-    node: ts.PostfixUnaryExpression
-  ): llvm.Value {
+  public genPostfixUnaryExpression(node: ts.PostfixUnaryExpression): llvm.Value {
     return this.cgPostfixUnary.genPostfixUnaryExpression(node);
   }
 
@@ -309,13 +313,7 @@ export default class LLVMCodeGen {
     return this.cgEnum.genEnumDeclaration(node);
   }
 
-  public genPropertyAccessExpression(
-    node: ts.PropertyAccessExpression
-  ): llvm.Value {
+  public genPropertyAccessExpression(node: ts.PropertyAccessExpression): llvm.Value {
     return this.cgEnum.genEnumElementAccess(node);
   }
-
-  // public genInitializer(node: ts.Expression!): llvm.Value {
-  //
-  // }
 }

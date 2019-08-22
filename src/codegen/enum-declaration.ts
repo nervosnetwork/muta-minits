@@ -3,6 +3,7 @@ import llvm from 'llvm-node';
 import ts from 'typescript';
 
 import LLVMCodeGen from './';
+import { StructMetaType } from '../types';
 
 const debug = Debug('minits:codegen:struct');
 
@@ -18,62 +19,36 @@ export default class CodeGenStruct {
   public genEnumDeclaration(node: ts.EnumDeclaration): void {
     const enumName = node.name.text;
 
-    const { types, initializers } = this.genElements(enumName, node.members);
+    const enumMemberType = this.genElements(enumName, node.members);
+    const enumType = llvm.StructType.create(this.cgen.context, enumName);
+    enumType.setBody([enumMemberType]);
 
-    const enumType = llvm.StructType.create(
-      this.cgen.context,
-      `enum.${enumName}`
-    );
-    enumType.setBody(types);
-
-    const enumInst = llvm.ConstantStruct.get(
-      enumType,
-      initializers as llvm.Constant[]
-    );
-
-    if (this.cgen.symtab.depths() === 0) {
-      const globalStruct = new llvm.GlobalVariable(
-        this.cgen.module,
-        enumType,
-        true,
-        llvm.LinkageTypes.ExternalLinkage,
-        enumInst,
-        enumName
-      );
-
-      this.cgen.symtab.set(enumName, globalStruct);
-    } else {
-      const alloc = this.cgen.builder.createAlloca(enumType);
-      this.cgen.builder.createStore(enumInst, alloc);
-    }
+    this.cgen.structTab.set(enumName, { metaType: StructMetaType.Enum, fields: new Map() });
   }
 
   public genEnumElementAccess(node: ts.PropertyAccessExpression): llvm.Value {
-    const field = node.getText();
-    debug(field);
-    debug(this.cgen.symtab.get(field));
-    return this.cgen.symtab.get(field)!;
+    return this.cgen.symtab.get(node.getText()).value;
   }
 
-  private genElements(
-    name: string,
-    members: ts.NodeArray<ts.EnumMember>
-  ): { types: llvm.Type[]; initializers: llvm.Value[] } {
-    const types: llvm.Type[] = [];
-    const initializers: llvm.Value[] = [];
+  private genElements(namespace: string, members: ts.NodeArray<ts.EnumMember>): llvm.Type {
     let last: { lastType: llvm.Type; text: string } = {
       lastType: llvm.Type.getInt64Ty(this.cgen.context),
       text: '0'
     };
 
     for (const [index, m] of members.entries()) {
-      const fieldName = `${name}.${(m.name as ts.Identifier).text}`;
+      const fieldName = `${namespace}.${m.name.getText()}`;
 
       const value = (() => {
         // enum T {a = 100, b == 101}
         if (m.initializer) {
           last.text = m.initializer.getText();
-          return this.cgen.genExpression(m.initializer);
+          const value = this.cgen.genExpression(m.initializer);
+
+          if (value.type.typeID !== last.lastType.typeID) {
+            throw new Error('Enum data types must be consistent.');
+          }
+          return value;
 
           // enum T { a }
         } else if (index === 0) {
@@ -90,13 +65,21 @@ export default class CodeGenStruct {
         }
       })();
 
-      last.lastType = value.type;
-      types.push(value.type);
-      initializers.push(value);
-
-      this.cgen.symtab.set(fieldName, value);
+      this.cgen.symtab.set(fieldName, { value });
+      if (this.cgen.symtab.isGlobal()) {
+        new llvm.GlobalVariable(
+          this.cgen.module,
+          value.type,
+          true,
+          llvm.LinkageTypes.ExternalLinkage,
+          value as llvm.Constant,
+          fieldName
+        );
+      } else {
+        const alloc = this.cgen.builder.createAlloca(value.type);
+        this.cgen.builder.createStore(value, alloc, false);
+      }
     }
-
-    return { types, initializers };
+    return last.lastType;
   }
 }

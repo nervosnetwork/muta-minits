@@ -8,77 +8,84 @@
 //           b;                            ---> symtab.get('echo').get('b')
 // }
 //
-import llvm from 'llvm-node';
-
-class Scopes {
-  public data: Map<string, Scopes | llvm.Value>;
-
-  constructor() {
-    this.data = new Map();
-  }
-}
+import { SymtabMeta } from './types';
 
 export default class Symtab {
-  protected readonly data: Scopes;
-  protected prefix: string[];
+  public readonly scopes: Stack<Map<string, SymtabMeta>>;
 
   constructor() {
-    this.data = new Scopes();
-    this.prefix = [];
+    this.scopes = new Stack();
+    this.scopes.push(new Map());
   }
 
-  public into(name: string): void {
-    this.prefix.push(name);
+  public into(): void {
+    this.scopes.push(new Map());
   }
 
   public exit(): void {
-    this.prefix.pop();
+    if (this.scopes.size() > 0) {
+      this.scopes.pop();
+    }
   }
 
-  public get(name: string): llvm.Value {
-    for (let i = this.prefix.length; i >= 0; i--) {
-      const r = this.getLowValue(this.data, this.prefix.slice(0, i), name);
-      if (r) {
-        return r as llvm.Value;
+  public set(key: string, value: SymtabMeta): void {
+    this.scopes.peek().set(key, value);
+  }
+
+  public get(key: string): SymtabMeta {
+    const len = this.scopes.size();
+
+    for (let i = len - 1; i >= 0; i--) {
+      const opt_value = this.scopes.index(i).get(key);
+      if (opt_value) {
+        return opt_value;
       }
     }
-    throw new Error('Unsupported grammar');
+
+    throw new Error(`Symbol ${key} not found`);
   }
 
-  public set(name: string, data: llvm.Value): void {
-    this.getLowScopes(this.data, this.prefix).data.set(name, data);
+  public check(key: string): boolean {
+    return this.get(key) !== null;
   }
 
-  public depths(): number {
-    return this.prefix.length;
+  public isGlobal(): boolean {
+    return this.scopes.size() === 1;
+  }
+}
+
+class Stack<T> {
+  private readonly elements: T[] = [];
+
+  public peek(): T {
+    if (this.isEmpty()) {
+      throw new Error('Stack is empty');
+    }
+
+    return this.elements[this.size() - 1];
   }
 
-  private getLowScopes(scopes: Scopes, prefix: readonly string[]): Scopes {
-    if (prefix.length === 0) {
-      return scopes;
+  public pop(): T | undefined {
+    if (this.isEmpty()) {
+      throw new Error('Stack is empty');
     }
-    const current = prefix[0];
-    const remains = prefix.slice(1);
-    const next = scopes.data.get(current);
-    if (next === undefined) {
-      const r = new Scopes();
-      this.data.data.set(current, r);
-      return r;
-    }
-    if (next instanceof llvm.Value) {
-      throw new Error('Unsupported grammar');
-    }
-    return this.getLowScopes(next as Scopes, remains);
+
+    return this.elements.pop();
   }
 
-  private getLowValue(scopes: Scopes, prefix: readonly string[], name: string): llvm.Value | undefined {
-    const r = this.getLowScopes(scopes, prefix).data.get(name);
-    if (r === undefined) {
-      return undefined;
-    }
-    if (r instanceof Scopes) {
-      throw new Error('Unsupported grammar');
-    }
-    return r as llvm.Value;
+  public push(t: T): void {
+    this.elements.push(t);
+  }
+
+  public isEmpty(): boolean {
+    return this.size() === 0;
+  }
+
+  public size(): number {
+    return this.elements.length;
+  }
+
+  public index(index: number): T {
+    return this.elements[index];
   }
 }

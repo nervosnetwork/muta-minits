@@ -1,7 +1,12 @@
+enum Test {
+  a,
+  b
+}
+
+function test(t: Test): number {
+  return t;
+}
+
 function main(): number {
-  enum Test {
-    a,
-    b
-  }
-  return Test.b;
+  return test(Test.b);
 }

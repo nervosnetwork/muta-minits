@@ -11,7 +11,7 @@ export default class CodeGenArray {
   }
 
   public genVariableDeclaration(node: ts.VariableDeclaration): llvm.Value {
-    if (this.cgen.symtab.depths() === 0) {
+    if (this.cgen.symtab.isGlobal()) {
       return this.genVariableDeclarationGlobal(node);
     } else {
       return this.genVariableDeclarationLocale(node);
@@ -27,14 +27,14 @@ export default class CodeGenArray {
     if (type.isPointerTy()) {
       const real = type as llvm.PointerType;
       if (real.elementType.isArrayTy()) {
-        this.cgen.symtab.set(name, initializer);
+        this.cgen.symtab.set(name, { value: initializer });
         return initializer;
       }
       throw new Error('Unsupported pointer type');
     } else {
       const alloca = this.cgen.builder.createAlloca(type, undefined, name);
       this.cgen.builder.createStore(initializer, alloca);
-      this.cgen.symtab.set(name, alloca);
+      this.cgen.symtab.set(name, { value: alloca });
       return alloca;
     }
   }
@@ -63,7 +63,7 @@ export default class CodeGenArray {
       initializer,
       name
     );
-    this.cgen.symtab.set(name, r);
+    this.cgen.symtab.set(name, { value: r });
     return r;
   }
 
@@ -83,7 +83,7 @@ export default class CodeGenArray {
       arrayData,
       name
     );
-    this.cgen.symtab.set(name, r);
+    this.cgen.symtab.set(name, { value: r });
     return r;
   }
 }

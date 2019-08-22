@@ -17,7 +17,7 @@ export default class CodeGenForOf {
       const type = initializer.type;
       const alloca = this.cgen.builder.createAlloca(type, undefined, name);
       this.cgen.builder.createStore(initializer, alloca);
-      this.cgen.symtab.set(name, alloca);
+      this.cgen.symtab.set(name, { value: alloca });
       return alloca;
     })();
     const a = this.cgen.genExpression(node.expression) as llvm.AllocaInst;
@@ -25,7 +25,7 @@ export default class CodeGenForOf {
       const type = (a.type.elementType as llvm.ArrayType).elementType;
       const name = (node.initializer! as ts.VariableDeclarationList).declarations!.map(item => item.getText())[0];
       const alloca = this.cgen.builder.createAlloca(type, undefined, name);
-      this.cgen.symtab.set(name, alloca);
+      this.cgen.symtab.set(name, { value: alloca });
       return alloca;
     })();
     const loopCond = llvm.BasicBlock.create(this.cgen.context, 'loop.cond', this.cgen.currentFunction);
