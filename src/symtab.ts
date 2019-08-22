@@ -36,9 +36,9 @@ export default class Symtab {
     const len = this.scopes.size();
 
     for (let i = len - 1; i >= 0; i--) {
-      const opt_value = this.scopes.index(i).get(key);
-      if (opt_value) {
-        return opt_value;
+      const optValue = this.scopes.index(i).get(key);
+      if (optValue) {
+        return optValue;
       }
     }
 

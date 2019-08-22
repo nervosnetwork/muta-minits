@@ -5,11 +5,11 @@ export enum StructMetaType {
   Enum
 }
 
-export type StructMeta = {
+export interface StructMeta {
   metaType: StructMetaType;
   fields: Map<string, number>;
-};
+}
 
-export type SymtabMeta = {
+export interface SymtabMeta {
   value: llvm.Value;
-};
+}

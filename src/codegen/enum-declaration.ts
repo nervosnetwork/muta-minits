@@ -2,8 +2,8 @@ import Debug from 'debug';
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import LLVMCodeGen from './';
 import { StructMetaType } from '../types';
+import LLVMCodeGen from './';
 
 const debug = Debug('minits:codegen:struct');
 
@@ -31,7 +31,7 @@ export default class CodeGenStruct {
   }
 
   private genElements(namespace: string, members: ts.NodeArray<ts.EnumMember>): llvm.Type {
-    let last: { lastType: llvm.Type; text: string } = {
+    const last: { lastType: llvm.Type; text: string } = {
       lastType: llvm.Type.getInt64Ty(this.cgen.context),
       text: '0'
     };
@@ -43,12 +43,12 @@ export default class CodeGenStruct {
         // enum T {a = 100, b == 101}
         if (m.initializer) {
           last.text = m.initializer.getText();
-          const value = this.cgen.genExpression(m.initializer);
+          const genValue = this.cgen.genExpression(m.initializer);
 
-          if (value.type.typeID !== last.lastType.typeID) {
+          if (genValue.type.typeID !== last.lastType.typeID) {
             throw new Error('Enum data types must be consistent.');
           }
-          return value;
+          return genValue;
 
           // enum T { a }
         } else if (index === 0) {
@@ -65,9 +65,9 @@ export default class CodeGenStruct {
         }
       })();
 
-      this.cgen.symtab.set(fieldName, { value });
-      if (this.cgen.symtab.isGlobal()) {
-        new llvm.GlobalVariable(
+      // If it is a global pointer, create a global variable and register it in the symbol table.
+      if (this.cgen.symtab.isGlobal() && value.type.isPointerTy()) {
+        const globalValue = new llvm.GlobalVariable(
           this.cgen.module,
           value.type,
           true,
@@ -75,9 +75,19 @@ export default class CodeGenStruct {
           value as llvm.Constant,
           fieldName
         );
-      } else {
+
+        this.cgen.symtab.set(fieldName, { value: globalValue });
+
+        // If it is a pointer, create a local variable and register it in the symbol table.
+      } else if (value.type.isPointerTy()) {
         const alloc = this.cgen.builder.createAlloca(value.type);
         this.cgen.builder.createStore(value, alloc, false);
+
+        this.cgen.symtab.set(fieldName, { value: alloc });
+
+        // If it is an integer, the value is used directly and no variables are created.
+      } else {
+        this.cgen.symtab.set(fieldName, { value });
       }
     }
     return last.lastType;

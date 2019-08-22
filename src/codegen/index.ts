@@ -7,6 +7,7 @@ import { StructMeta, StructMetaType } from '../types';
 import CodeGenArray from './array-literal-expression';
 import CodeGenBinary from './binary-expression';
 import CodeGenDo from './do-statement';
+import CodeGenEnum from './enum-declaration';
 import CodeGenForOf from './for-of-statement';
 import CodeGenFor from './for-statement';
 import CodeGenFuncDecl from './function-declaration';
@@ -16,7 +17,6 @@ import CodeGenPrefixUnary from './prefix-unary-expression';
 import CodeGenReturn from './return-statement';
 import CodeGenVarDecl from './variable-declaration';
 import CodeGenWhile from './while-statement';
-import CodeGenEnum from './enum-declaration';
 
 const debug = Debug('minits:codegen');
 
