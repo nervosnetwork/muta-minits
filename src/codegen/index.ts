@@ -134,14 +134,12 @@ export default class LLVMCodeGen {
   }
 
   public genIdentifier(node: ts.Identifier): llvm.Value {
-    return this.symtab.get(node.getText()).value;
-  }
-
-  public genAutoDereference(node: llvm.Value): llvm.Value {
-    if (node.type.isPointerTy()) {
-      return this.builder.createLoad(node);
+    const symbol = this.symtab.get(node.getText());
+    let r = symbol.value;
+    for (let i = 0; i < symbol.deref; i++) {
+      r = this.builder.createLoad(r);
     }
-    return node;
+    return r;
   }
 
   public genType(type: ts.TypeNode): llvm.Type {
@@ -220,17 +218,12 @@ export default class LLVMCodeGen {
   public genCallExpression(node: ts.CallExpression): llvm.Value {
     const name = node.expression.getText();
     const args = node.arguments.map(item => {
-      if (item.kind === ts.SyntaxKind.Identifier) {
-        return this.genAutoDereference(this.genExpression(item));
-      } else {
-        return this.genExpression(item);
-      }
+      return this.genExpression(item);
     });
-    let func: llvm.Function;
+    let func: llvm.Constant;
     switch (name) {
       case 'console.log':
-        stdlib.injection_stdio_printf(this);
-        func = this.module.getFunction('printf')!;
+        func = this.module.getOrInsertFunction('printf', stdlib.stdioPrintf(this));
         break;
       default:
         func = this.module.getFunction(name)!;

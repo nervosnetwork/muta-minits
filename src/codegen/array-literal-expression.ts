@@ -36,7 +36,7 @@ export default class CodeGenArray {
   }
 
   public genArrayInitializer(node: ts.ArrayLiteralExpression): llvm.Value[] {
-    return node.elements.map(item => this.cgen.genAutoDereference(this.cgen.genExpression(item)));
+    return node.elements.map(item => this.cgen.genExpression(item));
   }
 
   // [0] https://stackoverflow.com/questions/38548680/confused-about-llvm-arrays
@@ -57,11 +57,11 @@ export default class CodeGenArray {
 
   public genArrayElementAccess(node: ts.ElementAccessExpression): llvm.Value {
     const identifier = this.cgen.genExpression(node.expression);
-    const argumentExpression = this.cgen.genAutoDereference(this.cgen.genExpression(node.argumentExpression));
+    const argumentExpression = this.cgen.genExpression(node.argumentExpression);
     const ptr = this.cgen.builder.createInBoundsGEP(identifier, [
       llvm.ConstantInt.get(this.cgen.context, 0, 64),
       argumentExpression
     ]);
-    return ptr;
+    return this.cgen.builder.createLoad(ptr);
   }
 }

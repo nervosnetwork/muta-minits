@@ -12,4 +12,5 @@ export interface StructMeta {
 
 export interface SymbolMeta {
   value: llvm.Value;
+  deref: number;
 }

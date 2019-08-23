@@ -76,18 +76,18 @@ export default class CodeGenStruct {
           fieldName
         );
 
-        this.cgen.symtab.set(fieldName, { value: globalValue });
+        this.cgen.symtab.set(fieldName, { value: globalValue, deref: 1 });
 
         // If it is a pointer, create a local variable and register it in the symbol table.
       } else if (value.type.isPointerTy()) {
         const alloc = this.cgen.builder.createAlloca(value.type);
         this.cgen.builder.createStore(value, alloc, false);
 
-        this.cgen.symtab.set(fieldName, { value: alloc });
+        this.cgen.symtab.set(fieldName, { value: alloc, deref: 1 });
 
         // If it is an integer, the value is used directly and no variables are created.
       } else {
-        this.cgen.symtab.set(fieldName, { value });
+        this.cgen.symtab.set(fieldName, { value, deref: 0 });
       }
     }
     return last.lastType;

@@ -15,7 +15,7 @@ export default class CodeGenPrefixUnary {
       // !
       case ts.SyntaxKind.TildeToken:
         return this.cgen.builder.createXor(
-          this.cgen.genAutoDereference(this.cgen.genExpression(expr.operand)),
+          this.cgen.genExpression(expr.operand),
           llvm.ConstantInt.get(this.cgen.context, -1, 64)
         );
       default:

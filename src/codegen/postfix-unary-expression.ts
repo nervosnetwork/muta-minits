@@ -16,30 +16,24 @@ export default class CodeGenPostfixUnary {
     switch (expr.operator) {
       // ++
       case ts.SyntaxKind.PlusPlusToken:
-        return this.genPostfixUnaryExpressionPlusPlus(lhs, e.getText());
+        return (() => {
+          const one = llvm.ConstantInt.get(this.cgen.context, 1, 64);
+          const r = this.cgen.builder.createAdd(lhs, one);
+          const ptr = this.cgen.symtab.get(e.getText()).value;
+          this.cgen.builder.createStore(r, ptr);
+          return lhs;
+        })();
       // --
       case ts.SyntaxKind.MinusMinusToken:
-        return this.genPostfixUnaryExpressionMinusMinus(lhs, e.getText());
+        return (() => {
+          const one = llvm.ConstantInt.get(this.cgen.context, 1, 64);
+          const r = this.cgen.builder.createSub(lhs, one);
+          const ptr = this.cgen.symtab.get(e.getText()).value;
+          this.cgen.builder.createStore(r, ptr);
+          return lhs;
+        })();
       default:
         throw new Error('Unsupported postfix unary expression');
     }
-  }
-
-  public genPostfixUnaryExpressionPlusPlus(node: llvm.Value, name: string): llvm.Value {
-    const raw = this.cgen.builder.createLoad(node);
-    const one = llvm.ConstantInt.get(this.cgen.context, 1, 64);
-    const r = this.cgen.builder.createAdd(raw, one);
-    const ptr = this.cgen.symtab.get(name).value;
-    this.cgen.builder.createStore(r, ptr);
-    return raw;
-  }
-
-  public genPostfixUnaryExpressionMinusMinus(node: llvm.Value, name: string): llvm.Value {
-    const raw = this.cgen.builder.createLoad(node);
-    const one = llvm.ConstantInt.get(this.cgen.context, 1, 64);
-    const r = this.cgen.builder.createSub(raw, one);
-    const ptr = this.cgen.symtab.get(name).value;
-    this.cgen.builder.createStore(r, ptr);
-    return raw;
   }
 }

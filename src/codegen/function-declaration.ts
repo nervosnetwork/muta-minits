@@ -30,7 +30,7 @@ export default class CodeGenFuncDecl {
     this.cgen.symtab.into();
     func.getArguments().forEach(item => {
       item.name = node.parameters[item.argumentNumber].name.getText();
-      this.cgen.symtab.set(item.name, { value: item });
+      this.cgen.symtab.set(item.name, { value: item, deref: 0 });
     });
     if (node.body) {
       const body = llvm.BasicBlock.create(this.cgen.context, 'body', func);

@@ -28,13 +28,12 @@ export default class CodeGenBinary {
 
   public genBinaryExpression(expr: ts.BinaryExpression): llvm.Value {
     const lhs = (() => {
-      const val = this.cgen.genExpression(expr.left);
       if (AssignmentOperator.includes(expr.operatorToken.kind)) {
-        return val;
+        return this.genSymbolPtr(expr.left);
       }
-      return this.cgen.genAutoDereference(val);
+      return this.cgen.genExpression(expr.left);
     })();
-    const rhs = this.cgen.genAutoDereference(this.cgen.genExpression(expr.right));
+    const rhs = this.cgen.genExpression(expr.right);
 
     switch (expr.operatorToken.kind) {
       // <
@@ -172,5 +171,21 @@ export default class CodeGenBinary {
     const result = cb(realLHS, realRHS);
     this.cgen.builder.createStore(result, lhs);
     return lhs;
+  }
+
+  public genSymbolPtr(node: ts.Expression): llvm.Value {
+    switch (node.kind) {
+      case ts.SyntaxKind.Identifier:
+        return this.cgen.symtab.get((node as ts.Identifier).getText()).value;
+      case ts.SyntaxKind.ElementAccessExpression:
+        return (() => {
+          const real = node as ts.ElementAccessExpression;
+          const ptr = this.genSymbolPtr(real.expression);
+          const arg = this.cgen.genExpression(real.argumentExpression);
+          return this.cgen.builder.createInBoundsGEP(ptr, [llvm.ConstantInt.get(this.cgen.context, 0, 64), arg]);
+        })();
+      default:
+        throw new Error('Unsupported grammar');
+    }
   }
 }

@@ -26,13 +26,13 @@ export default class CodeGenArray {
 
     // ArrayLiteral
     if (type.isPointerTy() && (type as llvm.PointerType).elementType.isArrayTy()) {
-      this.cgen.symtab.set(name, { value: initializer });
+      this.cgen.symtab.set(name, { value: initializer, deref: 0 });
       return initializer;
     }
     // Others
     const alloca = this.cgen.builder.createAlloca(type, undefined, name);
     this.cgen.builder.createStore(initializer, alloca);
-    this.cgen.symtab.set(name, { value: alloca });
+    this.cgen.symtab.set(name, { value: alloca, deref: 1 });
     return alloca;
   }
 
@@ -60,7 +60,7 @@ export default class CodeGenArray {
       initializer,
       name
     );
-    this.cgen.symtab.set(name, { value: r });
+    this.cgen.symtab.set(name, { value: r, deref: 1 });
     return r;
   }
 
@@ -80,7 +80,7 @@ export default class CodeGenArray {
       arrayData,
       name
     );
-    this.cgen.symtab.set(name, { value: r });
+    this.cgen.symtab.set(name, { value: r, deref: 0 });
     return r;
   }
 }
