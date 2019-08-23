@@ -24,19 +24,16 @@ export default class CodeGenArray {
     const initializer = this.cgen.genExpression(node.initializer!);
     const type = initializer.type;
 
-    if (type.isPointerTy()) {
-      const real = type as llvm.PointerType;
-      if (real.elementType.isArrayTy()) {
-        this.cgen.symtab.set(name, { value: initializer });
-        return initializer;
-      }
-      throw new Error('Unsupported pointer type');
-    } else {
-      const alloca = this.cgen.builder.createAlloca(type, undefined, name);
-      this.cgen.builder.createStore(initializer, alloca);
-      this.cgen.symtab.set(name, { value: alloca });
-      return alloca;
+    // ArrayLiteral
+    if (type.isPointerTy() && (type as llvm.PointerType).elementType.isArrayTy()) {
+      this.cgen.symtab.set(name, { value: initializer });
+      return initializer;
     }
+    // Others
+    const alloca = this.cgen.builder.createAlloca(type, undefined, name);
+    this.cgen.builder.createStore(initializer, alloca);
+    this.cgen.symtab.set(name, { value: alloca });
+    return alloca;
   }
 
   public genVariableDeclarationGlobal(node: ts.VariableDeclaration): llvm.Value {
