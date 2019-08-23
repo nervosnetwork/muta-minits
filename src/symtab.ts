@@ -8,10 +8,10 @@
 //           b;                            ---> symtab.get('echo').get('b')
 // }
 //
-import { SymtabMeta } from './types';
+import { SymbolMeta } from './types';
 
 export default class Symtab {
-  public readonly scopes: Stack<Map<string, SymtabMeta>>;
+  public readonly scopes: Stack<Map<string, SymbolMeta>>;
 
   constructor() {
     this.scopes = new Stack();
@@ -28,11 +28,11 @@ export default class Symtab {
     }
   }
 
-  public set(key: string, value: SymtabMeta): void {
+  public set(key: string, value: SymbolMeta): void {
     this.scopes.peek().set(key, value);
   }
 
-  public get(key: string): SymtabMeta {
+  public get(key: string): SymbolMeta {
     const len = this.scopes.size();
 
     for (let i = len - 1; i >= 0; i--) {

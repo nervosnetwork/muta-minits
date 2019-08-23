@@ -1,12 +1,14 @@
-import LLVMCodeGen from '../codegen';
-import { injection_stdio_printf } from './system';
+import llvm from 'llvm-node';
 
-class Stdlib {
-  public static injection(cgen: LLVMCodeGen): void {
-    if (!cgen.module.targetTriple.includes('riscv')) {
-      injection_stdio_printf(cgen);
-    }
+import LLVMCodeGen from '../codegen';
+
+export default class Stdlib {
+  public static injection_stdio_printf(cgen: LLVMCodeGen): void {
+    const funcTy = llvm.FunctionType.get(
+      llvm.Type.getInt64Ty(cgen.context),
+      [llvm.Type.getInt8PtrTy(cgen.context)],
+      true
+    );
+    llvm.Function.create(funcTy, llvm.LinkageTypes.ExternalLinkage, 'printf', cgen.module);
   }
 }
-
-export = Stdlib;
