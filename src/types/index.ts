@@ -10,6 +10,6 @@ export interface StructMeta {
   fields: Map<string, number>;
 }
 
-export interface SymtabMeta {
+export interface SymbolMeta {
   value: llvm.Value;
 }

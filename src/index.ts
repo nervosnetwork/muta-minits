@@ -11,7 +11,6 @@ import shell from 'shelljs';
 import ts from 'typescript';
 
 import LLVMCodeGen from './codegen';
-import stdlib from './stdlib';
 
 const debug = Debug('minits');
 const program = new commander.Command();
@@ -56,7 +55,6 @@ function build(...args: readonly any[]): string {
   const m = target.createTargetMachine(triple, 'generic');
   cg.module.dataLayout = m.createDataLayout();
   cg.module.targetTriple = triple;
-  stdlib.injection(cg);
   cg.genSourceFile(sourceFile);
 
   const codeText = cg.genText();

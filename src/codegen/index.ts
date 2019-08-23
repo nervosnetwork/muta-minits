@@ -2,6 +2,7 @@ import Debug from 'debug';
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
+import stdlib from '../stdlib';
 import Symtab from '../symtab';
 import { StructMeta, StructMetaType } from '../types';
 import CodeGenArray from './array-literal-expression';
@@ -228,6 +229,7 @@ export default class LLVMCodeGen {
     let func: llvm.Function;
     switch (name) {
       case 'console.log':
+        stdlib.injection_stdio_printf(this);
         func = this.module.getFunction('printf')!;
         break;
       default:
