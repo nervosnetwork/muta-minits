@@ -42,6 +42,8 @@ export default class CodeGenArray {
     switch (node.initializer!.kind) {
       case ts.SyntaxKind.NumericLiteral:
         return this.genVariableDeclarationGlobalNumeric(node.initializer! as ts.NumericLiteral, name);
+      case ts.SyntaxKind.StringLiteral:
+        return this.genVariableDeclarationGlobalStringLiteral(node.initializer! as ts.StringLiteral, name);
       case ts.SyntaxKind.ArrayLiteralExpression:
         return this.genVariableDeclarationGlobalArrayLiteral(node.initializer! as ts.ArrayLiteralExpression, name);
       default:
@@ -61,6 +63,13 @@ export default class CodeGenArray {
       name
     );
     this.cgen.symtab.set(name, { value: r, deref: 1 });
+    return r;
+  }
+
+  public genVariableDeclarationGlobalStringLiteral(node: ts.StringLiteral, name: string): llvm.GlobalVariable {
+    const v = llvm.ConstantDataArray.getString(this.cgen.context, node.text);
+    const r = new llvm.GlobalVariable(this.cgen.module, v.type, false, llvm.LinkageTypes.ExternalLinkage, v, name);
+    this.cgen.symtab.set(name, { value: r, deref: 0 });
     return r;
   }
 
