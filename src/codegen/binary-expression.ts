@@ -33,7 +33,7 @@ export default class CodeGenBinary {
       }
       return this.cgen.genExpression(expr.left);
     })();
-    const rhs = this.cgen.genAutoDereference(this.cgen.genExpression(expr.right));
+    const rhs = this.cgen.genExpression(expr.right);
 
     switch (expr.operatorToken.kind) {
       // <

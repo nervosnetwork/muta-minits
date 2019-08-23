@@ -142,13 +142,6 @@ export default class LLVMCodeGen {
     return r;
   }
 
-  public genAutoDereference(node: llvm.Value): llvm.Value {
-    if (node.type.isPointerTy()) {
-      return this.builder.createLoad(node);
-    }
-    return node;
-  }
-
   public genType(type: ts.TypeNode): llvm.Type {
     switch (type.kind) {
       case ts.SyntaxKind.VoidKeyword:
