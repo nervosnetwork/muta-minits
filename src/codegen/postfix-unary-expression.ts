@@ -29,7 +29,7 @@ export default class CodeGenPostfixUnary {
     const raw = this.cgen.builder.createLoad(node);
     const one = llvm.ConstantInt.get(this.cgen.context, 1, 64);
     const r = this.cgen.builder.createAdd(raw, one);
-    const ptr = this.cgen.symtab.get(name);
+    const ptr = this.cgen.symtab.get(name).value;
     this.cgen.builder.createStore(r, ptr);
     return raw;
   }
@@ -38,7 +38,7 @@ export default class CodeGenPostfixUnary {
     const raw = this.cgen.builder.createLoad(node);
     const one = llvm.ConstantInt.get(this.cgen.context, 1, 64);
     const r = this.cgen.builder.createSub(raw, one);
-    const ptr = this.cgen.symtab.get(name);
+    const ptr = this.cgen.symtab.get(name).value;
     this.cgen.builder.createStore(r, ptr);
     return raw;
   }

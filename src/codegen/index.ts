@@ -3,9 +3,11 @@ import llvm from 'llvm-node';
 import ts from 'typescript';
 
 import Symtab from '../symtab';
+import { StructMeta, StructMetaType } from '../types';
 import CodeGenArray from './array-literal-expression';
 import CodeGenBinary from './binary-expression';
 import CodeGenDo from './do-statement';
+import CodeGenEnum from './enum-declaration';
 import CodeGenForOf from './for-of-statement';
 import CodeGenFor from './for-statement';
 import CodeGenFuncDecl from './function-declaration';
@@ -25,6 +27,7 @@ export default class LLVMCodeGen {
   public readonly context: llvm.LLVMContext;
   public readonly module: llvm.Module;
   public readonly symtab: Symtab;
+  public readonly structTab: Map<string, StructMeta>;
 
   public readonly cgArray: CodeGenArray;
   public readonly cgBinary: CodeGenBinary;
@@ -38,6 +41,7 @@ export default class LLVMCodeGen {
   public readonly cgReturn: CodeGenReturn;
   public readonly cgVarDecl: CodeGenVarDecl;
   public readonly cgWhile: CodeGenWhile;
+  public readonly cgEnum: CodeGenEnum;
 
   public currentBreakBlock: llvm.BasicBlock | undefined;
   public currentConitnueBlock: llvm.BasicBlock | undefined;
@@ -49,6 +53,7 @@ export default class LLVMCodeGen {
     this.module = new llvm.Module('main', this.context);
     this.builder = new llvm.IRBuilder(this.context);
     this.symtab = new Symtab();
+    this.structTab = new Map();
 
     this.cgArray = new CodeGenArray(this);
     this.cgBinary = new CodeGenBinary(this);
@@ -62,6 +67,7 @@ export default class LLVMCodeGen {
     this.cgReturn = new CodeGenReturn(this);
     this.cgVarDecl = new CodeGenVarDecl(this);
     this.cgWhile = new CodeGenWhile(this);
+    this.cgEnum = new CodeGenEnum(this);
 
     this.currentBreakBlock = undefined;
     this.currentConitnueBlock = undefined;
@@ -83,6 +89,12 @@ export default class LLVMCodeGen {
           break;
         case ts.SyntaxKind.FunctionDeclaration:
           this.genFunctionDeclaration(node as ts.FunctionDeclaration);
+          break;
+        case ts.SyntaxKind.EnumDeclaration:
+          this.genEnumDeclaration(node as ts.EnumDeclaration);
+          break;
+        case ts.SyntaxKind.ExpressionStatement:
+          this.genExpressionStatement(node as ts.ExpressionStatement);
           break;
         default:
           throw new Error('Unsupported grammar');
@@ -114,7 +126,7 @@ export default class LLVMCodeGen {
   }
 
   public genIdentifier(node: ts.Identifier): llvm.Value {
-    return this.symtab.get(node.getText());
+    return this.symtab.get(node.getText()).value;
   }
 
   public genAutoDereference(node: llvm.Value): llvm.Value {
@@ -130,6 +142,17 @@ export default class LLVMCodeGen {
         return llvm.Type.getInt1Ty(this.context);
       case ts.SyntaxKind.NumberKeyword:
         return llvm.Type.getInt64Ty(this.context);
+      case ts.SyntaxKind.TypeReference:
+        const structMeta = this.structTab.get(type.getText())!;
+        const structType = this.module.getTypeByName(type.getText())!;
+
+        // if type is enum.
+        if (structMeta.metaType === StructMetaType.Enum) {
+          return structType.getElementType(0);
+        }
+
+        // TODO: impl struct
+        throw new Error('Unsupported type');
       default:
         throw new Error('Unsupported type');
     }
@@ -165,6 +188,8 @@ export default class LLVMCodeGen {
         return this.genPostfixUnaryExpression(expr as ts.PostfixUnaryExpression);
       case ts.SyntaxKind.BinaryExpression:
         return this.genBinaryExpression(expr as ts.BinaryExpression);
+      case ts.SyntaxKind.PropertyAccessExpression:
+        return this.genPropertyAccessExpression(expr as ts.PropertyAccessExpression);
       default:
         throw new Error('Unsupported expression');
     }
@@ -227,6 +252,8 @@ export default class LLVMCodeGen {
         return this.genBreakStatement();
       case ts.SyntaxKind.ReturnStatement:
         return this.genReturnStatement(node as ts.ReturnStatement);
+      case ts.SyntaxKind.EnumDeclaration:
+        return this.genEnumDeclaration(node as ts.EnumDeclaration);
       default:
         throw new Error('Unsupported statement');
     }
@@ -280,5 +307,13 @@ export default class LLVMCodeGen {
 
   public genForOfStatement(node: ts.ForOfStatement): void {
     return this.cgForOf.genForOfStatement(node);
+  }
+
+  public genEnumDeclaration(node: ts.EnumDeclaration): void {
+    return this.cgEnum.genEnumDeclaration(node);
+  }
+
+  public genPropertyAccessExpression(node: ts.PropertyAccessExpression): llvm.Value {
+    return this.cgEnum.genEnumElementAccess(node);
   }
 }

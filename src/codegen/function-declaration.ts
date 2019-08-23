@@ -27,10 +27,10 @@ export default class CodeGenFuncDecl {
     const linkage = llvm.LinkageTypes.ExternalLinkage;
     const func = llvm.Function.create(fnty, linkage, name, this.cgen.module);
 
-    this.cgen.symtab.into(name!);
+    this.cgen.symtab.into();
     func.getArguments().forEach(item => {
       item.name = node.parameters[item.argumentNumber].name.getText();
-      this.cgen.symtab.set(item.name, item);
+      this.cgen.symtab.set(item.name, { value: item });
     });
     if (node.body) {
       const body = llvm.BasicBlock.create(this.cgen.context, 'body', func);
