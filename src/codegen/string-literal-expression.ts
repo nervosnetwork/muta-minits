@@ -18,10 +18,7 @@ export default class CodeGenString {
   public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
     const identifier = this.cgen.genExpression(node.expression);
     const argumentExpression = this.cgen.genExpression(node.argumentExpression);
-    const ptr = this.cgen.builder.createInBoundsGEP(identifier, [
-      llvm.ConstantInt.get(this.cgen.context, 0, 64),
-      argumentExpression
-    ]);
+    const ptr = this.cgen.builder.createInBoundsGEP(identifier, [argumentExpression]);
     const val = this.cgen.builder.createLoad(ptr);
 
     const arrayType = llvm.ArrayType.get(llvm.Type.getInt8Ty(this.cgen.context), 2);
