@@ -14,4 +14,34 @@ export default class CodeGenString {
   public genStringLiteral(node: ts.StringLiteral): llvm.Value {
     return this.cgen.builder.createGlobalStringPtr(node.text, 'string');
   }
+
+  public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
+    const identifier = this.cgen.genExpression(node.expression);
+    const argumentExpression = this.cgen.genExpression(node.argumentExpression);
+    const ptr = this.cgen.builder.createInBoundsGEP(identifier, [
+      llvm.ConstantInt.get(this.cgen.context, 0, 64),
+      argumentExpression
+    ]);
+    const val = this.cgen.builder.createLoad(ptr);
+
+    const arrayType = llvm.ArrayType.get(llvm.Type.getInt8Ty(this.cgen.context), 2);
+    const arraySize = llvm.ConstantInt.get(this.cgen.context, 2, 64);
+    const arrayPtr = this.cgen.builder.createAlloca(arrayType, arraySize);
+
+    this.cgen.builder.createStore(
+      val,
+      this.cgen.builder.createInBoundsGEP(arrayPtr, [
+        llvm.ConstantInt.get(this.cgen.context, 0, 64),
+        llvm.ConstantInt.get(this.cgen.context, 0, 64)
+      ])
+    );
+    this.cgen.builder.createStore(
+      llvm.ConstantInt.get(this.cgen.context, 0, 8),
+      this.cgen.builder.createInBoundsGEP(arrayPtr, [
+        llvm.ConstantInt.get(this.cgen.context, 0, 64),
+        llvm.ConstantInt.get(this.cgen.context, 1, 64)
+      ])
+    );
+    return this.cgen.builder.createBitCast(arrayPtr, llvm.Type.getInt8PtrTy(this.cgen.context));
+  }
 }

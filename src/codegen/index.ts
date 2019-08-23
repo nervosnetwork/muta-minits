@@ -212,7 +212,7 @@ export default class LLVMCodeGen {
   }
 
   public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
-    return this.cgArray.genArrayElementAccess(node);
+    return this.cgArray.genElementAccess(node);
   }
 
   public genCallExpression(node: ts.CallExpression): llvm.Value {

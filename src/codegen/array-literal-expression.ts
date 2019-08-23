@@ -55,7 +55,7 @@ export default class CodeGenArray {
     return arrayPtr;
   }
 
-  public genArrayElementAccess(node: ts.ElementAccessExpression): llvm.Value {
+  public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
     const identifier = this.cgen.genExpression(node.expression);
     const argumentExpression = this.cgen.genExpression(node.argumentExpression);
     const ptr = this.cgen.builder.createInBoundsGEP(identifier, [
