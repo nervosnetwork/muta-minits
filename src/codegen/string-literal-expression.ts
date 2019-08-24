@@ -25,20 +25,16 @@ export default class CodeGenString {
     const arraySize = llvm.ConstantInt.get(this.cgen.context, 2, 64);
     const arrayPtr = this.cgen.builder.createAlloca(arrayType, arraySize);
 
-    this.cgen.builder.createStore(
-      val,
-      this.cgen.builder.createInBoundsGEP(arrayPtr, [
-        llvm.ConstantInt.get(this.cgen.context, 0, 64),
-        llvm.ConstantInt.get(this.cgen.context, 0, 64)
-      ])
-    );
-    this.cgen.builder.createStore(
-      llvm.ConstantInt.get(this.cgen.context, 0, 8),
-      this.cgen.builder.createInBoundsGEP(arrayPtr, [
-        llvm.ConstantInt.get(this.cgen.context, 0, 64),
-        llvm.ConstantInt.get(this.cgen.context, 1, 64)
-      ])
-    );
+    const ptr0 = this.cgen.builder.createInBoundsGEP(arrayPtr, [
+      llvm.ConstantInt.get(this.cgen.context, 0, 64),
+      llvm.ConstantInt.get(this.cgen.context, 0, 64)
+    ]);
+    const ptr1 = this.cgen.builder.createInBoundsGEP(arrayPtr, [
+      llvm.ConstantInt.get(this.cgen.context, 0, 64),
+      llvm.ConstantInt.get(this.cgen.context, 1, 64)
+    ]);
+    this.cgen.builder.createStore(val, ptr0);
+    this.cgen.builder.createStore(llvm.ConstantInt.get(this.cgen.context, 0, 8), ptr1);
     return this.cgen.builder.createBitCast(arrayPtr, llvm.Type.getInt8PtrTy(this.cgen.context));
   }
 }
