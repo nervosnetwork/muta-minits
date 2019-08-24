@@ -14,26 +14,4 @@ export default class Stdlib {
       false
     );
   }
-
-  // public static streql(cgen: LLVMCodeGen): llvm.Function {
-  //   let func = cgen.module.getFunction('streql');
-  //   if (func) {
-  //     return func;
-  //   }
-  //   const funcTy = llvm.FunctionType.get(
-  //     llvm.Type.getInt1Ty(cgen.context),
-  //     [llvm.Type.getInt8PtrTy(cgen.context), llvm.Type.getInt8PtrTy(cgen.context)],
-  //     false
-  //   );
-  //   func = llvm.Function.create(funcTy, llvm.LinkageTypes.ExternalLinkage, 'streql', cgen.module);
-  //   const body = llvm.BasicBlock.create(cgen.context, 'body', func);
-  //   const rawBlock = cgen.builder.getInsertBlock()!;
-  //   cgen.builder.setInsertionPoint(body);
-  //   const strcmp = cgen.module.getOrInsertFunction('strcmp', this.strcmp(cgen));
-  //   const ret = cgen.builder.createCall(strcmp, func.getArguments());
-  //   const r = cgen.builder.createICmpEQ(ret, llvm.ConstantInt.get(cgen.context, 0, 64));
-  //   cgen.builder.createRet(r);
-  //   cgen.builder.setInsertionPoint(rawBlock);
-  //   return func;
-  // }
 }
