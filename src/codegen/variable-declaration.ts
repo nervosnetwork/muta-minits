@@ -68,8 +68,17 @@ export default class CodeGenArray {
 
   public genVariableDeclarationGlobalStringLiteral(node: ts.StringLiteral, name: string): llvm.GlobalVariable {
     const v = llvm.ConstantDataArray.getString(this.cgen.context, node.text);
-    const r = new llvm.GlobalVariable(this.cgen.module, v.type, false, llvm.LinkageTypes.ExternalLinkage, v, name);
-    this.cgen.symtab.set(name, { value: r, deref: 0 });
+    const r = new llvm.GlobalVariable(this.cgen.module, v.type, false, llvm.LinkageTypes.ExternalLinkage, v, 'string');
+    const a = this.cgen.builder.createBitCast(r, llvm.Type.getInt8Ty(this.cgen.context).getPointerTo());
+    const b = new llvm.GlobalVariable(
+      this.cgen.module,
+      a.type,
+      false,
+      llvm.LinkageTypes.ExternalLinkage,
+      a as llvm.Constant,
+      name
+    );
+    this.cgen.symtab.set(name, { value: b, deref: 1 });
     return r;
   }
 

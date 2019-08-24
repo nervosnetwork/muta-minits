@@ -212,6 +212,10 @@ export default class LLVMCodeGen {
   }
 
   public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
+    const type = this.genExpression(node.expression).type;
+    if ((type as llvm.PointerType).elementType.isArrayTy()) {
+      return this.cgArray.genElementAccess(node);
+    }
     return this.cgString.genElementAccess(node);
   }
 

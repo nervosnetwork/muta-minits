@@ -1,12 +1,11 @@
-let globalstr = "Hello World!";
+let globalstr = "globalstr\n";
 
 function main(): number {
-    console.log("console.log: Hello %s\n", "World!");
-    console.log("console.log: %s\n", globalstr);
-    console.log("consoel.log: %d is everything\n", 42);
-    let s = "World!";
-    console.log("console.log: Hello %s\n", s);
-    let d = 42;
-    console.log("consoel.log: %d is everything\n", d);
+    let localstr = "localstr\n";
+    console.log(globalstr);
+    console.log(localstr);
+    console.log("%s", globalstr);
+    console.log("%s", localstr);
+    console.log("%d\n", 42);
     return 0;
 }
