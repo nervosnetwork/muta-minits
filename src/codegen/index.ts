@@ -2,7 +2,7 @@ import Debug from 'debug';
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import stdlib from '../stdlib';
+import Stdlib from '../stdlib';
 import Symtab from '../symtab';
 import { StructMeta, StructMetaType } from '../types';
 import CodeGenArray from './array-literal-expression';
@@ -212,7 +212,11 @@ export default class LLVMCodeGen {
   }
 
   public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
-    return this.cgArray.genElementAccess(node);
+    const type = this.genExpression(node.expression).type;
+    if ((type as llvm.PointerType).elementType.isArrayTy()) {
+      return this.cgArray.genElementAccess(node);
+    }
+    return this.cgString.genElementAccess(node);
   }
 
   public genCallExpression(node: ts.CallExpression): llvm.Value {
@@ -223,7 +227,10 @@ export default class LLVMCodeGen {
     let func: llvm.Constant;
     switch (name) {
       case 'console.log':
-        func = this.module.getOrInsertFunction('printf', stdlib.stdioPrintf(this));
+        func = this.module.getOrInsertFunction('printf', Stdlib.printf(this));
+        break;
+      case 'strcmp':
+        func = this.module.getOrInsertFunction('strcmp', Stdlib.strcmp(this));
         break;
       default:
         func = this.module.getFunction(name)!;

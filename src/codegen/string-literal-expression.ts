@@ -2,6 +2,7 @@
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
+import Stdlib from '../stdlib';
 import LLVMCodeGen from './';
 
 export default class CodeGenString {
@@ -18,30 +19,35 @@ export default class CodeGenString {
   public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
     const identifier = this.cgen.genExpression(node.expression);
     const argumentExpression = this.cgen.genExpression(node.argumentExpression);
-    const ptr = this.cgen.builder.createInBoundsGEP(identifier, [
-      llvm.ConstantInt.get(this.cgen.context, 0, 64),
-      argumentExpression
-    ]);
+    const ptr = this.cgen.builder.createInBoundsGEP(identifier, [argumentExpression]);
     const val = this.cgen.builder.createLoad(ptr);
 
     const arrayType = llvm.ArrayType.get(llvm.Type.getInt8Ty(this.cgen.context), 2);
     const arraySize = llvm.ConstantInt.get(this.cgen.context, 2, 64);
     const arrayPtr = this.cgen.builder.createAlloca(arrayType, arraySize);
 
-    this.cgen.builder.createStore(
-      val,
-      this.cgen.builder.createInBoundsGEP(arrayPtr, [
-        llvm.ConstantInt.get(this.cgen.context, 0, 64),
-        llvm.ConstantInt.get(this.cgen.context, 0, 64)
-      ])
-    );
-    this.cgen.builder.createStore(
-      llvm.ConstantInt.get(this.cgen.context, 0, 8),
-      this.cgen.builder.createInBoundsGEP(arrayPtr, [
-        llvm.ConstantInt.get(this.cgen.context, 0, 64),
-        llvm.ConstantInt.get(this.cgen.context, 1, 64)
-      ])
-    );
+    const ptr0 = this.cgen.builder.createInBoundsGEP(arrayPtr, [
+      llvm.ConstantInt.get(this.cgen.context, 0, 64),
+      llvm.ConstantInt.get(this.cgen.context, 0, 64)
+    ]);
+    const ptr1 = this.cgen.builder.createInBoundsGEP(arrayPtr, [
+      llvm.ConstantInt.get(this.cgen.context, 0, 64),
+      llvm.ConstantInt.get(this.cgen.context, 1, 64)
+    ]);
+    this.cgen.builder.createStore(val, ptr0);
+    this.cgen.builder.createStore(llvm.ConstantInt.get(this.cgen.context, 0, 8), ptr1);
     return this.cgen.builder.createBitCast(arrayPtr, llvm.Type.getInt8PtrTy(this.cgen.context));
+  }
+
+  public eq(lhs: llvm.Value, rhs: llvm.Value): llvm.Value {
+    const func = this.cgen.module.getOrInsertFunction('strcmp', Stdlib.strcmp(this.cgen));
+    const r = this.cgen.builder.createCall(func, [lhs, rhs]);
+    return this.cgen.builder.createICmpEQ(r, llvm.ConstantInt.get(this.cgen.context, 0, 64));
+  }
+
+  public ne(lhs: llvm.Value, rhs: llvm.Value): llvm.Value {
+    const func = this.cgen.module.getOrInsertFunction('strcmp', Stdlib.strcmp(this.cgen));
+    const r = this.cgen.builder.createCall(func, [lhs, rhs]);
+    return this.cgen.builder.createICmpNE(r, llvm.ConstantInt.get(this.cgen.context, 0, 64));
   }
 }

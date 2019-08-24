@@ -46,9 +46,9 @@ function main() {
     const ptr = builder.createAlloca(strType);
     builder.createStore(str, ptr);
 
-    const fmt_arg = builder.createBitCast(ptr, llvm.Type.getInt8Ty(context).getPointerTo())
+    const fmtArg = builder.createBitCast(ptr, llvm.Type.getInt8Ty(context).getPointerTo())
 
-    builder.createCall(funcPrintf, [fmt_arg]);
+    builder.createCall(funcPrintf, [fmtArg]);
     builder.createRetVoid();
 
     llvm.initializeAllTargetInfos();
