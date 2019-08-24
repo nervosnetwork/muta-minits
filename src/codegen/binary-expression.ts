@@ -50,15 +50,27 @@ export default class CodeGenBinary {
         return this.cgen.builder.createICmpSGE(lhs, rhs);
       // ==
       case ts.SyntaxKind.EqualsEqualsToken:
+        if (lhs.type.isPointerTy() && (lhs.type as llvm.PointerType).elementType.isIntegerTy()) {
+          return this.cgen.cgString.eq(lhs, rhs);
+        }
         return this.cgen.builder.createICmpEQ(lhs, rhs);
       // !=
       case ts.SyntaxKind.ExclamationEqualsToken:
+        if (lhs.type.isPointerTy() && (lhs.type as llvm.PointerType).elementType.isIntegerTy()) {
+          return this.cgen.cgString.ne(lhs, rhs);
+        }
         return this.cgen.builder.createICmpNE(lhs, rhs);
       // ===
       case ts.SyntaxKind.EqualsEqualsEqualsToken:
+        if (lhs.type.isPointerTy() && (lhs.type as llvm.PointerType).elementType.isIntegerTy()) {
+          return this.cgen.cgString.eq(lhs, rhs);
+        }
         return this.cgen.builder.createICmpEQ(lhs, rhs);
       // !==
       case ts.SyntaxKind.ExclamationEqualsEqualsToken:
+        if (lhs.type.isPointerTy() && (lhs.type as llvm.PointerType).elementType.isIntegerTy()) {
+          return this.cgen.cgString.ne(lhs, rhs);
+        }
         return this.cgen.builder.createICmpNE(lhs, rhs);
       // +
       case ts.SyntaxKind.PlusToken:

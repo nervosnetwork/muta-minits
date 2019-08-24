@@ -2,6 +2,7 @@
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
+import Stdlib from '../stdlib';
 import LLVMCodeGen from './';
 
 export default class CodeGenString {
@@ -36,5 +37,17 @@ export default class CodeGenString {
     this.cgen.builder.createStore(val, ptr0);
     this.cgen.builder.createStore(llvm.ConstantInt.get(this.cgen.context, 0, 8), ptr1);
     return this.cgen.builder.createBitCast(arrayPtr, llvm.Type.getInt8PtrTy(this.cgen.context));
+  }
+
+  public eq(lhs: llvm.Value, rhs: llvm.Value): llvm.Value {
+    const func = this.cgen.module.getOrInsertFunction('strcmp', Stdlib.strcmp(this.cgen));
+    const r = this.cgen.builder.createCall(func, [lhs, rhs]);
+    return this.cgen.builder.createICmpEQ(r, llvm.ConstantInt.get(this.cgen.context, 0, 64));
+  }
+
+  public ne(lhs: llvm.Value, rhs: llvm.Value): llvm.Value {
+    const func = this.cgen.module.getOrInsertFunction('strcmp', Stdlib.strcmp(this.cgen));
+    const r = this.cgen.builder.createCall(func, [lhs, rhs]);
+    return this.cgen.builder.createICmpNE(r, llvm.ConstantInt.get(this.cgen.context, 0, 64));
   }
 }
