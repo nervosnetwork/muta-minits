@@ -21,6 +21,10 @@ export default class CodeGenArray {
       if (node.elements[0].kind === ts.SyntaxKind.NumericLiteral) {
         return llvm.Type.getInt64Ty(this.cgen.context);
       }
+      // String
+      if (node.elements[0].kind === ts.SyntaxKind.StringLiteral) {
+        return llvm.Type.getInt8PtrTy(this.cgen.context);
+      }
       // Identifier
       if (node.elements[0].kind === ts.SyntaxKind.Identifier) {
         const symbol = this.cgen.symtab.get(node.elements[0].getText());
