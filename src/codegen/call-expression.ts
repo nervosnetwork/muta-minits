@@ -1,7 +1,6 @@
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import Stdlib from '../stdlib';
 import LLVMCodeGen from './';
 
 export default class CodeGenFuncDecl {
@@ -19,10 +18,10 @@ export default class CodeGenFuncDecl {
     let func: llvm.Constant;
     switch (name) {
       case 'console.log':
-        func = this.cgen.module.getOrInsertFunction('printf', Stdlib.printf(this.cgen));
+        func = this.cgen.module.getOrInsertFunction('printf', this.cgen.stdlib.printf());
         break;
       case 'strcmp':
-        func = this.cgen.module.getOrInsertFunction('strcmp', Stdlib.strcmp(this.cgen));
+        func = this.cgen.module.getOrInsertFunction('strcmp', this.cgen.stdlib.strcmp());
         break;
       default:
         func = this.cgen.module.getFunction(name)!;

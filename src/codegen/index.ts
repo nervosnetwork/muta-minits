@@ -2,6 +2,7 @@ import Debug from 'debug';
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
+import Stdlib from '../stdlib';
 import Symtab from '../symtab';
 import { StructMeta, StructMetaType } from '../types';
 import CodeGenArray from './array-literal-expression';
@@ -29,6 +30,7 @@ export default class LLVMCodeGen {
   public readonly context: llvm.LLVMContext;
   public readonly module: llvm.Module;
   public readonly symtab: Symtab;
+  public readonly stdlib: Stdlib;
   public readonly structTab: Map<string, StructMeta>;
 
   public readonly cgArray: CodeGenArray;
@@ -57,6 +59,7 @@ export default class LLVMCodeGen {
     this.module = new llvm.Module('main', this.context);
     this.builder = new llvm.IRBuilder(this.context);
     this.symtab = new Symtab();
+    this.stdlib = new Stdlib(this);
     this.structTab = new Map();
 
     this.cgArray = new CodeGenArray(this);
