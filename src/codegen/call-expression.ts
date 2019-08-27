@@ -12,7 +12,7 @@ export default class CodeGenFuncDecl {
 
   public genCallExpression(node: ts.CallExpression): llvm.Value {
     const name = node.expression.getText();
-    const args = node.arguments.map(item => {
+    let args = node.arguments.map(item => {
       return this.cgen.genExpression(item);
     });
     let func: llvm.Constant;
@@ -28,6 +28,12 @@ export default class CodeGenFuncDecl {
         break;
       case 'syscall':
         func = this.cgen.module.getOrInsertFunction('syscall', this.cgen.stdlib.syscall());
+        args = args.map(item => {
+          if (item.type.isPointerTy()) {
+            return this.cgen.builder.createPtrToInt(item, llvm.Type.getInt64Ty(this.cgen.context));
+          }
+          return item;
+        });
         break;
       default:
         func = this.cgen.module.getFunction(name)!;
