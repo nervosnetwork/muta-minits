@@ -24,4 +24,20 @@ export default class Stdlib {
       false
     );
   }
+
+  public syscall(): llvm.FunctionType {
+    return llvm.FunctionType.get(
+      llvm.Type.getInt64Ty(this.cgen.context),
+      [
+        llvm.Type.getInt64Ty(this.cgen.context),
+        llvm.Type.getInt64Ty(this.cgen.context),
+        llvm.Type.getInt64Ty(this.cgen.context),
+        llvm.Type.getInt64Ty(this.cgen.context),
+        llvm.Type.getInt64Ty(this.cgen.context),
+        llvm.Type.getInt64Ty(this.cgen.context),
+        llvm.Type.getInt64Ty(this.cgen.context)
+      ],
+      false
+    );
+  }
 }

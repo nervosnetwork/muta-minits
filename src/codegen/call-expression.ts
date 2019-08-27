@@ -20,8 +20,14 @@ export default class CodeGenFuncDecl {
       case 'console.log':
         func = this.cgen.module.getOrInsertFunction('printf', this.cgen.stdlib.printf());
         break;
+      case 'printf':
+        func = this.cgen.module.getOrInsertFunction('printf', this.cgen.stdlib.printf());
+        break;
       case 'strcmp':
         func = this.cgen.module.getOrInsertFunction('strcmp', this.cgen.stdlib.strcmp());
+        break;
+      case 'syscall':
+        func = this.cgen.module.getOrInsertFunction('syscall', this.cgen.stdlib.syscall());
         break;
       default:
         func = this.cgen.module.getFunction(name)!;
