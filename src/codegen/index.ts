@@ -2,11 +2,11 @@ import Debug from 'debug';
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import Stdlib from '../stdlib';
 import Symtab from '../symtab';
 import { StructMeta, StructMetaType } from '../types';
 import CodeGenArray from './array-literal-expression';
 import CodeGenBinary from './binary-expression';
+import CodeGenCall from './call-expression';
 import CodeGenDo from './do-statement';
 import CodeGenEnum from './enum-declaration';
 import CodeGenForOf from './for-of-statement';
@@ -33,6 +33,7 @@ export default class LLVMCodeGen {
 
   public readonly cgArray: CodeGenArray;
   public readonly cgBinary: CodeGenBinary;
+  public readonly cgCall: CodeGenCall;
   public readonly cgDo: CodeGenDo;
   public readonly cgForOf: CodeGenForOf;
   public readonly cgFor: CodeGenFor;
@@ -60,6 +61,7 @@ export default class LLVMCodeGen {
 
     this.cgArray = new CodeGenArray(this);
     this.cgBinary = new CodeGenBinary(this);
+    this.cgCall = new CodeGenCall(this);
     this.cgDo = new CodeGenDo(this);
     this.cgForOf = new CodeGenForOf(this);
     this.cgFor = new CodeGenFor(this);
@@ -220,23 +222,7 @@ export default class LLVMCodeGen {
   }
 
   public genCallExpression(node: ts.CallExpression): llvm.Value {
-    const name = node.expression.getText();
-    const args = node.arguments.map(item => {
-      return this.genExpression(item);
-    });
-    let func: llvm.Constant;
-    switch (name) {
-      case 'console.log':
-        func = this.module.getOrInsertFunction('printf', Stdlib.printf(this));
-        break;
-      case 'strcmp':
-        func = this.module.getOrInsertFunction('strcmp', Stdlib.strcmp(this));
-        break;
-      default:
-        func = this.module.getFunction(name)!;
-        break;
-    }
-    return this.builder.createCall(func, args);
+    return this.cgCall.genCallExpression(node);
   }
 
   public genParenthesizedExpression(node: ts.ParenthesizedExpression): llvm.Value {
