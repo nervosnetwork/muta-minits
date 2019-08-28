@@ -22,11 +22,10 @@ program
   .description('compile packages and dependencies')
   .option('-o, --output <output>', 'place the output into <file>')
   .option('-t, --triple <triple>', 'LLVM triple')
-  .action(args => {
-    const codeText = build(args);
-
-    if (program.opts().output) {
-      fs.writeFileSync(program.opts().output, codeText);
+  .action((args, opts) => {
+    const codeText = build(args, opts);
+    if (opts.output) {
+      fs.writeFileSync(opts.output, codeText);
     } else {
       process.stdout.write(codeText);
     }
@@ -35,12 +34,12 @@ program
 program
   .command('run <file>')
   .description('compile and run ts program')
-  .action(args => run(args));
+  .action((args, opts) => run(args, opts));
 
 program.parse(process.argv);
 
-function build(...args: readonly any[]): string {
-  const fileName = args[args.length - 1];
+function build(args: any, opts: any): string {
+  const fileName = args;
   const sourceFile = ts.createSourceFile(fileName, fs.readFileSync(fileName).toString(), ts.ScriptTarget.ES2020, true);
 
   llvm.initializeAllTargetInfos();
@@ -50,7 +49,7 @@ function build(...args: readonly any[]): string {
   llvm.initializeAllAsmPrinters();
 
   const cg = new LLVMCodeGen();
-  const triple: string = program.opts().triple ? program.opts().triple : llvm.config.LLVM_DEFAULT_TARGET_TRIPLE;
+  const triple: string = opts.triple ? opts.triple : llvm.config.LLVM_DEFAULT_TARGET_TRIPLE;
   const target = llvm.TargetRegistry.lookupTarget(triple);
   const m = target.createTargetMachine(triple, 'generic');
   cg.module.dataLayout = m.createDataLayout();
@@ -65,8 +64,8 @@ function build(...args: readonly any[]): string {
   return codeText;
 }
 
-function run(...args: readonly any[]): void {
-  const codeText = build(...args);
+function run(args: any, opts: any): void {
+  const codeText = build(args, opts);
   const tempFile = path.join(shell.tempdir(), 'minits.ll');
 
   fs.writeFileSync(tempFile, codeText);

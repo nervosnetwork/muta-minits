@@ -3,15 +3,55 @@ import llvm from 'llvm-node';
 import LLVMCodeGen from '../codegen';
 
 export default class Stdlib {
-  public static printf(cgen: LLVMCodeGen): llvm.FunctionType {
-    return llvm.FunctionType.get(llvm.Type.getInt64Ty(cgen.context), [llvm.Type.getInt8PtrTy(cgen.context)], true);
+  private cgen: LLVMCodeGen;
+
+  constructor(cgen: LLVMCodeGen) {
+    this.cgen = cgen;
   }
 
-  public static strcmp(cgen: LLVMCodeGen): llvm.FunctionType {
-    return llvm.FunctionType.get(
-      llvm.Type.getInt64Ty(cgen.context),
-      [llvm.Type.getInt8PtrTy(cgen.context), llvm.Type.getInt8PtrTy(cgen.context)],
-      false
+  public printf(args: llvm.Value[]): llvm.Value {
+    const func = this.cgen.module.getOrInsertFunction(
+      'printf',
+      llvm.FunctionType.get(llvm.Type.getInt64Ty(this.cgen.context), [llvm.Type.getInt8PtrTy(this.cgen.context)], true)
     );
+    return this.cgen.builder.createCall(func, args);
+  }
+
+  public strcmp(args: llvm.Value[]): llvm.Value {
+    const func = this.cgen.module.getOrInsertFunction(
+      'strcmp',
+      llvm.FunctionType.get(
+        llvm.Type.getInt64Ty(this.cgen.context),
+        [llvm.Type.getInt8PtrTy(this.cgen.context), llvm.Type.getInt8PtrTy(this.cgen.context)],
+        false
+      )
+    );
+    return this.cgen.builder.createCall(func, args);
+  }
+
+  public syscall(args: llvm.Value[]): llvm.Value {
+    const func = this.cgen.module.getOrInsertFunction(
+      'strcmp',
+      llvm.FunctionType.get(
+        llvm.Type.getInt64Ty(this.cgen.context),
+        [
+          llvm.Type.getInt64Ty(this.cgen.context),
+          llvm.Type.getInt64Ty(this.cgen.context),
+          llvm.Type.getInt64Ty(this.cgen.context),
+          llvm.Type.getInt64Ty(this.cgen.context),
+          llvm.Type.getInt64Ty(this.cgen.context),
+          llvm.Type.getInt64Ty(this.cgen.context),
+          llvm.Type.getInt64Ty(this.cgen.context)
+        ],
+        false
+      )
+    );
+    const argl = args.map(item => {
+      if (item.type.isPointerTy()) {
+        return this.cgen.builder.createPtrToInt(item, llvm.Type.getInt64Ty(this.cgen.context));
+      }
+      return item;
+    });
+    return this.cgen.builder.createCall(func, argl);
   }
 }
