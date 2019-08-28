@@ -12,29 +12,19 @@ export default class CodeGenFuncDecl {
 
   public genCallExpression(node: ts.CallExpression): llvm.Value {
     const name = node.expression.getText();
-    let args = node.arguments.map(item => {
+    const args = node.arguments.map(item => {
       return this.cgen.genExpression(item);
     });
     let func: llvm.Constant;
     switch (name) {
       case 'console.log':
-        func = this.cgen.module.getOrInsertFunction('printf', this.cgen.stdlib.printf());
-        break;
+        return this.cgen.stdlib.printf(args);
       case 'printf':
-        func = this.cgen.module.getOrInsertFunction('printf', this.cgen.stdlib.printf());
-        break;
+        return this.cgen.stdlib.printf(args);
       case 'strcmp':
-        func = this.cgen.module.getOrInsertFunction('strcmp', this.cgen.stdlib.strcmp());
-        break;
+        return this.cgen.stdlib.strcmp(args);
       case 'syscall':
-        func = this.cgen.module.getOrInsertFunction('syscall', this.cgen.stdlib.syscall());
-        args = args.map(item => {
-          if (item.type.isPointerTy()) {
-            return this.cgen.builder.createPtrToInt(item, llvm.Type.getInt64Ty(this.cgen.context));
-          }
-          return item;
-        });
-        break;
+        return this.cgen.stdlib.syscall(args);
       default:
         func = this.cgen.module.getFunction(name)!;
         break;

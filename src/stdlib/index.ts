@@ -9,35 +9,49 @@ export default class Stdlib {
     this.cgen = cgen;
   }
 
-  public printf(): llvm.FunctionType {
-    return llvm.FunctionType.get(
-      llvm.Type.getInt64Ty(this.cgen.context),
-      [llvm.Type.getInt8PtrTy(this.cgen.context)],
-      true
+  public printf(args: llvm.Value[]): llvm.Value {
+    const func = this.cgen.module.getOrInsertFunction(
+      'printf',
+      llvm.FunctionType.get(llvm.Type.getInt64Ty(this.cgen.context), [llvm.Type.getInt8PtrTy(this.cgen.context)], true)
     );
+    return this.cgen.builder.createCall(func, args);
   }
 
-  public strcmp(): llvm.FunctionType {
-    return llvm.FunctionType.get(
-      llvm.Type.getInt64Ty(this.cgen.context),
-      [llvm.Type.getInt8PtrTy(this.cgen.context), llvm.Type.getInt8PtrTy(this.cgen.context)],
-      false
+  public strcmp(args: llvm.Value[]): llvm.Value {
+    const func = this.cgen.module.getOrInsertFunction(
+      'strcmp',
+      llvm.FunctionType.get(
+        llvm.Type.getInt64Ty(this.cgen.context),
+        [llvm.Type.getInt8PtrTy(this.cgen.context), llvm.Type.getInt8PtrTy(this.cgen.context)],
+        false
+      )
     );
+    return this.cgen.builder.createCall(func, args);
   }
 
-  public syscall(): llvm.FunctionType {
-    return llvm.FunctionType.get(
-      llvm.Type.getInt64Ty(this.cgen.context),
-      [
+  public syscall(args: llvm.Value[]): llvm.Value {
+    const func = this.cgen.module.getOrInsertFunction(
+      'strcmp',
+      llvm.FunctionType.get(
         llvm.Type.getInt64Ty(this.cgen.context),
-        llvm.Type.getInt64Ty(this.cgen.context),
-        llvm.Type.getInt64Ty(this.cgen.context),
-        llvm.Type.getInt64Ty(this.cgen.context),
-        llvm.Type.getInt64Ty(this.cgen.context),
-        llvm.Type.getInt64Ty(this.cgen.context),
-        llvm.Type.getInt64Ty(this.cgen.context)
-      ],
-      false
+        [
+          llvm.Type.getInt64Ty(this.cgen.context),
+          llvm.Type.getInt64Ty(this.cgen.context),
+          llvm.Type.getInt64Ty(this.cgen.context),
+          llvm.Type.getInt64Ty(this.cgen.context),
+          llvm.Type.getInt64Ty(this.cgen.context),
+          llvm.Type.getInt64Ty(this.cgen.context),
+          llvm.Type.getInt64Ty(this.cgen.context)
+        ],
+        false
+      )
     );
+    const argl = args.map(item => {
+      if (item.type.isPointerTy()) {
+        return this.cgen.builder.createPtrToInt(item, llvm.Type.getInt64Ty(this.cgen.context));
+      }
+      return item;
+    });
+    return this.cgen.builder.createCall(func, argl);
   }
 }

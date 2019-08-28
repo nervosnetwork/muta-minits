@@ -39,14 +39,12 @@ export default class CodeGenString {
   }
 
   public eq(lhs: llvm.Value, rhs: llvm.Value): llvm.Value {
-    const func = this.cgen.module.getOrInsertFunction('strcmp', this.cgen.stdlib.strcmp());
-    const r = this.cgen.builder.createCall(func, [lhs, rhs]);
+    const r = this.cgen.stdlib.strcmp([lhs, rhs]);
     return this.cgen.builder.createICmpEQ(r, llvm.ConstantInt.get(this.cgen.context, 0, 64));
   }
 
   public ne(lhs: llvm.Value, rhs: llvm.Value): llvm.Value {
-    const func = this.cgen.module.getOrInsertFunction('strcmp', this.cgen.stdlib.strcmp());
-    const r = this.cgen.builder.createCall(func, [lhs, rhs]);
+    const r = this.cgen.stdlib.strcmp([lhs, rhs]);
     return this.cgen.builder.createICmpNE(r, llvm.ConstantInt.get(this.cgen.context, 0, 64));
   }
 }
