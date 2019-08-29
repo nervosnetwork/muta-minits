@@ -7,10 +7,12 @@ export enum StructMetaType {
 
 export interface StructMeta {
   metaType: StructMetaType;
-  fields: Map<string, number>;
+  typeHash?: string;
+  struct: llvm.StructType;
 }
 
 export interface SymbolMeta {
   value: llvm.Value;
   deref: number;
+  fields?: Map<string, number>;
 }

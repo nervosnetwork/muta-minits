@@ -5,7 +5,7 @@ import ts from 'typescript';
 import { StructMetaType } from '../types';
 import LLVMCodeGen from './';
 
-const debug = Debug('minits:codegen:struct');
+const debug = Debug('minits:codegen:enum');
 
 debug('codegen-enum');
 
@@ -23,7 +23,7 @@ export default class CodeGenStruct {
     const enumType = llvm.StructType.create(this.cgen.context, enumName);
     enumType.setBody([enumMemberType]);
 
-    this.cgen.structTab.set(enumName, { metaType: StructMetaType.Enum, fields: new Map() });
+    this.cgen.structTab.set(enumName, { metaType: StructMetaType.Enum, struct: enumType });
   }
 
   public genEnumElementAccess(node: ts.PropertyAccessExpression): llvm.Value {
