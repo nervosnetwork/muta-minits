@@ -14,13 +14,13 @@ import CodeGenForOf from './for-of-statement';
 import CodeGenFor from './for-statement';
 import CodeGenFuncDecl from './function-declaration';
 import CodeGenIf from './if-statement';
+import CodeGenObject from './object-declaration';
 import CodeGenPostfixUnary from './postfix-unary-expression';
 import CodeGenPrefixUnary from './prefix-unary-expression';
 import CodeGenReturn from './return-statement';
 import CodeGenString from './string-literal-expression';
 import CodeGenVarDecl from './variable-declaration';
 import CodeGenWhile from './while-statement';
-import CodeGenObject from './object-declaration';
 
 const debug = Debug('minits:codegen');
 

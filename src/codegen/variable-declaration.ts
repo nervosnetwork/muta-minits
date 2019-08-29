@@ -1,8 +1,8 @@
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import LLVMCodeGen from './';
 import { findRealType } from '../common';
+import LLVMCodeGen from './';
 
 export default class CodeGenArray {
   private cgen: LLVMCodeGen;
@@ -116,7 +116,7 @@ export default class CodeGenArray {
     return r;
   }
 
-  private buildStructMaps(struct: llvm.StructType, node: ts.ObjectLiteralExpression) {
+  private buildStructMaps(struct: llvm.StructType, node: ts.ObjectLiteralExpression): Map<string, number> {
     const fields = new Map();
 
     Array.from({ length: struct.numElements }).forEach((_, index) => {

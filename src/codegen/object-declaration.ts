@@ -2,9 +2,9 @@ import Debug from 'debug';
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import LLVMCodeGen from './';
-import { StructMeta, StructMetaType } from '../types';
 import { genTypesHash } from '../common';
+import { StructMeta, StructMetaType } from '../types';
+import LLVMCodeGen from './';
 
 const debug = Debug('minits:codegen:object');
 
@@ -42,8 +42,7 @@ export default class GenObject {
       const structType = llvm.StructType.create(this.cgen.context, typeHash);
       structType.setBody(types, false);
 
-      const structMeta: StructMeta = { metaType: StructMetaType.Class, typeHash, struct: structType };
-      this.cgen.structTab.set(typeHash, structMeta);
+      this.cgen.structTab.set(typeHash, { metaType: StructMetaType.Class, typeHash, struct: structType });
     }
 
     const structMeta = this.cgen.structTab.get(typeHash)!;
