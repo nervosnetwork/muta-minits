@@ -1,6 +1,7 @@
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
+import { Value } from '../symtab';
 import LLVMCodeGen from './';
 
 export default class CodeGenArray {
@@ -27,11 +28,11 @@ export default class CodeGenArray {
       }
       // Identifier
       if (node.elements[0].kind === ts.SyntaxKind.Identifier) {
-        const symbol = this.cgen.symtab.get(node.elements[0].getText());
-        if (symbol.value.type.isPointerTy()) {
-          return (symbol.value.type as llvm.PointerType).elementType;
+        const symbol = this.cgen.symtab.get(node.elements[0].getText())! as Value;
+        if (symbol.inner.type.isPointerTy()) {
+          return (symbol.inner.type as llvm.PointerType).elementType;
         }
-        return symbol.value.type;
+        return symbol.inner.type;
       }
 
       throw new Error('Unsupported element type');
@@ -40,7 +41,11 @@ export default class CodeGenArray {
   }
 
   public genArrayInitializer(node: ts.ArrayLiteralExpression): llvm.Value[] {
-    return node.elements.map(item => this.cgen.genExpression(item));
+    return node.elements.map(item => {
+      return this.cgen.withName(undefined, () => {
+        return this.cgen.genExpression(item);
+      });
+    });
   }
 
   // [0] https://stackoverflow.com/questions/38548680/confused-about-llvm-arrays
@@ -57,6 +62,25 @@ export default class CodeGenArray {
       this.cgen.builder.createStore(item, ptr);
     });
     return arrayPtr;
+  }
+
+  public genArrayLiteralGlobal(node: ts.ArrayLiteralExpression): llvm.GlobalVariable {
+    const arrayType = this.cgen.cgArray.genArrayType(node);
+    const arrayData = llvm.ConstantArray.get(
+      arrayType,
+      node.elements.map(item => {
+        return this.cgen.genExpression(item) as llvm.Constant;
+      })
+    );
+    const r = new llvm.GlobalVariable(
+      this.cgen.module,
+      arrayType,
+      false,
+      llvm.LinkageTypes.ExternalLinkage,
+      arrayData,
+      this.cgen.symtab.name() + this.cgen.readName()
+    );
+    return r;
   }
 
   public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {

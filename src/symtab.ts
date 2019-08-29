@@ -1,91 +1,88 @@
-// Symbol Table.
-//
-// let a = 1;                              ---> symtab.set('a', 1)
-//
-// function echo(b: number): number {
-//    return a                             ---> symtab.get('echo').get('a') --> symtab.get('a')
-//           +
-//           b;                            ---> symtab.get('echo').get('b')
-// }
-//
-import { SymbolMeta } from './types';
+import llvm from 'llvm-node';
 
-export default class Symtab {
-  public readonly scopes: Stack<Map<string, SymbolMeta>>;
+class Value {
+  public inner: llvm.Value;
+  public deref: number;
+  public fields?: Map<string, number>;
+
+  constructor(inner: llvm.Value, deref: number, fields?: Map<string, number>) {
+    this.inner = inner;
+    this.deref = deref;
+    this.fields = fields;
+  }
+}
+
+class Scope {
+  public name: string | undefined;
+  public data: Map<string, Value | Scope>;
+  public parent: Scope | undefined;
+
+  constructor(name: string | undefined, parent?: Scope | undefined) {
+    this.name = name;
+    this.data = new Map();
+    this.parent = parent;
+  }
+}
+
+class Symtab {
+  private data: Scope;
 
   constructor() {
-    this.scopes = new Stack();
-    this.scopes.push(new Map());
+    this.data = new Scope('');
   }
 
-  public into(): void {
-    this.scopes.push(new Map());
+  public into(name: string | undefined): Scope {
+    const n = new Scope(name, this.data);
+    this.data = n;
+    return n;
   }
 
   public exit(): void {
-    if (this.scopes.size() > 0) {
-      this.scopes.pop();
+    this.data = this.data.parent!;
+  }
+
+  public name(): string {
+    if (this.data.parent === undefined) {
+      return '';
     }
-  }
-
-  public set(key: string, value: SymbolMeta): void {
-    this.scopes.peek().set(key, value);
-  }
-
-  public get(key: string): SymbolMeta {
-    const len = this.scopes.size();
-
-    for (let i = len - 1; i >= 0; i--) {
-      const optValue = this.scopes.index(i).get(key);
-      if (optValue) {
-        return optValue;
+    const list = [];
+    let n: Scope | undefined = this.data;
+    for (;;) {
+      if (n === undefined) {
+        break;
       }
+      if (n.name) {
+        list.push(n.name);
+      }
+      n = n.parent;
     }
-
-    throw new Error(`Symbol ${key} not found`);
+    return list.reverse().join('.') + '.';
   }
 
-  public check(key: string): boolean {
-    return this.get(key) !== null;
+  public with(name: string | undefined, body: () => void): void {
+    this.into(name);
+    body();
+    this.exit();
   }
 
-  public isGlobal(): boolean {
-    return this.scopes.size() === 1;
+  public set(key: string, value: Value): void {
+    this.data.data.set(key, value);
+  }
+
+  public get(key: string): Value | Scope {
+    let n = this.data;
+    for (;;) {
+      const v = n.data.get(key);
+      if (v !== undefined) {
+        return v;
+      }
+      if (this.data.parent) {
+        n = this.data.parent;
+        continue;
+      }
+      throw new Error(`Symbol ${key} not found`);
+    }
   }
 }
 
-class Stack<T> {
-  private readonly elements: T[] = [];
-
-  public peek(): T {
-    if (this.isEmpty()) {
-      throw new Error('Stack is empty');
-    }
-
-    return this.elements[this.size() - 1];
-  }
-
-  public pop(): T | undefined {
-    if (this.isEmpty()) {
-      throw new Error('Stack is empty');
-    }
-
-    return this.elements.pop();
-  }
-
-  public push(t: T): void {
-    this.elements.push(t);
-  }
-
-  public isEmpty(): boolean {
-    return this.size() === 0;
-  }
-
-  public size(): number {
-    return this.elements.length;
-  }
-
-  public index(index: number): T {
-    return this.elements[index];
-  }
-}
+export { Value, Scope, Symtab };

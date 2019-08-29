@@ -1,8 +1,8 @@
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import LLVMCodeGen from './';
 import * as common from '../common';
+import LLVMCodeGen from './';
 
 export default class CodeGenFuncDecl {
   private cgen: LLVMCodeGen;
@@ -17,27 +17,20 @@ export default class CodeGenFuncDecl {
       return this.cgen.genType(item.type!);
     });
     const fnty = llvm.FunctionType.get(funcReturnType, funcArgsType, false);
-    const name = (() => {
-      if (node.name) {
-        const real = node.name as ts.Identifier;
-        return real.getText();
-      } else {
-        return undefined;
-      }
-    })();
+    const name = (node.name as ts.Identifier).text;
     const linkage = llvm.LinkageTypes.ExternalLinkage;
     const func = llvm.Function.create(fnty, linkage, name, this.cgen.module);
 
-    this.cgen.symtab.into();
-    this.initArguments(func, node);
-    if (node.body) {
-      const body = llvm.BasicBlock.create(this.cgen.context, 'body', func);
-      this.cgen.currentFunction = func;
-      this.cgen.builder.setInsertionPoint(body);
-
-      this.cgen.genBlock(node.body);
-    }
-    this.cgen.symtab.exit();
+    this.cgen.symtab.with(name, () => {
+      this.initArguments(func, node);
+      if (node.body) {
+        const body = llvm.BasicBlock.create(this.cgen.context, 'body', func);
+        this.cgen.builder.setInsertionPoint(body);
+        this.cgen.withFunction(func, () => {
+          this.cgen.genBlock(node.body!);
+        });
+      }
+    });
     return func;
   }
 
@@ -52,10 +45,10 @@ export default class CodeGenFuncDecl {
             node.parameters[item.argumentNumber].type! as ts.TypeLiteralNode
           );
 
-          this.cgen.symtab.set(item.name, { value: item, deref: 0, fields });
+          this.cgen.symtab.set(item.name, { inner: item, deref: 0, fields });
           break;
         default:
-          this.cgen.symtab.set(item.name, { value: item, deref: 0 });
+          this.cgen.symtab.set(item.name, { inner: item, deref: 0 });
       }
     });
   }

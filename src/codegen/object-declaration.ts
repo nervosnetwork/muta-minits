@@ -3,6 +3,7 @@ import llvm from 'llvm-node';
 import ts from 'typescript';
 
 import * as common from '../common';
+import { Value } from '../symtab';
 import { StructMetaType } from '../types';
 import LLVMCodeGen from './';
 
@@ -52,12 +53,12 @@ export default class GenObject {
   }
 
   public genObjectElementAccessPtr(node: ts.PropertyAccessExpression): llvm.Value {
-    const { value, fields } = this.cgen.symtab.get(node.expression.getText());
+    const { inner, fields } = this.cgen.symtab.get(node.expression.getText()) as Value;
     const field = node.name.getText();
     const index = fields!.get(field)!;
 
     // const ptr = this.cgen.builder.createLoad(value);
-    return this.cgen.builder.createInBoundsGEP(value, [
+    return this.cgen.builder.createInBoundsGEP(inner, [
       llvm.ConstantInt.get(this.cgen.context, 0, 32, true),
       llvm.ConstantInt.get(this.cgen.context, index, 32, true)
     ]);
@@ -90,7 +91,7 @@ export default class GenObject {
     }
 
     // TODO: If values is empty, assign an initial value.
-    if (this.cgen.symtab.isGlobal()) {
+    if (this.cgen.currentFunction === undefined) {
       return new llvm.GlobalVariable(
         this.cgen.module,
         structType,

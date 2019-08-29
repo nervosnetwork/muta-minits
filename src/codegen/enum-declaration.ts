@@ -2,6 +2,7 @@ import Debug from 'debug';
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
+import { Value } from '../symtab';
 import { StructMetaType } from '../types';
 import LLVMCodeGen from './';
 
@@ -27,7 +28,7 @@ export default class CodeGenStruct {
   }
 
   public genEnumElementAccess(node: ts.PropertyAccessExpression): llvm.Value {
-    return this.cgen.symtab.get(node.getText()).value;
+    return (this.cgen.symtab.get(node.getText()) as Value).inner;
   }
 
   private genElements(namespace: string, members: ts.NodeArray<ts.EnumMember>): llvm.Type {
@@ -66,7 +67,7 @@ export default class CodeGenStruct {
       })();
 
       // If it is a global pointer, create a global variable and register it in the symbol table.
-      if (this.cgen.symtab.isGlobal() && value.type.isPointerTy()) {
+      if (this.cgen.currentFunction === undefined && value.type.isPointerTy()) {
         const globalValue = new llvm.GlobalVariable(
           this.cgen.module,
           value.type,
@@ -76,18 +77,18 @@ export default class CodeGenStruct {
           fieldName
         );
 
-        this.cgen.symtab.set(fieldName, { value: globalValue, deref: 1 });
+        this.cgen.symtab.set(fieldName, { inner: globalValue, deref: 1 });
 
         // If it is a pointer, create a local variable and register it in the symbol table.
       } else if (value.type.isPointerTy()) {
         const alloc = this.cgen.builder.createAlloca(value.type);
         this.cgen.builder.createStore(value, alloc, false);
 
-        this.cgen.symtab.set(fieldName, { value: alloc, deref: 1 });
+        this.cgen.symtab.set(fieldName, { inner: alloc, deref: 1 });
 
         // If it is an integer, the value is used directly and no variables are created.
       } else {
-        this.cgen.symtab.set(fieldName, { value, deref: 0 });
+        this.cgen.symtab.set(fieldName, { inner: value, deref: 0 });
       }
     }
     return last.lastType;

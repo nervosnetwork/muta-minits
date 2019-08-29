@@ -1,6 +1,7 @@
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
+import { Value } from '../symtab';
 import LLVMCodeGen from './';
 
 const CompoundAssignmentOperator = [
@@ -188,7 +189,7 @@ export default class CodeGenBinary {
   public genSymbolPtr(node: ts.Expression): llvm.Value {
     switch (node.kind) {
       case ts.SyntaxKind.Identifier:
-        return this.cgen.symtab.get((node as ts.Identifier).getText()).value;
+        return (this.cgen.symtab.get((node as ts.Identifier).getText()) as Value).inner;
       case ts.SyntaxKind.ElementAccessExpression:
         return (() => {
           const real = node as ts.ElementAccessExpression;
