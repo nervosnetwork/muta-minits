@@ -2,6 +2,7 @@ import llvm from 'llvm-node';
 import ts from 'typescript';
 
 import LLVMCodeGen from './';
+import { findRealType } from '../common';
 
 export default class CodeGenArray {
   private cgen: LLVMCodeGen;
@@ -29,6 +30,15 @@ export default class CodeGenArray {
       this.cgen.symtab.set(name, { value: initializer, deref: 0 });
       return initializer;
     }
+
+    const realType = findRealType(type);
+    if (realType.isStructTy()) {
+      const fields = this.buildStructMaps(realType, node.initializer! as ts.ObjectLiteralExpression);
+
+      this.cgen.symtab.set(name, { value: initializer, deref: 0, fields });
+      return initializer;
+    }
+
     // Others
     const alloca = this.cgen.builder.createAlloca(type, undefined, name);
     this.cgen.builder.createStore(initializer, alloca);
@@ -46,8 +56,12 @@ export default class CodeGenArray {
         return this.genVariableDeclarationGlobalStringLiteral(node.initializer! as ts.StringLiteral, name);
       case ts.SyntaxKind.ArrayLiteralExpression:
         return this.genVariableDeclarationGlobalArrayLiteral(node.initializer! as ts.ArrayLiteralExpression, name);
+      case ts.SyntaxKind.ObjectLiteralExpression:
+        return this.cgen.genObjectLiteralExpression(node.initializer! as ts.ObjectLiteralExpression);
+      case ts.SyntaxKind.BinaryExpression:
+        return this.cgen.genBinaryExpression(node.initializer! as ts.BinaryExpression);
       default:
-        throw new Error('Unsupported type');
+        throw new Error(`Unsupported type ${node.initializer!.kind}`);
     }
   }
 
@@ -100,5 +114,16 @@ export default class CodeGenArray {
     );
     this.cgen.symtab.set(name, { value: r, deref: 0 });
     return r;
+  }
+
+  private buildStructMaps(struct: llvm.StructType, node: ts.ObjectLiteralExpression) {
+    const fields = new Map();
+
+    Array.from({ length: struct.numElements }).forEach((_, index) => {
+      const field = (node.properties[index].name as ts.Identifier).getText();
+      fields.set(field, index);
+    });
+
+    return fields;
   }
 }

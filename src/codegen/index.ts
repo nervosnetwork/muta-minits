@@ -20,6 +20,7 @@ import CodeGenReturn from './return-statement';
 import CodeGenString from './string-literal-expression';
 import CodeGenVarDecl from './variable-declaration';
 import CodeGenWhile from './while-statement';
+import CodeGenObject from './object-declaration';
 
 const debug = Debug('minits:codegen');
 
@@ -48,6 +49,7 @@ export default class LLVMCodeGen {
   public readonly cgVarDecl: CodeGenVarDecl;
   public readonly cgWhile: CodeGenWhile;
   public readonly cgEnum: CodeGenEnum;
+  public readonly cgObject: CodeGenObject;
 
   public currentBreakBlock: llvm.BasicBlock | undefined;
   public currentConitnueBlock: llvm.BasicBlock | undefined;
@@ -77,6 +79,7 @@ export default class LLVMCodeGen {
     this.cgVarDecl = new CodeGenVarDecl(this);
     this.cgWhile = new CodeGenWhile(this);
     this.cgEnum = new CodeGenEnum(this);
+    this.cgObject = new CodeGenObject(this);
 
     this.currentBreakBlock = undefined;
     this.currentConitnueBlock = undefined;
@@ -207,6 +210,8 @@ export default class LLVMCodeGen {
         return this.genBinaryExpression(expr as ts.BinaryExpression);
       case ts.SyntaxKind.PropertyAccessExpression:
         return this.genPropertyAccessExpression(expr as ts.PropertyAccessExpression);
+      case ts.SyntaxKind.ObjectLiteralExpression:
+        return this.genObjectLiteralExpression(expr as ts.ObjectLiteralExpression);
       default:
         throw new Error('Unsupported expression');
     }
@@ -330,6 +335,18 @@ export default class LLVMCodeGen {
   }
 
   public genPropertyAccessExpression(node: ts.PropertyAccessExpression): llvm.Value {
-    return this.cgEnum.genEnumElementAccess(node);
+    const varName = (node.expression as ts.Identifier).getText();
+    const structMeta = this.structTab.get(varName);
+
+    // enum
+    if (structMeta) {
+      return this.cgEnum.genEnumElementAccess(node);
+    }
+
+    return this.cgObject.genObjectElementAccess(node);
+  }
+
+  public genObjectLiteralExpression(node: ts.ObjectLiteralExpression): llvm.Value {
+    return this.cgObject.genObjectLiteralExpression(node);
   }
 }
