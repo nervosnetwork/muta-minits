@@ -1,7 +1,7 @@
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import { findRealType } from '../common';
+import { findRealType, buildStructMaps } from '../common';
 import LLVMCodeGen from './';
 
 export default class CodeGenArray {
@@ -33,8 +33,7 @@ export default class CodeGenArray {
 
     const realType = findRealType(type);
     if (realType.isStructTy()) {
-      const fields = this.buildStructMaps(realType, node.initializer! as ts.ObjectLiteralExpression);
-
+      const fields = buildStructMaps(realType, node.initializer! as ts.ObjectLiteralExpression);
       this.cgen.symtab.set(name, { value: initializer, deref: 0, fields });
       return initializer;
     }
@@ -114,16 +113,5 @@ export default class CodeGenArray {
     );
     this.cgen.symtab.set(name, { value: r, deref: 0 });
     return r;
-  }
-
-  private buildStructMaps(struct: llvm.StructType, node: ts.ObjectLiteralExpression): Map<string, number> {
-    const fields = new Map();
-
-    Array.from({ length: struct.numElements }).forEach((_, index) => {
-      const field = (node.properties[index].name as ts.Identifier).getText();
-      fields.set(field, index);
-    });
-
-    return fields;
   }
 }

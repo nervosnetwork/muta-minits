@@ -169,10 +169,12 @@ export default class LLVMCodeGen {
 
         // TODO: impl struct
         throw new Error('Unsupported type');
+      case ts.SyntaxKind.TypeLiteral:
+        return this.cgObject.genObjectLiteralType(type as ts.TypeLiteralNode);
       case ts.SyntaxKind.StringKeyword:
         return llvm.Type.getInt8PtrTy(this.context);
       default:
-        throw new Error('Unsupported type');
+        throw new Error(`Unsupported type ${type.kind}`);
     }
   }
 
@@ -346,7 +348,15 @@ export default class LLVMCodeGen {
     return this.cgObject.genObjectElementAccess(node);
   }
 
+  public genPropertyAccessExpressionPtr(node: ts.PropertyAccessExpression): llvm.Value {
+    return this.cgObject.genObjectElementAccessPtr(node);
+  }
+
   public genObjectLiteralExpression(node: ts.ObjectLiteralExpression): llvm.Value {
     return this.cgObject.genObjectLiteralExpression(node);
+  }
+
+  public initObjectInst(varName: string, type: llvm.Type, values: llvm.Constant[]): llvm.Value {
+    return this.cgObject.initObjectInst(varName, type, values);
   }
 }
