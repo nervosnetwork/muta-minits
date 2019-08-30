@@ -31,6 +31,13 @@ export default class CodeGenFuncDecl {
         });
       }
     });
+
+    if (node.type && common.findRealType(funcReturnType).isStructTy()) {
+      const typeLiteral = node.type! as ts.TypeLiteralNode;
+      const fields = common.buildStructMaps(funcReturnType as llvm.StructType, typeLiteral);
+
+      this.cgen.symtab.set(func.name, { inner: func, deref: 0, fields });
+    }
     return func;
   }
 
