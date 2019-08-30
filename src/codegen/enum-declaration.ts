@@ -2,8 +2,6 @@ import Debug from 'debug';
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import { Value } from '../symtab';
-import { StructMetaType } from '../types';
 import LLVMCodeGen from './';
 
 const debug = Debug('minits:codegen:enum');
@@ -18,79 +16,42 @@ export default class CodeGenStruct {
   }
 
   public genEnumDeclaration(node: ts.EnumDeclaration): void {
-    const enumName = node.name.text;
-
-    const enumMemberType = this.genElements(enumName, node.members);
-    const enumType = llvm.StructType.create(this.cgen.context, enumName);
-    enumType.setBody([enumMemberType]);
-
-    this.cgen.structTab.set(enumName, { metaType: StructMetaType.Enum, struct: enumType });
+    if (node.members.length === 0) {
+      return;
+    }
+    this.cgen.symtab.with(node.name.text, () => {
+      this.genElements(node.members);
+    });
   }
 
-  public genEnumElementAccess(node: ts.PropertyAccessExpression): llvm.Value {
-    return (this.cgen.symtab.get(node.getText()) as Value).inner;
-  }
-
-  private genElements(namespace: string, members: ts.NodeArray<ts.EnumMember>): llvm.Type {
-    const last: { lastType: llvm.Type; text: string } = {
-      lastType: llvm.Type.getInt64Ty(this.cgen.context),
-      text: '0'
-    };
-
-    for (const [index, m] of members.entries()) {
-      const fieldName = `${namespace}.${m.name.getText()}`;
-
-      const value = (() => {
-        // enum T {a = 100, b == 101}
-        if (m.initializer) {
-          last.text = m.initializer.getText();
-          const genValue = this.cgen.genExpression(m.initializer);
-
-          if (genValue.type.typeID !== last.lastType.typeID) {
-            throw new Error('Enum data types must be consistent.');
-          }
-          return genValue;
-
-          // enum T { a }
-        } else if (index === 0) {
-          return llvm.ConstantInt.get(this.cgen.context, 0, 64, true);
-
-          // enum T { a = 100, b }
-        } else if (index > 0 && last) {
-          const num = parseInt(last.text, 10) + 1;
-          last.text = num + '';
-
-          return llvm.ConstantInt.get(this.cgen.context, num, 64, true);
-        } else {
-          throw new Error('Enum member must have initializer.');
-        }
-      })();
-
-      // If it is a global pointer, create a global variable and register it in the symbol table.
-      if (this.cgen.currentFunction === undefined && value.type.isPointerTy()) {
-        const globalValue = new llvm.GlobalVariable(
-          this.cgen.module,
-          value.type,
-          true,
-          llvm.LinkageTypes.ExternalLinkage,
-          value as llvm.Constant,
-          fieldName
-        );
-
-        this.cgen.symtab.set(fieldName, { inner: globalValue, deref: 1 });
-
-        // If it is a pointer, create a local variable and register it in the symbol table.
-      } else if (value.type.isPointerTy()) {
-        const alloc = this.cgen.builder.createAlloca(value.type);
-        this.cgen.builder.createStore(value, alloc, false);
-
-        this.cgen.symtab.set(fieldName, { inner: alloc, deref: 1 });
-
-        // If it is an integer, the value is used directly and no variables are created.
-      } else {
+  private genElements(members: ts.NodeArray<ts.EnumMember>): void {
+    // String
+    if (members[0].initializer && members[0].initializer.kind === ts.SyntaxKind.StringLiteral) {
+      for (const [, m] of members.entries()) {
+        const fieldName = m.name.getText();
+        const value = this.cgen.cgString.genStringLiteral(m.initializer as ts.StringLiteral);
         this.cgen.symtab.set(fieldName, { inner: value, deref: 0 });
       }
+      return;
     }
-    return last.lastType;
+    // Number
+    let currentNum = 0;
+    for (const [index, m] of members.entries()) {
+      const fieldName = m.name.getText();
+      const value = (() => {
+        if (m.initializer) {
+          const v = this.cgen.cgNumeric.genNumeric(m.initializer as ts.NumericLiteral);
+          currentNum = v.value;
+          return v;
+        } else if (index === 0) {
+          return llvm.ConstantInt.get(this.cgen.context, 0, 64, true);
+        } else {
+          currentNum += 1;
+          return llvm.ConstantInt.get(this.cgen.context, currentNum, 64, true);
+        }
+      })();
+      this.cgen.symtab.set(fieldName, { inner: value, deref: 0 });
+    }
+    return;
   }
 }

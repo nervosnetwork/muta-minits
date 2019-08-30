@@ -3,21 +3,24 @@ import llvm from 'llvm-node';
 import ts from 'typescript';
 
 import Stdlib from '../stdlib';
-import { Symtab, Value } from '../symtab';
-import { StructMeta, StructMetaType } from '../types';
+import { Scope, Symtab, Value } from '../symtab';
+import { StructMeta } from '../types';
 import CodeGenArray from './array-literal-expression';
 import CodeGenBinary from './binary-expression';
 import CodeGenCall from './call-expression';
 import CodeGenDo from './do-statement';
 import CodeGenEnum from './enum-declaration';
+import CodeGenExport from './export-declaration';
 import CodeGenForOf from './for-of-statement';
 import CodeGenFor from './for-statement';
 import CodeGenFuncDecl from './function-declaration';
 import CodeGenIf from './if-statement';
+import CodeGenImport from './import-declaration';
 import CodeGenNumeric from './numeric-expression';
 import CodeGenObject from './object-declaration';
 import CodeGenPostfixUnary from './postfix-unary-expression';
 import CodeGenPrefixUnary from './prefix-unary-expression';
+import CodeGenPropertyAccessExpression from './property-access-expression';
 import CodeGenReturn from './return-statement';
 import CodeGenString from './string-literal-expression';
 import CodeGenVarDecl from './variable-declaration';
@@ -40,14 +43,17 @@ export default class LLVMCodeGen {
   public readonly cgCall: CodeGenCall;
   public readonly cgDo: CodeGenDo;
   public readonly cgEnum: CodeGenEnum;
+  public readonly cgExport: CodeGenExport;
   public readonly cgForOf: CodeGenForOf;
   public readonly cgFor: CodeGenFor;
   public readonly cgFuncDecl: CodeGenFuncDecl;
   public readonly cgIf: CodeGenIf;
+  public readonly cgImport: CodeGenImport;
   public readonly cgNumeric: CodeGenNumeric;
   public readonly cgObject: CodeGenObject;
   public readonly cgPostfixUnary: CodeGenPostfixUnary;
   public readonly cgPrefixUnary: CodeGenPrefixUnary;
+  public readonly cgPropertyAccessExpression: CodeGenPropertyAccessExpression;
   public readonly cgReturn: CodeGenReturn;
   public readonly cgString: CodeGenString;
   public readonly cgVarDecl: CodeGenVarDecl;
@@ -71,19 +77,22 @@ export default class LLVMCodeGen {
     this.cgBinary = new CodeGenBinary(this);
     this.cgCall = new CodeGenCall(this);
     this.cgDo = new CodeGenDo(this);
+    this.cgEnum = new CodeGenEnum(this);
+    this.cgExport = new CodeGenExport(this);
     this.cgForOf = new CodeGenForOf(this);
     this.cgFor = new CodeGenFor(this);
     this.cgFuncDecl = new CodeGenFuncDecl(this);
     this.cgIf = new CodeGenIf(this);
+    this.cgImport = new CodeGenImport(this);
     this.cgNumeric = new CodeGenNumeric(this);
+    this.cgObject = new CodeGenObject(this);
     this.cgPostfixUnary = new CodeGenPostfixUnary(this);
     this.cgPrefixUnary = new CodeGenPrefixUnary(this);
+    this.cgPropertyAccessExpression = new CodeGenPropertyAccessExpression(this);
     this.cgReturn = new CodeGenReturn(this);
     this.cgString = new CodeGenString(this);
     this.cgVarDecl = new CodeGenVarDecl(this);
     this.cgWhile = new CodeGenWhile(this);
-    this.cgEnum = new CodeGenEnum(this);
-    this.cgObject = new CodeGenObject(this);
 
     this.currentBreakBlock = undefined;
     this.currentConitnueBlock = undefined;
@@ -141,6 +150,12 @@ export default class LLVMCodeGen {
         case ts.SyntaxKind.ExpressionStatement:
           this.genExpressionStatement(node as ts.ExpressionStatement);
           break;
+        case ts.SyntaxKind.ImportDeclaration:
+          this.genImportDeclaration(node as ts.ImportDeclaration);
+          break;
+        case ts.SyntaxKind.ExportDeclaration:
+          this.genExportDeclaration(node as ts.ExportDeclaration);
+          break;
         default:
           throw new Error('Unsupported grammar');
       }
@@ -184,15 +199,19 @@ export default class LLVMCodeGen {
       case ts.SyntaxKind.NumberKeyword:
         return llvm.Type.getInt64Ty(this.context);
       case ts.SyntaxKind.TypeReference:
-        const structMeta = this.structTab.get(type.getText())!;
-        const structType = this.module.getTypeByName(type.getText())!;
-
-        // if type is enum.
-        if (structMeta.metaType === StructMetaType.Enum) {
-          return structType.getElementType(0);
+        const real = type as ts.TypeReferenceNode;
+        if (real.typeName.kind === ts.SyntaxKind.Identifier) {
+          const dest = this.symtab.get((real.typeName as ts.Identifier).getText());
+          if (dest instanceof Scope) {
+            for (const v of dest.data.values()) {
+              return (v as Value).inner.type;
+            }
+          }
+          throw new Error('Unsupported type'); // TODO: impl struct
         }
-
-        // TODO: impl struct
+        if (real.typeName.kind === ts.SyntaxKind.QualifiedName) {
+          throw new Error('Unsupported type'); // TODO
+        }
         throw new Error('Unsupported type');
       case ts.SyntaxKind.TypeLiteral:
         return this.cgObject.genObjectLiteralType(type as ts.TypeLiteralNode);
@@ -341,6 +360,10 @@ export default class LLVMCodeGen {
     return this.cgIf.genIfStatement(node);
   }
 
+  public genImportDeclaration(node: ts.ImportDeclaration): void {
+    return this.cgImport.genImportDeclaration(node);
+  }
+
   public genDoStatement(node: ts.DoStatement): void {
     return this.cgDo.genDoStatement(node);
   }
@@ -361,16 +384,12 @@ export default class LLVMCodeGen {
     return this.cgEnum.genEnumDeclaration(node);
   }
 
+  public genExportDeclaration(node: ts.ExportDeclaration): void {
+    return this.cgExport.genExportDeclaration(node);
+  }
+
   public genPropertyAccessExpression(node: ts.PropertyAccessExpression): llvm.Value {
-    const varName = (node.expression as ts.Identifier).getText();
-    const structMeta = this.structTab.get(varName);
-
-    // enum
-    if (structMeta) {
-      return this.cgEnum.genEnumElementAccess(node);
-    }
-
-    return this.cgObject.genObjectElementAccess(node);
+    return this.cgPropertyAccessExpression.genPropertyAccessExpression(node);
   }
 
   public genPropertyAccessExpressionPtr(node: ts.PropertyAccessExpression): llvm.Value {

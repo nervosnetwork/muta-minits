@@ -2,6 +2,7 @@ import llvm from 'llvm-node';
 import ts from 'typescript';
 
 import * as common from '../common';
+import { Value } from '../symtab';
 import LLVMCodeGen from './';
 
 export default class CodeGenFuncDecl {
@@ -25,9 +26,10 @@ export default class CodeGenFuncDecl {
     const fnty = llvm.FunctionType.get(funcReturnType, funcArgsType, false);
     const name = (node.name as ts.Identifier).text;
     const linkage = llvm.LinkageTypes.ExternalLinkage;
-    const func = llvm.Function.create(fnty, linkage, name, this.cgen.module);
+    const func = llvm.Function.create(fnty, linkage, this.cgen.symtab.name() + name, this.cgen.module);
+    this.cgen.symtab.set(name, new Value(func, 0));
 
-    this.cgen.symtab.with(name, () => {
+    this.cgen.symtab.with(undefined, () => {
       this.initArguments(func, node);
       if (node.body) {
         const body = llvm.BasicBlock.create(this.cgen.context, 'body', func);
