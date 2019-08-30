@@ -71,16 +71,18 @@ class Symtab {
 
   public get(key: string): Value | Scope {
     let n = this.data;
-    for (;;) {
+
+    while (true) {
       const v = n.data.get(key);
-      if (v !== undefined) {
+      if (v) {
         return v;
       }
-      if (this.data.parent) {
-        n = this.data.parent;
-        continue;
+
+      if (n.parent) {
+        n = n.parent;
+      } else {
+        throw new Error(`Symbol ${key} not found`);
       }
-      throw new Error(`Symbol ${key} not found`);
     }
   }
 }
