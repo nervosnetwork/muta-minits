@@ -43,3 +43,20 @@ test('test function return 1', async t => {
 
   t.pass();
 });
+
+test('test function ignore return', async t => {
+  await runCode(
+    `
+    function echo() {
+      console.log("Hello World!");
+    }
+
+    function main(): number {
+      echo();
+      return 0;
+    }
+    `
+  );
+
+  t.pass();
+});
