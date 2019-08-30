@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import llvm from 'llvm-node';
+import ts from 'typescript';
 
 export function genTypesHash(types: llvm.Type[]): string {
   return digestToHex(types.map(t => t.typeID).join('-'));
@@ -26,6 +27,28 @@ export function findRealType(t: llvm.Type): llvm.Type {
   }
 
   return t;
+}
+
+export function buildStructMaps(
+  struct: llvm.StructType,
+  node: ts.ObjectLiteralExpression | ts.TypeLiteralNode
+): Map<string, number> {
+  let fieldNames: string[] = [];
+
+  if (ts.isObjectLiteralExpression(node)) {
+    fieldNames = node.properties.map(p => (p.name as ts.Identifier).getText());
+  } else if (ts.isTypeLiteralNode(node)) {
+    fieldNames = node.members.map(m => m.name!.getText());
+  } else {
+    throw new Error(`Kind not supported.`);
+  }
+
+  const fields: Map<string, number> = new Map();
+  Array.from({ length: (findRealType(struct) as llvm.StructType).numElements }).forEach((_, index) =>
+    fields.set(fieldNames[index], index)
+  );
+
+  return fields;
 }
 
 function digestToHex(buf: Buffer | string): string {

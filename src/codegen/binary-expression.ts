@@ -196,8 +196,10 @@ export default class CodeGenBinary {
           const arg = this.cgen.genExpression(real.argumentExpression);
           return this.cgen.builder.createInBoundsGEP(ptr, [llvm.ConstantInt.get(this.cgen.context, 0, 64), arg]);
         })();
+      case ts.SyntaxKind.PropertyAccessExpression:
+        return this.cgen.genPropertyAccessExpressionPtr(node as ts.PropertyAccessExpression);
       default:
-        throw new Error('Unsupported grammar');
+        throw new Error(`Unsupported grammar ${node.kind}`);
     }
   }
 }

@@ -2,6 +2,7 @@ import llvm from 'llvm-node';
 import ts from 'typescript';
 
 import LLVMCodeGen from './';
+import * as common from '../common';
 
 export default class CodeGenFuncDecl {
   private cgen: LLVMCodeGen;
@@ -28,17 +29,34 @@ export default class CodeGenFuncDecl {
     const func = llvm.Function.create(fnty, linkage, name, this.cgen.module);
 
     this.cgen.symtab.into();
-    func.getArguments().forEach(item => {
-      item.name = node.parameters[item.argumentNumber].name.getText();
-      this.cgen.symtab.set(item.name, { value: item, deref: 0 });
-    });
+    this.initArguments(func, node);
     if (node.body) {
       const body = llvm.BasicBlock.create(this.cgen.context, 'body', func);
       this.cgen.currentFunction = func;
       this.cgen.builder.setInsertionPoint(body);
+
       this.cgen.genBlock(node.body);
     }
     this.cgen.symtab.exit();
     return func;
+  }
+
+  private initArguments(func: llvm.Function, node: ts.FunctionDeclaration): void {
+    func.getArguments().forEach(item => {
+      item.name = node.parameters[item.argumentNumber].name.getText();
+
+      switch (common.findRealType(item.type).typeID) {
+        case llvm.Type.TypeID.StructTyID:
+          const fields = common.buildStructMaps(
+            item.type as llvm.StructType,
+            node.parameters[item.argumentNumber].type! as ts.TypeLiteralNode
+          );
+
+          this.cgen.symtab.set(item.name, { value: item, deref: 0, fields });
+          break;
+        default:
+          this.cgen.symtab.set(item.name, { value: item, deref: 0 });
+      }
+    });
   }
 }
