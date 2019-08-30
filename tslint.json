@@ -12,6 +12,7 @@
     "readonly-array": false,
     "no-delete": true,
     "no-method-signature": true,
-    "no-mixed-interface": true
+    "no-mixed-interface": true,
+    "no-eval": false
   }
 }
