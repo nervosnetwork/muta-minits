@@ -39,19 +39,19 @@ export default class LLVMCodeGen {
   public readonly cgBinary: CodeGenBinary;
   public readonly cgCall: CodeGenCall;
   public readonly cgDo: CodeGenDo;
+  public readonly cgEnum: CodeGenEnum;
   public readonly cgForOf: CodeGenForOf;
   public readonly cgFor: CodeGenFor;
   public readonly cgFuncDecl: CodeGenFuncDecl;
   public readonly cgIf: CodeGenIf;
   public readonly cgNumeric: CodeGenNumeric;
+  public readonly cgObject: CodeGenObject;
   public readonly cgPostfixUnary: CodeGenPostfixUnary;
   public readonly cgPrefixUnary: CodeGenPrefixUnary;
   public readonly cgReturn: CodeGenReturn;
   public readonly cgString: CodeGenString;
   public readonly cgVarDecl: CodeGenVarDecl;
   public readonly cgWhile: CodeGenWhile;
-  public readonly cgEnum: CodeGenEnum;
-  public readonly cgObject: CodeGenObject;
 
   public currentBreakBlock: llvm.BasicBlock | undefined;
   public currentConitnueBlock: llvm.BasicBlock | undefined;
