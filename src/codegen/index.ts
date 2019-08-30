@@ -3,7 +3,7 @@ import llvm from 'llvm-node';
 import ts from 'typescript';
 
 import Stdlib from '../stdlib';
-import Symtab from '../symtab';
+import { Symtab, Value } from '../symtab';
 import { StructMeta, StructMetaType } from '../types';
 import CodeGenArray from './array-literal-expression';
 import CodeGenBinary from './binary-expression';
@@ -14,6 +14,7 @@ import CodeGenForOf from './for-of-statement';
 import CodeGenFor from './for-statement';
 import CodeGenFuncDecl from './function-declaration';
 import CodeGenIf from './if-statement';
+import CodeGenNumeric from './numeric-expression';
 import CodeGenObject from './object-declaration';
 import CodeGenPostfixUnary from './postfix-unary-expression';
 import CodeGenPrefixUnary from './prefix-unary-expression';
@@ -42,6 +43,7 @@ export default class LLVMCodeGen {
   public readonly cgFor: CodeGenFor;
   public readonly cgFuncDecl: CodeGenFuncDecl;
   public readonly cgIf: CodeGenIf;
+  public readonly cgNumeric: CodeGenNumeric;
   public readonly cgPostfixUnary: CodeGenPostfixUnary;
   public readonly cgPrefixUnary: CodeGenPrefixUnary;
   public readonly cgReturn: CodeGenReturn;
@@ -55,6 +57,7 @@ export default class LLVMCodeGen {
   public currentConitnueBlock: llvm.BasicBlock | undefined;
   public currentFunction: llvm.Function | undefined;
   public currentType: ts.TypeNode | undefined;
+  public currentName: string | undefined;
 
   constructor() {
     this.context = new llvm.LLVMContext();
@@ -72,6 +75,7 @@ export default class LLVMCodeGen {
     this.cgFor = new CodeGenFor(this);
     this.cgFuncDecl = new CodeGenFuncDecl(this);
     this.cgIf = new CodeGenIf(this);
+    this.cgNumeric = new CodeGenNumeric(this);
     this.cgPostfixUnary = new CodeGenPostfixUnary(this);
     this.cgPrefixUnary = new CodeGenPrefixUnary(this);
     this.cgReturn = new CodeGenReturn(this);
@@ -85,6 +89,35 @@ export default class LLVMCodeGen {
     this.currentConitnueBlock = undefined;
     this.currentFunction = undefined;
     this.currentType = undefined;
+    this.currentName = undefined;
+  }
+
+  public withFunction(func: llvm.Function, body: () => any): any {
+    const a = this.currentFunction;
+    this.currentFunction = func;
+    const r = body();
+    this.currentFunction = a;
+    return r;
+  }
+
+  public withType(type: ts.TypeNode | undefined, body: () => any): any {
+    const a = this.currentType;
+    this.currentType = type;
+    const r = body();
+    this.currentType = a;
+    return r;
+  }
+
+  public withName(name: string | undefined, body: () => any): any {
+    const a = this.currentName;
+    this.currentName = name;
+    const r = body();
+    this.currentName = a;
+    return r;
+  }
+
+  public readName(): string {
+    return this.currentName ? this.currentName : 'unnamed';
   }
 
   public genText(): string {
@@ -115,15 +148,7 @@ export default class LLVMCodeGen {
   }
 
   public genNumeric(node: ts.NumericLiteral): llvm.ConstantInt {
-    const text = node.getText();
-    const bits = (() => {
-      if (text.startsWith('0x')) {
-        return 16;
-      } else {
-        return 10;
-      }
-    })();
-    return llvm.ConstantInt.get(this.context, parseInt(text, bits), 64);
+    return this.cgNumeric.genNumeric(node);
   }
 
   public genStringLiteral(node: ts.StringLiteral): llvm.Value {
@@ -142,8 +167,8 @@ export default class LLVMCodeGen {
   }
 
   public genIdentifier(node: ts.Identifier): llvm.Value {
-    const symbol = this.symtab.get(node.getText());
-    let r = symbol.value;
+    const symbol = this.symtab.get(node.getText())! as Value;
+    let r = symbol.inner;
     for (let i = 0; i < symbol.deref; i++) {
       r = this.builder.createLoad(r);
     }

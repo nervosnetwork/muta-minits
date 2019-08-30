@@ -12,7 +12,29 @@ export default class CodeGenString {
   }
 
   public genStringLiteral(node: ts.StringLiteral): llvm.Value {
-    return this.cgen.builder.createGlobalStringPtr(node.text, 'string');
+    return this.cgen.builder.createGlobalStringPtr(node.text, this.cgen.symtab.name() + this.cgen.readName());
+  }
+
+  public genStringLiteralGlobal(node: ts.StringLiteral): llvm.GlobalVariable {
+    const v = llvm.ConstantDataArray.getString(this.cgen.context, node.text);
+    const r = new llvm.GlobalVariable(
+      this.cgen.module,
+      v.type,
+      false,
+      llvm.LinkageTypes.ExternalLinkage,
+      v,
+      this.cgen.symtab.name() + this.cgen.readName() + '.data'
+    );
+    const a = this.cgen.builder.createBitCast(r, llvm.Type.getInt8Ty(this.cgen.context).getPointerTo());
+    const b = new llvm.GlobalVariable(
+      this.cgen.module,
+      a.type,
+      false,
+      llvm.LinkageTypes.ExternalLinkage,
+      a as llvm.Constant,
+      this.cgen.symtab.name() + this.cgen.readName()
+    );
+    return b;
   }
 
   public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {

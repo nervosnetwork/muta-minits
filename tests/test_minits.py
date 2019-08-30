@@ -10,7 +10,7 @@ def compare(path: str):
         f.write('\n')
         f.write('process.exit(main());')
     a = subprocess.call(f'ts-node /tmp/minits.ts', shell=True)
-    b = subprocess.call(f'ts-node src/index.ts run {path}', shell=True)
+    b = subprocess.call(f'node build/main/index.js run {path}', shell=True)
     assert a == b
 
 
@@ -29,6 +29,7 @@ def cmppath(path: str):
 
 
 def main():
+    subprocess.call('tsc')
     cmppath('tests/ts')
 
 
