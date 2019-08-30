@@ -66,13 +66,29 @@ export default class CodeGenArray {
   }
 
   public genVariableDeclarationGlobalNumeric(node: ts.NumericLiteral): llvm.GlobalVariable {
-    const r = this.cgen.cgNumeric.genNumericGlobal(node);
+    const a = this.cgen.cgNumeric.genNumericGlobal(node);
+    const r = new llvm.GlobalVariable(
+      this.cgen.module,
+      a.type,
+      false,
+      llvm.LinkageTypes.ExternalLinkage,
+      a,
+      this.cgen.symtab.name() + this.cgen.readName()
+    );
     this.cgen.symtab.set(this.cgen.readName(), { inner: r, deref: 1 });
     return r;
   }
 
   public genVariableDeclarationGlobalStringLiteral(node: ts.StringLiteral): llvm.GlobalVariable {
-    const v = this.cgen.cgString.genStringLiteralGlobal(node);
+    const a = this.cgen.cgString.genStringLiteralGlobal(node);
+    const v = new llvm.GlobalVariable(
+      this.cgen.module,
+      a.type,
+      false,
+      llvm.LinkageTypes.ExternalLinkage,
+      a as llvm.Constant,
+      this.cgen.symtab.name() + this.cgen.readName()
+    );
     this.cgen.symtab.set(this.cgen.readName(), { inner: v, deref: 1 });
     return v;
   }

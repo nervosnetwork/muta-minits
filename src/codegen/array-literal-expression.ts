@@ -66,12 +66,14 @@ export default class CodeGenArray {
 
   public genArrayLiteralGlobal(node: ts.ArrayLiteralExpression): llvm.GlobalVariable {
     const arrayType = this.cgen.cgArray.genArrayType(node);
-    const arrayData = llvm.ConstantArray.get(
-      arrayType,
-      node.elements.map(item => {
-        return this.cgen.genExpression(item) as llvm.Constant;
-      })
-    );
+    const arrayData = this.cgen.withName(undefined, () => {
+      return llvm.ConstantArray.get(
+        arrayType,
+        node.elements.map(item => {
+          return this.cgen.genExpression(item) as llvm.Constant;
+        })
+      );
+    });
     const r = new llvm.GlobalVariable(
       this.cgen.module,
       arrayType,
