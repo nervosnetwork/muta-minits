@@ -11,6 +11,14 @@ export default class CodeGenNumeric {
   }
 
   public genNumeric(node: ts.NumericLiteral): llvm.ConstantInt {
+    if (this.cgen.currentFunction === undefined) {
+      return this.genNumericGlobal(node);
+    } else {
+      return this.genNumericLocale(node);
+    }
+  }
+
+  public genNumericLocale(node: ts.NumericLiteral): llvm.ConstantInt {
     const text = node.getText();
     const bits = (() => {
       if (text.startsWith('0x')) {
@@ -22,17 +30,7 @@ export default class CodeGenNumeric {
     return llvm.ConstantInt.get(this.cgen.context, parseInt(text, bits), 64);
   }
 
-  public genNumericGlobal(node: ts.NumericLiteral): llvm.GlobalVariable {
-    const initializer = this.cgen.genNumeric(node);
-    const type = initializer.type;
-    const r = new llvm.GlobalVariable(
-      this.cgen.module,
-      type,
-      false,
-      llvm.LinkageTypes.ExternalLinkage,
-      initializer,
-      this.cgen.symtab.name() + this.cgen.readName()
-    );
-    return r;
+  public genNumericGlobal(node: ts.NumericLiteral): llvm.ConstantInt {
+    return this.genNumericLocale(node);
   }
 }

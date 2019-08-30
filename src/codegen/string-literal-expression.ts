@@ -12,10 +12,19 @@ export default class CodeGenString {
   }
 
   public genStringLiteral(node: ts.StringLiteral): llvm.Value {
-    return this.cgen.builder.createGlobalStringPtr(node.text, this.cgen.symtab.name() + this.cgen.readName());
+    if (this.cgen.currentFunction === undefined) {
+      return this.genStringLiteralGlobal(node);
+    } else {
+      return this.genStringLiteralLocale(node);
+    }
   }
 
-  public genStringLiteralGlobal(node: ts.StringLiteral): llvm.GlobalVariable {
+  public genStringLiteralLocale(node: ts.StringLiteral): llvm.Value {
+    return this.cgen.builder.createGlobalStringPtr(node.text, this.cgen.symtab.name() + 'str');
+  }
+
+  // [0] How to create global string array? http://lists.llvm.org/pipermail/llvm-dev/2010-June/032072.html
+  public genStringLiteralGlobal(node: ts.StringLiteral): llvm.Value {
     const v = llvm.ConstantDataArray.getString(this.cgen.context, node.text);
     const r = new llvm.GlobalVariable(
       this.cgen.module,
@@ -23,18 +32,9 @@ export default class CodeGenString {
       false,
       llvm.LinkageTypes.ExternalLinkage,
       v,
-      this.cgen.symtab.name() + this.cgen.readName() + '.data'
+      this.cgen.symtab.name() + 'str'
     );
-    const a = this.cgen.builder.createBitCast(r, llvm.Type.getInt8Ty(this.cgen.context).getPointerTo());
-    const b = new llvm.GlobalVariable(
-      this.cgen.module,
-      a.type,
-      false,
-      llvm.LinkageTypes.ExternalLinkage,
-      a as llvm.Constant,
-      this.cgen.symtab.name() + this.cgen.readName()
-    );
-    return b;
+    return this.cgen.builder.createBitCast(r, llvm.Type.getInt8Ty(this.cgen.context).getPointerTo());
   }
 
   public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
