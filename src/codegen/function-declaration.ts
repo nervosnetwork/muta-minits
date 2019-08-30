@@ -12,7 +12,13 @@ export default class CodeGenFuncDecl {
   }
 
   public genFunctionDeclaration(node: ts.FunctionDeclaration): llvm.Function {
-    const funcReturnType = this.cgen.genType(node.type!);
+    const funcReturnType = (() => {
+      if (node.type) {
+        return this.cgen.genType(node.type);
+      } else {
+        return llvm.Type.getVoidTy(this.cgen.context);
+      }
+    })();
     const funcArgsType = node.parameters.map(item => {
       return this.cgen.genType(item.type!);
     });
@@ -28,6 +34,9 @@ export default class CodeGenFuncDecl {
         this.cgen.builder.setInsertionPoint(body);
         this.cgen.withFunction(func, () => {
           this.cgen.genBlock(node.body!);
+          if (!body.getTerminator()) {
+            this.cgen.builder.createRetVoid();
+          }
         });
       }
     });
