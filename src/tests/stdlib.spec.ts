@@ -4,15 +4,15 @@ import { runCode } from './util';
 test('test stdlib console.log', async t => {
   await runCode(
     `
-    let globalstr = "globalstr\n";
+    let globalstr = "globalstr";
 
     function main(): number {
-        let localstr = "localstr\n";
+        let localstr = "localstr";
         console.log(globalstr);
         console.log(localstr);
         console.log("%s", globalstr);
         console.log("%s", localstr);
-        console.log("%d\n", 42);
+        console.log("%d", 42);
         return 0;
     }
     `
