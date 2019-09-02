@@ -54,6 +54,7 @@ function build(args: any, opts: any): string {
   const m = target.createTargetMachine(triple, 'generic');
   cg.module.dataLayout = m.createDataLayout();
   cg.module.targetTriple = triple;
+  cg.module.sourceFileName = fileName;
   cg.genSourceFile(sourceFile);
 
   const codeText = cg.genText();

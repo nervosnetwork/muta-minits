@@ -31,7 +31,7 @@ export default class Stdlib {
 
   public syscall(args: llvm.Value[]): llvm.Value {
     const func = this.cgen.module.getOrInsertFunction(
-      'strcmp',
+      'syscall',
       llvm.FunctionType.get(
         llvm.Type.getInt64Ty(this.cgen.context),
         [

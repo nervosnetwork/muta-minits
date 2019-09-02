@@ -27,7 +27,7 @@ class Scope {
 }
 
 class Symtab {
-  private data: Scope;
+  public data: Scope;
 
   constructor() {
     this.data = new Scope('');
@@ -35,6 +35,9 @@ class Symtab {
 
   public into(name: string | undefined): Scope {
     const n = new Scope(name, this.data);
+    if (name) {
+      this.data.data.set(name, n);
+    }
     this.data = n;
     return n;
   }
@@ -67,7 +70,7 @@ class Symtab {
     this.exit();
   }
 
-  public set(key: string, value: Value): void {
+  public set(key: string, value: Value | Scope): void {
     this.data.data.set(key, value);
   }
 

@@ -15,7 +15,6 @@ export default class CodeGenFuncDecl {
     const args = node.arguments.map(item => {
       return this.cgen.genExpression(item);
     });
-    let func: llvm.Constant;
     switch (name) {
       case 'console.log':
         return this.cgen.stdlib.printf(args);
@@ -26,9 +25,8 @@ export default class CodeGenFuncDecl {
       case 'syscall':
         return this.cgen.stdlib.syscall(args);
       default:
-        func = this.cgen.module.getFunction(name)!;
-        break;
+        const func = this.cgen.genExpression(node.expression);
+        return this.cgen.builder.createCall(func, args);
     }
-    return this.cgen.builder.createCall(func, args);
   }
 }
