@@ -52,8 +52,7 @@ export default class CodeGenArray {
   // [1] https://stackoverflow.com/questions/33003928/allow-llvm-generate-code-to-access-a-global-array
   public genArrayLiteral(node: ts.ArrayLiteralExpression): llvm.AllocaInst {
     const arrayType = this.genArrayType(node);
-    const arraySize = llvm.ConstantInt.get(this.cgen.context, arrayType.numElements, 64);
-    const arrayPtr = this.cgen.builder.createAlloca(arrayType, arraySize);
+    const arrayPtr = this.cgen.builder.createAlloca(arrayType);
     this.genArrayInitializer(node).forEach((item, i) => {
       const ptr = this.cgen.builder.createInBoundsGEP(arrayPtr, [
         llvm.ConstantInt.get(this.cgen.context, 0, 64),

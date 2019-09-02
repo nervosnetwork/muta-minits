@@ -211,6 +211,8 @@ export default class LLVMCodeGen {
         return llvm.Type.getInt1Ty(this.context);
       case ts.SyntaxKind.NumberKeyword:
         return llvm.Type.getInt64Ty(this.context);
+      case ts.SyntaxKind.StringKeyword:
+        return llvm.Type.getInt8PtrTy(this.context);
       case ts.SyntaxKind.TypeReference:
         const real = type as ts.TypeReferenceNode;
         if (real.typeName.kind === ts.SyntaxKind.Identifier) {
@@ -228,8 +230,9 @@ export default class LLVMCodeGen {
         throw new Error('Unsupported type');
       case ts.SyntaxKind.TypeLiteral:
         return this.cgObject.genObjectLiteralType(type as ts.TypeLiteralNode);
-      case ts.SyntaxKind.StringKeyword:
-        return llvm.Type.getInt8PtrTy(this.context);
+      case ts.SyntaxKind.ArrayType:
+        const elementType = this.genType((type as ts.ArrayTypeNode).elementType);
+        return elementType.getPointerTo();
       default:
         throw new Error(`Unsupported type ${type.kind}`);
     }

@@ -34,7 +34,7 @@ export default class CodeGenString {
       v,
       this.cgen.symtab.name() + 'str'
     );
-    return this.cgen.builder.createBitCast(r, llvm.Type.getInt8Ty(this.cgen.context).getPointerTo());
+    return this.cgen.builder.createBitCast(r, llvm.Type.getInt8PtrTy(this.cgen.context));
   }
 
   public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
