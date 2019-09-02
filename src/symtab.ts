@@ -3,6 +3,8 @@ import llvm from 'llvm-node';
 class Value {
   public inner: llvm.Value;
   public deref: number;
+  // If the type of type is a struct, fields are the fields contained in the struct
+  // If the type of  is a function and the return value is an object, fields is the field of the object.
   public fields?: Map<string, number>;
 
   constructor(inner: llvm.Value, deref: number, fields?: Map<string, number>) {
