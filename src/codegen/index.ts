@@ -8,6 +8,7 @@ import { StructMeta } from '../types';
 import CodeGenArray from './array-literal-expression';
 import CodeGenBinary from './binary-expression';
 import CodeGenCall from './call-expression';
+import CodeGenCondition from './condition-expression';
 import CodeGenDo from './do-statement';
 import CodeGenEnum from './enum-declaration';
 import CodeGenExport from './export-declaration';
@@ -41,6 +42,7 @@ export default class LLVMCodeGen {
   public readonly cgArray: CodeGenArray;
   public readonly cgBinary: CodeGenBinary;
   public readonly cgCall: CodeGenCall;
+  public readonly cgCondition: CodeGenCondition;
   public readonly cgDo: CodeGenDo;
   public readonly cgEnum: CodeGenEnum;
   public readonly cgExport: CodeGenExport;
@@ -76,6 +78,7 @@ export default class LLVMCodeGen {
     this.cgArray = new CodeGenArray(this);
     this.cgBinary = new CodeGenBinary(this);
     this.cgCall = new CodeGenCall(this);
+    this.cgCondition = new CodeGenCondition(this);
     this.cgDo = new CodeGenDo(this);
     this.cgEnum = new CodeGenEnum(this);
     this.cgExport = new CodeGenExport(this);
@@ -258,6 +261,8 @@ export default class LLVMCodeGen {
         return this.genPropertyAccessExpression(expr as ts.PropertyAccessExpression);
       case ts.SyntaxKind.ObjectLiteralExpression:
         return this.genObjectLiteralExpression(expr as ts.ObjectLiteralExpression);
+      case ts.SyntaxKind.ConditionalExpression:
+        return this.genConditionalExpression(expr as ts.ConditionalExpression);
       default:
         throw new Error('Unsupported expression');
     }
@@ -398,6 +403,10 @@ export default class LLVMCodeGen {
 
   public genObjectLiteralExpression(node: ts.ObjectLiteralExpression): llvm.Value {
     return this.cgObject.genObjectLiteralExpression(node);
+  }
+
+  public genConditionalExpression(node: ts.ConditionalExpression): llvm.Value {
+    return this.cgCondition.genConditionalExpression(node);
   }
 
   public initObjectInst(varName: string, type: llvm.Type, values: llvm.Constant[]): llvm.Value {
