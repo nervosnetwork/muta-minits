@@ -32,6 +32,11 @@ const debug = Debug('minits:codegen');
 debug('codegen');
 
 export default class LLVMCodeGen {
+  public readonly rootDir: string;
+  public readonly files: string[];
+  public readonly program: ts.Program;
+  public readonly checker: ts.TypeChecker;
+
   public readonly builder: llvm.IRBuilder;
   public readonly context: llvm.LLVMContext;
   public readonly module: llvm.Module;
@@ -67,7 +72,12 @@ export default class LLVMCodeGen {
   public currentType: ts.TypeNode | undefined;
   public currentName: string | undefined;
 
-  constructor() {
+  constructor(rootDir: string, files: string[]) {
+    this.rootDir = rootDir;
+    this.files = files;
+    this.program = ts.createProgram(files, {});
+    this.checker = this.program.getTypeChecker();
+
     this.context = new llvm.LLVMContext();
     this.module = new llvm.Module('main', this.context);
     this.builder = new llvm.IRBuilder(this.context);
@@ -136,8 +146,8 @@ export default class LLVMCodeGen {
     return this.module.print();
   }
 
-  public genSourceFile(sourceFile: ts.SourceFile): void {
-    sourceFile.forEachChild(node => {
+  public genSourceFile(file: string): void {
+    this.program.getSourceFile(file)!.forEachChild(node => {
       switch (node.kind) {
         case ts.SyntaxKind.EndOfFileToken:
           return;

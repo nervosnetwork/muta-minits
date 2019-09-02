@@ -51,6 +51,14 @@ export function buildStructMaps(
   return fields;
 }
 
+export function trimQuotes(s: string): string {
+  return s.replace(/^[\"|\']|[\"|\']$/g, '');
+}
+
+export function completionSuffix(s: string): string {
+  return s.endsWith('.ts') ? s : s + '.ts';
+}
+
 function digestToHex(buf: Buffer | string): string {
   return crypto
     .createHash('md5')

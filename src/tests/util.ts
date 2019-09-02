@@ -6,6 +6,7 @@ import shell from 'shelljs';
 import ts from 'typescript';
 
 import LLVMCodeGen from '../codegen';
+import { PrepareImpot } from '../prepare';
 
 export async function runCode(
   source: string,
@@ -35,14 +36,16 @@ async function compileJS(
 }
 
 async function compileLLVM(source: string): Promise<any> {
-  const cgen = new LLVMCodeGen();
-  const ast = ts.createSourceFile('', source, ts.ScriptTarget.ES2020, true);
-  cgen.genSourceFile(ast);
+  const tmpFileName = sourceToHash(source);
+  const tempTSFile = path.join(shell.tempdir(), `${tmpFileName}.ts`);
+  fs.writeFileSync(tempTSFile, source);
+
+  const preImport = new PrepareImpot(tempTSFile);
+  const cgen = new LLVMCodeGen(preImport.getRoot(), preImport.getImportFiles());
+  cgen.genSourceFile(tempTSFile);
   llvm.verifyModule(cgen.module);
 
-  const tmpFileName = sourceToHash(source);
   const tempFile = path.join(shell.tempdir(), `${tmpFileName}.ll`);
-
   fs.writeFileSync(tempFile, cgen.genText());
   return shell.exec(`lli ${tempFile}`, {
     async: false

@@ -8,9 +8,9 @@ import fs from 'fs';
 import llvm from 'llvm-node';
 import path from 'path';
 import shell from 'shelljs';
-import ts from 'typescript';
 
 import LLVMCodeGen from './codegen';
+import { PrepareImpot } from './prepare';
 
 const debug = Debug('minits');
 const program = new commander.Command();
@@ -40,7 +40,6 @@ program.parse(process.argv);
 
 function build(args: any, opts: any): string {
   const fileName = args;
-  const sourceFile = ts.createSourceFile(fileName, fs.readFileSync(fileName).toString(), ts.ScriptTarget.ES2020, true);
 
   llvm.initializeAllTargetInfos();
   llvm.initializeAllTargets();
@@ -48,14 +47,15 @@ function build(args: any, opts: any): string {
   llvm.initializeAllAsmParsers();
   llvm.initializeAllAsmPrinters();
 
-  const cg = new LLVMCodeGen();
+  const preImport = new PrepareImpot(fileName);
+  const cg = new LLVMCodeGen(preImport.getRoot(), preImport.getImportFiles());
   const triple: string = opts.triple ? opts.triple : llvm.config.LLVM_DEFAULT_TARGET_TRIPLE;
   const target = llvm.TargetRegistry.lookupTarget(triple);
   const m = target.createTargetMachine(triple, 'generic');
   cg.module.dataLayout = m.createDataLayout();
   cg.module.targetTriple = triple;
   cg.module.sourceFileName = fileName;
-  cg.genSourceFile(sourceFile);
+  cg.genSourceFile(fileName);
 
   const codeText = cg.genText();
   debug(`
