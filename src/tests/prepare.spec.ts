@@ -25,8 +25,8 @@ console.log('c module')
 test('test prepare import', async t => {
   const mainFile = path.join(shell.tempdir(), `main.ts`);
   const aFile = path.join(shell.tempdir(), `import-a.ts`);
-  const bFile = path.join(shell.tempdir(), `import-a.ts`);
-  const cFile = path.join(shell.tempdir(), `import-a.ts`);
+  const bFile = path.join(shell.tempdir(), `import-b.ts`);
+  const cFile = path.join(shell.tempdir(), `import-c.ts`);
 
   fs.writeFileSync(mainFile, main);
   fs.writeFileSync(aFile, importA);
