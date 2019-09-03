@@ -87,10 +87,16 @@ export default class CodeGenArray {
   public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
     const identifier = this.cgen.genExpression(node.expression);
     const argumentExpression = this.cgen.genExpression(node.argumentExpression);
-    const ptr = this.cgen.builder.createInBoundsGEP(identifier, [
-      llvm.ConstantInt.get(this.cgen.context, 0, 64),
-      argumentExpression
-    ]);
+    const ptr = (() => {
+      if ((identifier.type as llvm.PointerType).elementType.isArrayTy()) {
+        return this.cgen.builder.createInBoundsGEP(identifier, [
+          llvm.ConstantInt.get(this.cgen.context, 0, 64),
+          argumentExpression
+        ]);
+      } else {
+        return this.cgen.builder.createInBoundsGEP(identifier, [argumentExpression]);
+      }
+    })();
     return this.cgen.builder.createLoad(ptr);
   }
 }
