@@ -10,6 +10,7 @@ import CodeGenBinary from './binary-expression';
 import CodeGenCall from './call-expression';
 import CodeGenCondition from './condition-expression';
 import CodeGenDo from './do-statement';
+import CodeGenElemAccess from './element-access-expression';
 import CodeGenEnum from './enum-declaration';
 import CodeGenExport from './export-declaration';
 import CodeGenForOf from './for-of-statement';
@@ -49,6 +50,7 @@ export default class LLVMCodeGen {
   public readonly cgCall: CodeGenCall;
   public readonly cgCondition: CodeGenCondition;
   public readonly cgDo: CodeGenDo;
+  public readonly cgElemAccess: CodeGenElemAccess;
   public readonly cgEnum: CodeGenEnum;
   public readonly cgExport: CodeGenExport;
   public readonly cgForOf: CodeGenForOf;
@@ -90,6 +92,7 @@ export default class LLVMCodeGen {
     this.cgCall = new CodeGenCall(this);
     this.cgCondition = new CodeGenCondition(this);
     this.cgDo = new CodeGenDo(this);
+    this.cgElemAccess = new CodeGenElemAccess(this);
     this.cgEnum = new CodeGenEnum(this);
     this.cgExport = new CodeGenExport(this);
     this.cgForOf = new CodeGenForOf(this);
@@ -286,11 +289,7 @@ export default class LLVMCodeGen {
   }
 
   public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
-    const type = this.genExpression(node.expression).type;
-    if ((type as llvm.PointerType).elementType.isArrayTy()) {
-      return this.cgArray.genElementAccess(node);
-    }
-    return this.cgString.genElementAccess(node);
+    return this.cgElemAccess.genElementAccess(node);
   }
 
   public genCallExpression(node: ts.CallExpression): llvm.Value {
