@@ -3,7 +3,7 @@
 // $ minits build examples/brainfuck.ts -o brainfuck.s
 // $ clang brainfuck.s brainfuck
 //
-// $ ./brainfuck "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>."
+// $ brainfuck "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>."
 
 const enum Opcode {
     SHR = '>',
@@ -74,7 +74,7 @@ function main(argc: number, argv: string[]): number {
             continue
         }
         if (op === Opcode.PUTCHAR) {
-            console.log('%c', stack[ps]);
+            syscall(2177, stack[ps], 0, 0, 0, 0, 0)
             pc += 1;
             continue
         }
@@ -82,7 +82,6 @@ function main(argc: number, argv: string[]): number {
             console.log('GETCHAR is disabled');
             return 1;
         }
-
 
         if (op === Opcode.LB) {
             if (stack[ps] != 0x00) {
