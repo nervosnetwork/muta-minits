@@ -3,7 +3,7 @@ import llvm from 'llvm-node';
 import ts from 'typescript';
 
 import * as common from '../common';
-import { Value } from '../symtab';
+import * as symtab from '../symtab';
 import { StructMetaType } from '../types';
 import LLVMCodeGen from './';
 
@@ -53,7 +53,7 @@ export default class GenObject {
   }
 
   public genObjectElementAccessPtr(node: ts.PropertyAccessExpression): llvm.Value {
-    const { inner, fields } = this.cgen.symtab.get(node.expression.getText()) as Value;
+    const { inner, fields } = this.cgen.symtab.get(node.expression.getText()) as symtab.LLVMValue;
     const field = node.name.getText();
     const index = fields!.get(field)!;
 

@@ -3,7 +3,7 @@ import llvm from 'llvm-node';
 import ts from 'typescript';
 
 import Stdlib from '../stdlib';
-import { Scope, Symtab, Value } from '../symtab';
+import * as symtab from '../symtab';
 import { StructMeta } from '../types';
 import CodeGenArray from './array-literal-expression';
 import CodeGenBinary from './binary-expression';
@@ -41,7 +41,7 @@ export default class LLVMCodeGen {
   public readonly builder: llvm.IRBuilder;
   public readonly context: llvm.LLVMContext;
   public readonly module: llvm.Module;
-  public readonly symtab: Symtab;
+  public readonly symtab: symtab.Symtab;
   public readonly stdlib: Stdlib;
   public readonly structTab: Map<string, StructMeta>;
 
@@ -83,7 +83,7 @@ export default class LLVMCodeGen {
     this.context = new llvm.LLVMContext();
     this.module = new llvm.Module('main', this.context);
     this.builder = new llvm.IRBuilder(this.context);
-    this.symtab = new Symtab();
+    this.symtab = new symtab.Symtab();
     this.stdlib = new Stdlib(this);
     this.structTab = new Map();
 
@@ -209,7 +209,7 @@ export default class LLVMCodeGen {
   }
 
   public genIdentifier(node: ts.Identifier): llvm.Value {
-    const symbol = this.symtab.get(node.getText())! as Value;
+    const symbol = this.symtab.get(node.getText())! as symtab.LLVMValue;
     let r = symbol.inner;
     for (let i = 0; i < symbol.deref; i++) {
       r = this.builder.createLoad(r);
@@ -231,9 +231,9 @@ export default class LLVMCodeGen {
         const real = type as ts.TypeReferenceNode;
         if (real.typeName.kind === ts.SyntaxKind.Identifier) {
           const dest = this.symtab.get((real.typeName as ts.Identifier).getText());
-          if (dest instanceof Scope) {
-            for (const v of dest.data.values()) {
-              return (v as Value).inner.type;
+          if (symtab.isScope(dest)) {
+            for (const v of dest.inner.values()) {
+              return (v as symtab.LLVMValue).inner.type;
             }
           }
           throw new Error('Unsupported type'); // TODO: impl struct

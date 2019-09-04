@@ -1,6 +1,7 @@
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
+import * as symtab from '../symtab';
 import LLVMCodeGen from './';
 
 export default class CodeGenStruct {
@@ -17,16 +18,13 @@ export default class CodeGenStruct {
         const v = this.cgen.checker.getConstantValue(item);
         switch (typeof v) {
           case 'string':
-            this.cgen.symtab.set(name, {
-              deref: 0,
-              inner: this.cgen.cgString.genStringLiteral(item.initializer! as ts.StringLiteral)
-            });
+            this.cgen.symtab.set(
+              name,
+              new symtab.LLVMValue(this.cgen.cgString.genStringLiteral(item.initializer! as ts.StringLiteral), 0)
+            );
             break;
           case 'number':
-            this.cgen.symtab.set(name, {
-              deref: 0,
-              inner: llvm.ConstantInt.get(this.cgen.context, v, 64)
-            });
+            this.cgen.symtab.set(name, new symtab.LLVMValue(llvm.ConstantInt.get(this.cgen.context, v, 64), 0));
             break;
         }
       });

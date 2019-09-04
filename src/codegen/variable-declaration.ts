@@ -2,7 +2,7 @@ import llvm from 'llvm-node';
 import ts from 'typescript';
 
 import * as common from '../common';
-import { Value } from '../symtab';
+import * as symtab from '../symtab';
 import LLVMCodeGen from './';
 
 export default class CodeGenArray {
@@ -31,7 +31,7 @@ export default class CodeGenArray {
 
     // ArrayLiteral
     if (type.isPointerTy() && (type as llvm.PointerType).elementType.isArrayTy()) {
-      this.cgen.symtab.set(name, { inner: initializer, deref: 0 });
+      this.cgen.symtab.set(name, new symtab.LLVMValue(initializer, 0));
       return initializer;
     }
 
@@ -43,20 +43,20 @@ export default class CodeGenArray {
       // If the variable is a function return value, get the field information for the return value.
       if (ts.isCallExpression(node.initializer!)) {
         const funcName = (node.initializer! as ts.CallExpression).expression.getText();
-        const v = this.cgen.symtab.get(funcName)! as Value;
+        const v = this.cgen.symtab.get(funcName)! as symtab.LLVMValue;
         fields = v.fields!;
       } else {
         fields = common.buildStructMaps(realType, node.initializer! as ts.ObjectLiteralExpression);
       }
 
-      this.cgen.symtab.set(name, { inner: initializer, deref: 0, fields });
+      this.cgen.symtab.set(name, new symtab.LLVMValue(initializer, 0, fields));
       return initializer;
     }
 
     // Others
     const alloca = this.cgen.builder.createAlloca(type, undefined, name);
     this.cgen.builder.createStore(initializer, alloca);
-    this.cgen.symtab.set(name, { inner: alloca, deref: 1 });
+    this.cgen.symtab.set(name, new symtab.LLVMValue(alloca, 1));
     return alloca;
   }
 
@@ -87,7 +87,8 @@ export default class CodeGenArray {
       a,
       this.cgen.symtab.name() + this.cgen.readName()
     );
-    this.cgen.symtab.set(this.cgen.readName(), { inner: r, deref: 1 });
+
+    this.cgen.symtab.set(this.cgen.readName(), new symtab.LLVMValue(r, 1));
     return r;
   }
 
@@ -101,13 +102,13 @@ export default class CodeGenArray {
       a as llvm.Constant,
       this.cgen.symtab.name() + this.cgen.readName()
     );
-    this.cgen.symtab.set(this.cgen.readName(), { inner: v, deref: 1 });
+    this.cgen.symtab.set(this.cgen.readName(), new symtab.LLVMValue(v, 1));
     return v;
   }
 
   public genVariableDeclarationGlobalArrayLiteral(node: ts.ArrayLiteralExpression): llvm.GlobalVariable {
     const r = this.cgen.cgArray.genArrayLiteralGlobal(node);
-    this.cgen.symtab.set(this.cgen.readName(), { inner: r, deref: 0 });
+    this.cgen.symtab.set(this.cgen.readName(), new symtab.LLVMValue(r, 0));
     return r;
   }
 }
