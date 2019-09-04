@@ -29,6 +29,14 @@ export default class Stdlib {
     return this.cgen.builder.createCall(func, args);
   }
 
+  public strlen(args: llvm.Value[]): llvm.Value {
+    const func = this.cgen.module.getOrInsertFunction(
+      'strlen',
+      llvm.FunctionType.get(llvm.Type.getInt64Ty(this.cgen.context), [llvm.Type.getInt8PtrTy(this.cgen.context)], false)
+    );
+    return this.cgen.builder.createCall(func, args);
+  }
+
   public syscall(args: llvm.Value[]): llvm.Value {
     const func = this.cgen.module.getOrInsertFunction(
       'syscall',

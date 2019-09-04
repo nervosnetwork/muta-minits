@@ -29,7 +29,7 @@ function main(argc: number, argv: string[]): number {
     let pc = 0;
     let ps = 0;
     let stack = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    for (;;) {
+    for (; pc < strlen(argv[1]) ;) {
         let op = src[pc];
         if (op === Opcode.SHR) {
             ps += 1;
@@ -51,42 +51,40 @@ function main(argc: number, argv: string[]): number {
             return 1;
         }
         if (op === Opcode.LB) {
-            if (stack[ps] == 0x00) {
-                let n = 1;
-                for (; ;) {
-                    pc += 1;
-                    if (n === 0) {
-                        break
-                    }
-                    if (src[pc] === Opcode.LB) {
-                        n += 1;
-                        continue
-                    }
-                    if (src[pc] === Opcode.RB) {
-                        n -= 1;
-                        continue
-                    }
+            if (stack[ps] != 0x00) {
+                continue
+            }
+            let n = 1;
+            for (; n !== 0 ;) {
+                pc += 1;
+                if (src[pc] === Opcode.LB) {
+                    n += 1;
+                    continue
+                }
+                if (src[pc] === Opcode.RB) {
+                    n -= 1;
+                    continue
                 }
             }
+            continue
         }
         if (op === Opcode.RB) {
-            if (stack[ps] == 0x00) {
-                let n = 1;
-                for (; ;) {
-                    pc -= 1;
-                    if (n === 0) {
-                        break
-                    }
-                    if (src[pc] === Opcode.RB) {
-                        n += 1;
-                        continue
-                    }
-                    if (src[pc] === Opcode.LB) {
-                        n -= 1;
-                        continue
-                    }
+            if (stack[ps] !== 0x00) {
+                continue
+            }
+            let n = 1;
+            for (; n !== 0;) {
+                pc -= 1;
+                if (src[pc] === Opcode.RB) {
+                    n += 1;
+                    continue
+                }
+                if (src[pc] === Opcode.LB) {
+                    n -= 1;
+                    continue
                 }
             }
+            continue
         }
 
         pc += 1;
