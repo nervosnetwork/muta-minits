@@ -30,7 +30,7 @@ class Scope implements Value {
   }
 }
 
-function isLLVM(value: Value): value is LLVMValue {
+function isLLVMValue(value: Value): value is LLVMValue {
   return value instanceof LLVMValue ? true : false;
 }
 
@@ -105,4 +105,4 @@ class Symtab {
   }
 }
 
-export { Value, Scope, Symtab, LLVMValue, isLLVM, isScope };
+export { Value, Scope, Symtab, LLVMValue, isLLVMValue, isScope };
