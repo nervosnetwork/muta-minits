@@ -22,6 +22,8 @@ export default class CodeGenFuncDecl {
         return this.cgen.stdlib.printf(args);
       case 'strcmp':
         return this.cgen.stdlib.strcmp(args);
+      case 'strlen':
+        return this.cgen.stdlib.strlen(args);
       case 'syscall':
         return this.cgen.stdlib.syscall(args);
       default:

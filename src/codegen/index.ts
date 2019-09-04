@@ -10,6 +10,7 @@ import CodeGenBinary from './binary-expression';
 import CodeGenCall from './call-expression';
 import CodeGenCondition from './condition-expression';
 import CodeGenDo from './do-statement';
+import CodeGenElemAccess from './element-access-expression';
 import CodeGenEnum from './enum-declaration';
 import CodeGenExport from './export-declaration';
 import CodeGenForOf from './for-of-statement';
@@ -49,6 +50,7 @@ export default class LLVMCodeGen {
   public readonly cgCall: CodeGenCall;
   public readonly cgCondition: CodeGenCondition;
   public readonly cgDo: CodeGenDo;
+  public readonly cgElemAccess: CodeGenElemAccess;
   public readonly cgEnum: CodeGenEnum;
   public readonly cgExport: CodeGenExport;
   public readonly cgForOf: CodeGenForOf;
@@ -67,7 +69,7 @@ export default class LLVMCodeGen {
   public readonly cgWhile: CodeGenWhile;
 
   public currentBreakBlock: llvm.BasicBlock | undefined;
-  public currentConitnueBlock: llvm.BasicBlock | undefined;
+  public currentContinueBlock: llvm.BasicBlock | undefined;
   public currentFunction: llvm.Function | undefined;
   public currentType: ts.TypeNode | undefined;
   public currentName: string | undefined;
@@ -90,6 +92,7 @@ export default class LLVMCodeGen {
     this.cgCall = new CodeGenCall(this);
     this.cgCondition = new CodeGenCondition(this);
     this.cgDo = new CodeGenDo(this);
+    this.cgElemAccess = new CodeGenElemAccess(this);
     this.cgEnum = new CodeGenEnum(this);
     this.cgExport = new CodeGenExport(this);
     this.cgForOf = new CodeGenForOf(this);
@@ -108,7 +111,7 @@ export default class LLVMCodeGen {
     this.cgWhile = new CodeGenWhile(this);
 
     this.currentBreakBlock = undefined;
-    this.currentConitnueBlock = undefined;
+    this.currentContinueBlock = undefined;
     this.currentFunction = undefined;
     this.currentType = undefined;
     this.currentName = undefined;
@@ -135,6 +138,17 @@ export default class LLVMCodeGen {
     this.currentName = name;
     const r = body();
     this.currentName = a;
+    return r;
+  }
+
+  public withContinueBreakBlock(c: llvm.BasicBlock, b: llvm.BasicBlock, body: () => any): any {
+    const rc = this.currentContinueBlock;
+    this.currentContinueBlock = c;
+    const rb = this.currentBreakBlock;
+    this.currentBreakBlock = b;
+    const r = body();
+    this.currentContinueBlock = rc;
+    this.currentBreakBlock = rb;
     return r;
   }
 
@@ -286,11 +300,7 @@ export default class LLVMCodeGen {
   }
 
   public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
-    const type = this.genExpression(node.expression).type;
-    if ((type as llvm.PointerType).elementType.isArrayTy()) {
-      return this.cgArray.genElementAccess(node);
-    }
-    return this.cgString.genElementAccess(node);
+    return this.cgElemAccess.genElementAccess(node);
   }
 
   public genCallExpression(node: ts.CallExpression): llvm.Value {
@@ -359,7 +369,7 @@ export default class LLVMCodeGen {
   }
 
   public genContinueStatement(): void {
-    this.builder.createBr(this.currentConitnueBlock!);
+    this.builder.createBr(this.currentContinueBlock!);
   }
 
   public genBreakStatement(): void {

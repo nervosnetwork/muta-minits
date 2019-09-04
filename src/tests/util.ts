@@ -12,9 +12,11 @@ export async function runCode(
   source: string,
   options: ts.TranspileOptions = { compilerOptions: { module: ts.ModuleKind.ES2015 } }
 ): Promise<void> {
-  const jsRet = await compileJS(source, options);
-  const llvmRet = await compileLLVM(source);
-
+  const jsRet = await compileToJS(source, options);
+  const irPath = await compileToLLVMIR(source);
+  const llvmRet = shell.exec(`lli ${irPath}`, {
+    async: false
+  });
   if (jsRet !== llvmRet.code) {
     throw new Error(`The results don't match, js ${jsRet} llvm ${llvmRet.code}`);
   }
@@ -24,7 +26,7 @@ export async function runCode(
   }
 }
 
-async function compileJS(
+async function compileToJS(
   source: string,
   options: ts.TranspileOptions = { compilerOptions: { module: ts.ModuleKind.ES2015 } }
 ): Promise<any> {
@@ -35,7 +37,7 @@ async function compileJS(
   `);
 }
 
-async function compileLLVM(source: string): Promise<any> {
+export async function compileToLLVMIR(source: string): Promise<string> {
   const tmpFileName = sourceToHash(source);
   const tempTSFile = path.join(shell.tempdir(), `${tmpFileName}.ts`);
   fs.writeFileSync(tempTSFile, source);
@@ -47,9 +49,7 @@ async function compileLLVM(source: string): Promise<any> {
 
   const tempFile = path.join(shell.tempdir(), `${tmpFileName}.ll`);
   fs.writeFileSync(tempFile, cgen.genText());
-  return shell.exec(`lli ${tempFile}`, {
-    async: false
-  });
+  return tempFile;
 }
 
 function sourceToHash(str: string): string {

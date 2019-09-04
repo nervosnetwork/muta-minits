@@ -27,6 +27,10 @@ export default class CodeGenFuncDecl {
     const name = (node.name as ts.Identifier).text;
     const linkage = llvm.LinkageTypes.ExternalLinkage;
     const func = llvm.Function.create(fnty, linkage, this.cgen.symtab.name() + name, this.cgen.module);
+    if (name === 'main') {
+      func.addFnAttr(llvm.Attribute.AttrKind.NoInline);
+      func.addFnAttr(llvm.Attribute.AttrKind.OptimizeNone);
+    }
     this.cgen.symtab.set(name, new Value(func, 0));
 
     this.cgen.symtab.with(undefined, () => {

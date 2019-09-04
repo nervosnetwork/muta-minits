@@ -45,11 +45,10 @@ export default class CodeGenForOf {
       this.cgen.builder.createLoad(i)
     ]);
     this.cgen.builder.createStore(this.cgen.builder.createLoad(p), v);
-    const rawBreakBlock = this.cgen.currentBreakBlock;
-    const rawContinueBlock = this.cgen.currentConitnueBlock;
-    this.cgen.currentBreakBlock = loopQuit;
-    this.cgen.currentConitnueBlock = loopIncr;
-    this.cgen.genStatement(node.statement);
+
+    this.cgen.withContinueBreakBlock(loopIncr, loopQuit, () => {
+      this.cgen.genStatement(node.statement);
+    });
     this.cgen.builder.createBr(loopIncr);
 
     this.cgen.builder.setInsertionPoint(loopIncr);
@@ -63,7 +62,5 @@ export default class CodeGenForOf {
     this.cgen.builder.createBr(loopCond);
 
     this.cgen.builder.setInsertionPoint(loopQuit);
-    this.cgen.currentBreakBlock = rawBreakBlock;
-    this.cgen.currentConitnueBlock = rawContinueBlock;
   }
 }

@@ -17,19 +17,13 @@ export default class CodeGenDo {
 
     this.cgen.builder.createBr(loopBody);
     this.cgen.builder.setInsertionPoint(loopBody);
-    const rawBreakBlock = this.cgen.currentBreakBlock;
-    const rawContinueBlock = this.cgen.currentConitnueBlock;
-    this.cgen.currentBreakBlock = loopQuit;
-    this.cgen.currentConitnueBlock = loopCond;
-    this.cgen.genStatement(node.statement);
+    this.cgen.withContinueBreakBlock(loopCond, loopQuit, () => {
+      this.cgen.genStatement(node.statement);
+    });
     this.cgen.builder.createBr(loopCond);
-
     this.cgen.builder.setInsertionPoint(loopCond);
     const cond = this.cgen.genExpression(node.expression);
     this.cgen.builder.createCondBr(cond, loopBody, loopQuit);
-
     this.cgen.builder.setInsertionPoint(loopQuit);
-    this.cgen.currentBreakBlock = rawBreakBlock;
-    this.cgen.currentConitnueBlock = rawContinueBlock;
   }
 }
