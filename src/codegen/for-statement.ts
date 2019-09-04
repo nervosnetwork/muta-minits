@@ -27,25 +27,24 @@ export default class CodeGenFor {
 
     this.cgen.builder.createBr(loopCond);
     this.cgen.builder.setInsertionPoint(loopCond);
-    const cond = this.cgen.genExpression(node.condition!);
+    const cond = (() => {
+      if (node.condition) {
+        return this.cgen.genExpression(node.condition!);
+      } else {
+        return llvm.ConstantInt.get(this.cgen.context, 1, 1);
+      }
+    })();
     this.cgen.builder.createCondBr(cond, loopBody, loopQuit);
-
     this.cgen.builder.setInsertionPoint(loopBody);
-    const rawBreakBlock = this.cgen.currentBreakBlock;
-    const rawContinueBlock = this.cgen.currentConitnueBlock;
-    this.cgen.currentBreakBlock = loopQuit;
-    this.cgen.currentConitnueBlock = loopIncr;
-    this.cgen.genStatement(node.statement);
+    this.cgen.withContinueBreakBlock(loopIncr, loopQuit, () => {
+      this.cgen.genStatement(node.statement);
+    });
     this.cgen.builder.createBr(loopIncr);
-
     this.cgen.builder.setInsertionPoint(loopIncr);
     if (node.incrementor) {
       this.cgen.genExpression(node.incrementor);
     }
     this.cgen.builder.createBr(loopCond);
-
     this.cgen.builder.setInsertionPoint(loopQuit);
-    this.cgen.currentBreakBlock = rawBreakBlock;
-    this.cgen.currentConitnueBlock = rawContinueBlock;
   }
 }
