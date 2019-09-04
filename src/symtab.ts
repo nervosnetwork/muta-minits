@@ -1,8 +1,7 @@
 import llvm from 'llvm-node';
-import ts from 'typescript';
 
 interface Value {
-  inner: any;
+  inner: llvm.Value | Map<string, Value>;
 }
 
 class LLVMValue implements Value {
@@ -16,14 +15,6 @@ class LLVMValue implements Value {
     this.inner = inner;
     this.deref = deref;
     this.fields = fields;
-  }
-}
-
-class TSNode implements Value {
-  public readonly inner: ts.Node;
-
-  constructor(inner: ts.Node) {
-    this.inner = inner;
   }
 }
 
@@ -41,10 +32,6 @@ class Scope implements Value {
 
 function isLLVM(value: Value): value is LLVMValue {
   return value instanceof LLVMValue ? true : false;
-}
-
-function isTSNode(value: Value): value is TSNode {
-  return value instanceof TSNode ? true : false;
 }
 
 function isScope(value: Value): value is Scope {
@@ -118,4 +105,4 @@ class Symtab {
   }
 }
 
-export { Value, Scope, Symtab, TSNode, LLVMValue, isLLVM, isTSNode, isScope };
+export { Value, Scope, Symtab, LLVMValue, isLLVM, isScope };
