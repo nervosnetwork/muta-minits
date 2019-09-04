@@ -1,7 +1,7 @@
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import { Value } from '../symtab';
+import * as symtab from '../symtab';
 import LLVMCodeGen from './';
 
 export default class CodeGenArray {
@@ -28,10 +28,11 @@ export default class CodeGenArray {
       }
       // Identifier
       if (node.elements[0].kind === ts.SyntaxKind.Identifier) {
-        const symbol = this.cgen.symtab.get(node.elements[0].getText())! as Value;
+        const symbol = this.cgen.symtab.get(node.elements[0].getText())! as symtab.LLVMValue;
         if (symbol.inner.type.isPointerTy()) {
           return (symbol.inner.type as llvm.PointerType).elementType;
         }
+
         return symbol.inner.type;
       }
 

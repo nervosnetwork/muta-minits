@@ -1,7 +1,7 @@
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import { Value } from '../symtab';
+import * as symtab from '../symtab';
 import LLVMCodeGen from './';
 
 export default class CodeGenPostfixUnary {
@@ -20,7 +20,7 @@ export default class CodeGenPostfixUnary {
         return (() => {
           const one = llvm.ConstantInt.get(this.cgen.context, 1, 64);
           const r = this.cgen.builder.createAdd(lhs, one);
-          const ptr = (this.cgen.symtab.get(e.getText())! as Value).inner;
+          const ptr = (this.cgen.symtab.get(e.getText())! as symtab.LLVMValue).inner;
           this.cgen.builder.createStore(r, ptr);
           return lhs;
         })();
@@ -29,7 +29,7 @@ export default class CodeGenPostfixUnary {
         return (() => {
           const one = llvm.ConstantInt.get(this.cgen.context, 1, 64);
           const r = this.cgen.builder.createSub(lhs, one);
-          const ptr = (this.cgen.symtab.get(e.getText()) as Value).inner;
+          const ptr = (this.cgen.symtab.get(e.getText()) as symtab.LLVMValue).inner;
           this.cgen.builder.createStore(r, ptr);
           return lhs;
         })();

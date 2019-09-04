@@ -1,11 +1,15 @@
 import llvm from 'llvm-node';
 
-class Value {
-  public inner: llvm.Value;
-  public deref: number;
+interface Value {
+  inner: llvm.Value | Map<string, Value>;
+}
+
+class LLVMValue implements Value {
+  public readonly inner: llvm.Value;
+  public readonly deref: number;
   // If the type of type is a struct, fields are the fields contained in the struct
   // If the type of  is a function and the return value is an object, fields is the field of the object.
-  public fields?: Map<string, number>;
+  public readonly fields?: Map<string, number>;
 
   constructor(inner: llvm.Value, deref: number, fields?: Map<string, number>) {
     this.inner = inner;
@@ -14,16 +18,24 @@ class Value {
   }
 }
 
-class Scope {
-  public name: string | undefined;
-  public data: Map<string, Value | Scope>;
-  public parent: Scope | undefined;
+class Scope implements Value {
+  public name?: string;
+  public inner: Map<string, Value>;
+  public parent?: Scope;
 
-  constructor(name: string | undefined, parent?: Scope | undefined) {
+  constructor(name?: string, parent?: Scope) {
     this.name = name;
-    this.data = new Map();
+    this.inner = new Map();
     this.parent = parent;
   }
+}
+
+function isLLVMValue(value: Value): value is LLVMValue {
+  return value instanceof LLVMValue ? true : false;
+}
+
+function isScope(value: Value): value is Scope {
+  return value instanceof Scope ? true : false;
 }
 
 class Symtab {
@@ -36,7 +48,7 @@ class Symtab {
   public into(name: string | undefined): Scope {
     const n = new Scope(name, this.data);
     if (name) {
-      this.data.data.set(name, n);
+      this.data.inner.set(name, n);
     }
     this.data = n;
     return n;
@@ -47,13 +59,14 @@ class Symtab {
   }
 
   public name(): string {
-    if (this.data.parent === undefined) {
+    if (!this.data.parent) {
       return '';
     }
+
     const list = [];
     let n: Scope | undefined = this.data;
     for (;;) {
-      if (n === undefined) {
+      if (!n) {
         break;
       }
       if (n.name) {
@@ -70,15 +83,15 @@ class Symtab {
     this.exit();
   }
 
-  public set(key: string, value: Value | Scope): void {
-    this.data.data.set(key, value);
+  public set(key: string, value: Value): void {
+    this.data.inner.set(key, value);
   }
 
-  public get(key: string): Value | Scope {
-    let n = this.data;
+  public get(key: string): Value {
+    let n: Scope = this.data;
 
     while (true) {
-      const v = n.data.get(key);
+      const v = n.inner.get(key);
       if (v) {
         return v;
       }
@@ -92,4 +105,4 @@ class Symtab {
   }
 }
 
-export { Value, Scope, Symtab };
+export { Value, Scope, Symtab, LLVMValue, isLLVMValue, isScope };

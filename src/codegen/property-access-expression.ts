@@ -1,7 +1,7 @@
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import { Scope, Value } from '../symtab';
+import * as symtab from '../symtab';
 import LLVMCodeGen from './';
 
 export default class CodeGenPropertyAccessExpression {
@@ -19,8 +19,9 @@ export default class CodeGenPropertyAccessExpression {
         return this.cgen.symtab.get((node.expression as ts.Identifier).getText());
       }
     })();
-    if (parent instanceof Scope) {
-      const son = parent.data.get(node.name.getText())! as Value;
+
+    if (symtab.isScope(parent)) {
+      const son = parent.inner.get(node.name.getText())! as symtab.LLVMValue;
       let r = son.inner;
       for (let i = 0; i < son.deref; i++) {
         r = this.cgen.builder.createLoad(r);
@@ -30,8 +31,8 @@ export default class CodeGenPropertyAccessExpression {
     return this.cgen.cgObject.genObjectElementAccess(node);
   }
 
-  private fromScope(node: ts.PropertyAccessExpression): Scope | Value {
-    const parent = this.cgen.symtab.get((node.expression as ts.Identifier).getText()) as Scope;
-    return parent.data.get(node.name.getText())!;
+  private fromScope(node: ts.PropertyAccessExpression): symtab.Value {
+    const parent = this.cgen.symtab.get((node.expression as ts.Identifier).getText()) as symtab.Scope;
+    return parent.inner.get(node.name.getText())!;
   }
 }
