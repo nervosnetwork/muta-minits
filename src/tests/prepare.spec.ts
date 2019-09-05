@@ -4,6 +4,7 @@ import path from 'path';
 import shell from 'shelljs';
 
 import { PrepareImpot } from '../prepare';
+import { runCode } from './util';
 
 const main = `
 import a from './import-a'
@@ -50,4 +51,29 @@ test('test prepare import', async t => {
   t.assert(set.has(aFile));
   t.assert(set.has(bFile));
   t.assert(set.has(cFile));
+});
+
+test('test prepare depends', async t => {
+  runCode(`
+    function main(): number {
+      funcA();
+      return 0;
+    }
+
+    function funcD() {
+      funcC();
+    }
+
+    function funcC() {}
+
+    function funcB() {
+      funcD();
+    }
+
+    function funcA() {
+      funcD();
+    }
+  `);
+
+  t.pass();
 });

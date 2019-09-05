@@ -2,9 +2,9 @@ import Debug from 'debug';
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import Stdlib from '../stdlib';
+import { Stdlib } from '../stdlib';
 import * as symtab from '../symtab';
-import { StructMeta } from '../types';
+import { NodeDepends, StructMeta } from '../types';
 import CodeGenArray from './array-literal-expression';
 import CodeGenBinary from './binary-expression';
 import CodeGenCall from './call-expression';
@@ -18,6 +18,7 @@ import CodeGenFor from './for-statement';
 import CodeGenFuncDecl from './function-declaration';
 import CodeGenIf from './if-statement';
 import CodeGenImport from './import-declaration';
+import CodeGenMain from './main-declaration';
 import CodeGenNumeric from './numeric-expression';
 import CodeGenObject from './object-declaration';
 import CodeGenPostfixUnary from './postfix-unary-expression';
@@ -34,9 +35,9 @@ debug('codegen');
 
 export default class LLVMCodeGen {
   public readonly rootDir: string;
-  public readonly files: string[];
   public readonly program: ts.Program;
   public readonly checker: ts.TypeChecker;
+  public readonly nodeDep: NodeDepends;
 
   public readonly builder: llvm.IRBuilder;
   public readonly context: llvm.LLVMContext;
@@ -67,6 +68,7 @@ export default class LLVMCodeGen {
   public readonly cgString: CodeGenString;
   public readonly cgVarDecl: CodeGenVarDecl;
   public readonly cgWhile: CodeGenWhile;
+  public readonly cgMain: CodeGenMain;
 
   public currentBreakBlock: llvm.BasicBlock | undefined;
   public currentContinueBlock: llvm.BasicBlock | undefined;
@@ -74,11 +76,11 @@ export default class LLVMCodeGen {
   public currentType: ts.TypeNode | undefined;
   public currentName: string | undefined;
 
-  constructor(rootDir: string, files: string[]) {
+  constructor(rootDir: string, program: ts.Program, nodeDep: NodeDepends) {
     this.rootDir = rootDir;
-    this.files = files;
-    this.program = ts.createProgram(files, {});
-    this.checker = this.program.getTypeChecker();
+    this.program = program;
+    this.checker = program.getTypeChecker();
+    this.nodeDep = nodeDep;
 
     this.context = new llvm.LLVMContext();
     this.module = new llvm.Module('main', this.context);
@@ -109,6 +111,7 @@ export default class LLVMCodeGen {
     this.cgString = new CodeGenString(this);
     this.cgVarDecl = new CodeGenVarDecl(this);
     this.cgWhile = new CodeGenWhile(this);
+    this.cgMain = new CodeGenMain(this);
 
     this.currentBreakBlock = undefined;
     this.currentContinueBlock = undefined;
@@ -169,7 +172,7 @@ export default class LLVMCodeGen {
           this.genVariableStatement(node as ts.VariableStatement);
           break;
         case ts.SyntaxKind.FunctionDeclaration:
-          this.genFunctionDeclaration(node as ts.FunctionDeclaration);
+          // this.genFunctionDeclaration(node as ts.FunctionDeclaration);
           break;
         case ts.SyntaxKind.EnumDeclaration:
           this.genEnumDeclaration(node as ts.EnumDeclaration);
@@ -187,6 +190,8 @@ export default class LLVMCodeGen {
           throw new Error('Unsupported grammar');
       }
     });
+
+    this.cgMain.genMainFunction();
   }
 
   public genNumeric(node: ts.NumericLiteral): llvm.ConstantInt {
