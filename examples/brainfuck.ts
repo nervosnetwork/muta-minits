@@ -72,11 +72,11 @@ function main(argc: number, argv: string[]): number {
         "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
     ];
     let arg1 = argv[1];
-    for (let i = 0; i < strlen(arg1); i++) {
+    for (let i = 0; i < arg1.length; i++) {
         src[i] = arg1[i];
     }
 
-    for (; pc < strlen(arg1);) {
+    for (; pc < arg1.length;) {
         let op = src[pc];
         if (op === Opcode.SHR) {
             ps += 1;

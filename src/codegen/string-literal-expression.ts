@@ -2,6 +2,7 @@
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
+import * as symtab from '../symtab';
 import LLVMCodeGen from './';
 
 export default class CodeGenString {
@@ -68,5 +69,16 @@ export default class CodeGenString {
   public ne(lhs: llvm.Value, rhs: llvm.Value): llvm.Value {
     const r = this.cgen.stdlib.strcmp([lhs, rhs]);
     return this.cgen.builder.createICmpNE(r, llvm.ConstantInt.get(this.cgen.context, 0, 64));
+  }
+
+  public genPropertyAccessExpression(node: ts.PropertyAccessExpression): llvm.Value {
+    const symbol = this.cgen.symtab.get((node.expression as ts.Identifier).getText()) as symtab.LLVMValue;
+    const parent = this.cgen.builder.createLoad(symbol.inner);
+    switch (node.name.getText()) {
+      case 'length':
+        return this.cgen.stdlib.strlen([parent]);
+      default:
+        throw new Error('Unsupported Attribute');
+    }
   }
 }

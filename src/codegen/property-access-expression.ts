@@ -28,6 +28,11 @@ export default class CodeGenPropertyAccessExpression {
       }
       return r;
     }
+    const symbol = this.cgen.checker.getSymbolAtLocation(node.expression)!;
+    const type = this.cgen.checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!);
+    if (type.isStringLiteral() || (type as any).intrinsicName === 'string') {
+      return this.cgen.cgString.genPropertyAccessExpression(node);
+    }
     return this.cgen.cgObject.genObjectElementAccess(node);
   }
 
