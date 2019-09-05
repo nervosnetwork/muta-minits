@@ -17,11 +17,35 @@ export default class Stdlib {
     return this.cgen.builder.createCall(func, args);
   }
 
+  public strcat(args: llvm.Value[]): llvm.Value {
+    const func = this.cgen.module.getOrInsertFunction(
+      'strcat',
+      llvm.FunctionType.get(
+        llvm.Type.getInt8PtrTy(this.cgen.context),
+        [llvm.Type.getInt8PtrTy(this.cgen.context), llvm.Type.getInt8PtrTy(this.cgen.context)],
+        false
+      )
+    );
+    return this.cgen.builder.createCall(func, args);
+  }
+
   public strcmp(args: llvm.Value[]): llvm.Value {
     const func = this.cgen.module.getOrInsertFunction(
       'strcmp',
       llvm.FunctionType.get(
         llvm.Type.getInt64Ty(this.cgen.context),
+        [llvm.Type.getInt8PtrTy(this.cgen.context), llvm.Type.getInt8PtrTy(this.cgen.context)],
+        false
+      )
+    );
+    return this.cgen.builder.createCall(func, args);
+  }
+
+  public strcpy(args: llvm.Value[]): llvm.Value {
+    const func = this.cgen.module.getOrInsertFunction(
+      'strcpy',
+      llvm.FunctionType.get(
+        llvm.Type.getInt8PtrTy(this.cgen.context),
         [llvm.Type.getInt8PtrTy(this.cgen.context), llvm.Type.getInt8PtrTy(this.cgen.context)],
         false
       )

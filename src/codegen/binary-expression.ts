@@ -75,6 +75,9 @@ export default class CodeGenBinary {
         return this.cgen.builder.createICmpNE(lhs, rhs);
       // +
       case ts.SyntaxKind.PlusToken:
+        if (lhs.type.isPointerTy() && (lhs.type as llvm.PointerType).elementType.isIntegerTy()) {
+          return this.cgen.cgString.concat(lhs, rhs);
+        }
         return this.cgen.builder.createAdd(lhs, rhs);
       // -
       case ts.SyntaxKind.MinusToken:

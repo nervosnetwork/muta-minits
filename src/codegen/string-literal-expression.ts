@@ -71,6 +71,19 @@ export default class CodeGenString {
     return this.cgen.builder.createICmpNE(r, llvm.ConstantInt.get(this.cgen.context, 0, 64));
   }
 
+  public concat(lhs: llvm.Value, rhs: llvm.Value): llvm.Value {
+    const lhsLength = this.cgen.stdlib.strlen([lhs]);
+    const rhsLength = this.cgen.stdlib.strlen([rhs]);
+    const length = this.cgen.builder.createAdd(
+      this.cgen.builder.createAdd(lhsLength, rhsLength),
+      llvm.ConstantInt.get(this.cgen.context, 1, 64)
+    );
+    const ptr = this.cgen.builder.createAlloca(llvm.Type.getInt8Ty(this.cgen.context), length);
+    this.cgen.stdlib.strcpy([ptr, lhs]);
+    this.cgen.stdlib.strcat([ptr, rhs]);
+    return ptr;
+  }
+
   public genPropertyAccessExpression(node: ts.PropertyAccessExpression): llvm.Value {
     const symbol = this.cgen.symtab.get((node.expression as ts.Identifier).getText()) as symtab.LLVMValue;
     const parent = this.cgen.builder.createLoad(symbol.inner);
