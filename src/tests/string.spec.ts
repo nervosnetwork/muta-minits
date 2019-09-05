@@ -24,6 +24,15 @@ function main(): number {
 }
 `;
 
+const srcStringConcat = `
+function main(): number {
+  let a = "Hello";
+  let b = "World";
+  let c = a + " " + b;
+  return c.length
+}
+`;
+
 test('test string elem', async t => {
   await runCode(srcStringElem);
   t.pass();
@@ -31,5 +40,10 @@ test('test string elem', async t => {
 
 test('test string length', async t => {
   await runCode(srcStringLength);
+  t.pass();
+});
+
+test('test string concat', async t => {
+  await runCode(srcStringConcat);
   t.pass();
 });
