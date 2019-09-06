@@ -1,3 +1,4 @@
+import PrepareDepends from './depends';
 import PrepareImpot from './import';
 
-export { PrepareImpot };
+export { PrepareImpot, PrepareDepends };

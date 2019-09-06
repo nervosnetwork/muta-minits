@@ -2,7 +2,15 @@ import llvm from 'llvm-node';
 
 import LLVMCodeGen from '../codegen';
 
-export default class Stdlib {
+export enum StdFunc {
+  consoleLog = 'console.log',
+  printf = 'printf',
+  strcmp = 'strcmp',
+  strlen = 'strlen',
+  syscall = 'syscall'
+}
+
+export class Stdlib {
   private cgen: LLVMCodeGen;
 
   constructor(cgen: LLVMCodeGen) {
