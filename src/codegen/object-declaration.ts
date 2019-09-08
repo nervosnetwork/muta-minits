@@ -19,7 +19,7 @@ export default class GenObject {
   }
 
   public genObjectLiteralExpression(node: ts.ObjectLiteralExpression): llvm.Value {
-    const varName = (node.parent as ts.VariableDeclaration).name.getText();
+    const varName = ts.isVariableDeclaration(node.parent) ? node.parent.name.getText() : '';
     const values: llvm.Value[] = [];
     const types = [];
 
@@ -57,7 +57,6 @@ export default class GenObject {
     const field = node.name.getText();
     const index = fields!.get(field)!;
 
-    // const ptr = this.cgen.builder.createLoad(value);
     return this.cgen.builder.createInBoundsGEP(inner, [
       llvm.ConstantInt.get(this.cgen.context, 0, 32, true),
       llvm.ConstantInt.get(this.cgen.context, index, 32, true)

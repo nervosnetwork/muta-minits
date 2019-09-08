@@ -12,26 +12,29 @@ export default class CodeGenFuncDecl {
     this.cgen = cgen;
   }
 
-  public genFunctionDeclaration(node: ts.FunctionDeclaration): llvm.Function {
-    const funcReturnType = (() => {
-      if (node.type) {
-        return this.cgen.genType(node.type);
-      } else {
-        return llvm.Type.getVoidTy(this.cgen.context);
-      }
-    })();
-    const funcArgsType = node.parameters.map(item => {
-      return this.cgen.genType(item.type!);
-    });
+  public genFunctionDeclarationWithSignature(
+    node: ts.FunctionDeclaration,
+    args: llvm.Type[],
+    ret: llvm.Type,
+    hashName: string
+  ): llvm.Function {
+    return this.genFunction(node, args, ret, hashName);
+  }
+
+  private genFunction(
+    node: ts.FunctionDeclaration,
+    funcArgsType: llvm.Type[],
+    funcReturnType: llvm.Type,
+    hashName: string
+  ): llvm.Function {
     const fnty = llvm.FunctionType.get(funcReturnType, funcArgsType, false);
-    const name = (node.name as ts.Identifier).text;
     const linkage = llvm.LinkageTypes.ExternalLinkage;
-    const func = llvm.Function.create(fnty, linkage, this.cgen.symtab.name() + name, this.cgen.module);
-    if (name === 'main') {
+    const func = llvm.Function.create(fnty, linkage, this.cgen.symtab.name() + hashName, this.cgen.module);
+    if (hashName === 'main') {
       func.addFnAttr(llvm.Attribute.AttrKind.NoInline);
       func.addFnAttr(llvm.Attribute.AttrKind.OptimizeNone);
     }
-    this.cgen.symtab.set(name, new symtab.LLVMValue(func, 0));
+    this.cgen.symtab.set(hashName, new symtab.LLVMValue(func, 0));
 
     this.cgen.symtab.with(undefined, () => {
       this.initArguments(func, node);
@@ -47,11 +50,14 @@ export default class CodeGenFuncDecl {
       }
     });
 
-    if (node.type && common.findRealType(funcReturnType).isStructTy()) {
-      const typeLiteral = node.type! as ts.TypeLiteralNode;
-      const fields = common.buildStructMaps(funcReturnType as llvm.StructType, typeLiteral);
+    if (node.type) {
+      const realType = common.findRealType(funcReturnType);
+      if (realType.isStructTy()) {
+        const typeLiteral = node.type! as ts.TypeLiteralNode;
+        const fields = common.buildStructMaps(funcReturnType as llvm.StructType, typeLiteral);
 
-      this.cgen.symtab.set(name, new symtab.LLVMValue(func, 0, fields));
+        this.cgen.symtab.set(realType.name!, new symtab.LLVMValue(func, 0, fields));
+      }
     }
     return func;
   }
