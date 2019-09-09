@@ -12,7 +12,15 @@ export interface StructMeta {
   struct: llvm.StructType;
 }
 
+export enum DepType {
+  func = 0,
+  paramType = 1,
+  retType = 2
+}
+
 export interface NodeDepends {
   self: ts.Node;
+  hashName: string;
+  depType: DepType;
   depends: NodeDepends[];
 }

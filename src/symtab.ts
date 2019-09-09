@@ -88,6 +88,15 @@ class Symtab {
   }
 
   public get(key: string): Value {
+    const value = this.tryGet(key);
+    if (value) {
+      return value;
+    }
+
+    throw new Error(`Symbol ${key} not found`);
+  }
+
+  public tryGet(key: string): Value | null {
     let n: Scope = this.data;
 
     while (true) {
@@ -99,7 +108,7 @@ class Symtab {
       if (n.parent) {
         n = n.parent;
       } else {
-        throw new Error(`Symbol ${key} not found`);
+        return null;
       }
     }
   }
