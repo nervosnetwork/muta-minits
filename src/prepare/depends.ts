@@ -153,6 +153,15 @@ export default class Depends {
           return this.primitiveToTypeNode(ts.SyntaxKind.StringLiteral);
         }
         return this.primitiveToTypeNode(ts.SyntaxKind.NumericLiteral);
+
+      // Handle enum
+      case ts.SyntaxKind.ElementAccessExpression:
+        const value = this.checker.getConstantValue(node as ts.ElementAccessExpression);
+        const kind = typeof value === 'string' ? ts.SyntaxKind.StringLiteral : ts.SyntaxKind.NumericLiteral;
+        return this.primitiveToTypeNode(kind);
+      case ts.SyntaxKind.BinaryExpression:
+        const binary = node as ts.BinaryExpression;
+        return this.genExpression(binary.left);
       default:
         return this.primitiveToTypeNode(node.kind);
     }
