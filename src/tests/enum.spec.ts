@@ -74,3 +74,25 @@ test('test enum var', async t => {
 
   t.pass();
 });
+
+test('test enum plus', async t => {
+  await runCode(
+    `
+    enum Test {
+      a = 100,
+      b = 101
+    }
+
+    function test(n: number): number {
+      return n;
+    }
+
+    function main(): number {
+      test(1 + Test.a);
+      return test(Test.b + 1);
+    }
+    `
+  );
+
+  t.pass();
+});
