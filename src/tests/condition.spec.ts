@@ -17,6 +17,18 @@ function main(): number {
 }
 `;
 
+const srcIfContainsFor = `
+function main(): number {
+  let s = 0;
+  if (true) {
+    for (let j = 0; j < 10; j++) {
+      s += 1;
+    }
+  }
+  return s;
+}
+`;
+
 test('test condition number', async t => {
   await runCode(srcNumber);
   t.pass();
@@ -24,5 +36,10 @@ test('test condition number', async t => {
 
 test('test condition string', async t => {
   await runCode(srcString);
+  t.pass();
+});
+
+test('test condition if contains for', async t => {
+  await runCode(srcIfContainsFor);
   t.pass();
 });
