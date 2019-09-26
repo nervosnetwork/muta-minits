@@ -38,10 +38,8 @@ export default class CodeGenString {
     return this.cgen.builder.createBitCast(r, llvm.Type.getInt8PtrTy(this.cgen.context));
   }
 
-  public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
-    const identifier = this.cgen.genExpression(node.expression);
-    const argumentExpression = this.cgen.genExpression(node.argumentExpression);
-    const ptr = this.cgen.builder.createInBoundsGEP(identifier, [argumentExpression]);
+  public getElementAccess(identifier: llvm.Value, i: llvm.Value): llvm.Value {
+    const ptr = this.cgen.builder.createInBoundsGEP(identifier, [i]);
     const val = this.cgen.builder.createLoad(ptr);
 
     const arrayType = llvm.ArrayType.get(llvm.Type.getInt8Ty(this.cgen.context), 2);
@@ -59,6 +57,12 @@ export default class CodeGenString {
     this.cgen.builder.createStore(val, ptr0);
     this.cgen.builder.createStore(llvm.ConstantInt.get(this.cgen.context, 0, 8), ptr1);
     return this.cgen.builder.createBitCast(arrayPtr, llvm.Type.getInt8PtrTy(this.cgen.context));
+  }
+
+  public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
+    const identifier = this.cgen.genExpression(node.expression);
+    const argumentExpression = this.cgen.genExpression(node.argumentExpression);
+    return this.getElementAccess(identifier, argumentExpression);
   }
 
   public eq(lhs: llvm.Value, rhs: llvm.Value): llvm.Value {

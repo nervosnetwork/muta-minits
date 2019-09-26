@@ -41,11 +41,7 @@ export default class CodeGenForOf {
     this.cgen.builder.createCondBr(cond, loopBody, loopQuit);
 
     this.cgen.builder.setInsertionPoint(loopBody);
-    const p = this.cgen.builder.createInBoundsGEP(a, [
-      llvm.ConstantInt.get(this.cgen.context, 0, 64),
-      this.cgen.builder.createLoad(i)
-    ]);
-    this.cgen.builder.createStore(this.cgen.builder.createLoad(p), v);
+    this.cgen.builder.createStore(this.cgen.cgArray.getElementAccess(a, i), v);
 
     this.cgen.withContinueBreakBlock(loopIncr, loopQuit, () => {
       this.cgen.genStatement(node.statement);
