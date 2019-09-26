@@ -12,7 +12,7 @@ export default class CodeGenForOf {
   }
 
   public genForOfStatement(node: ts.ForOfStatement): void {
-    const i = (() => {
+    const pi = (() => {
       const name = 'loop.i';
       const initializer = llvm.ConstantInt.get(this.cgen.context, 0, 64);
       const type = initializer.type;
@@ -21,9 +21,9 @@ export default class CodeGenForOf {
       this.cgen.symtab.set(name, new symtab.LLVMValue(alloca, 1));
       return alloca;
     })();
-    const a = this.cgen.genExpression(node.expression) as llvm.AllocaInst;
-    const v = (() => {
-      const type = (a.type.elementType as llvm.ArrayType).elementType;
+    const identifier = this.cgen.genExpression(node.expression) as llvm.AllocaInst;
+    const pv = (() => {
+      const type = (identifier.type.elementType as llvm.ArrayType).elementType;
       const name = (node.initializer! as ts.VariableDeclarationList).declarations!.map(item => item.getText())[0];
       const alloca = this.cgen.builder.createAlloca(type, undefined, name);
       this.cgen.symtab.set(name, new symtab.LLVMValue(alloca, 1));
@@ -35,13 +35,14 @@ export default class CodeGenForOf {
     const loopQuit = llvm.BasicBlock.create(this.cgen.context, 'loop.quit', this.cgen.currentFunction);
 
     this.cgen.builder.createBr(loopCond);
-    const l = llvm.ConstantInt.get(this.cgen.context, (a.type.elementType as llvm.ArrayType).numElements, 64);
+    const l = llvm.ConstantInt.get(this.cgen.context, (identifier.type.elementType as llvm.ArrayType).numElements, 64);
     this.cgen.builder.setInsertionPoint(loopCond);
-    const cond = this.cgen.builder.createICmpSLT(this.cgen.builder.createLoad(i), l);
+    const cond = this.cgen.builder.createICmpSLT(this.cgen.builder.createLoad(pi), l);
     this.cgen.builder.createCondBr(cond, loopBody, loopQuit);
 
     this.cgen.builder.setInsertionPoint(loopBody);
-    this.cgen.builder.createStore(this.cgen.cgArray.getElementAccess(a, i), v);
+    const v = this.cgen.cgArray.getElementAccess(identifier, this.cgen.builder.createLoad(pi));
+    this.cgen.builder.createStore(v, pv);
 
     this.cgen.withContinueBreakBlock(loopIncr, loopQuit, () => {
       this.cgen.genStatement(node.statement);
@@ -50,12 +51,12 @@ export default class CodeGenForOf {
 
     this.cgen.builder.setInsertionPoint(loopIncr);
     const n = this.cgen.builder.createAdd(
-      this.cgen.builder.createLoad(i),
+      this.cgen.builder.createLoad(pi),
       llvm.ConstantInt.get(this.cgen.context, 1, 64)
     );
-    this.cgen.builder.createStore(n, i);
-    const ptr = this.cgen.builder.createInBoundsGEP(a, [llvm.ConstantInt.get(this.cgen.context, 0, 64), n]);
-    this.cgen.builder.createStore(this.cgen.builder.createLoad(ptr), v);
+    this.cgen.builder.createStore(n, pi);
+    const ptr = this.cgen.builder.createInBoundsGEP(identifier, [llvm.ConstantInt.get(this.cgen.context, 0, 64), n]);
+    this.cgen.builder.createStore(this.cgen.builder.createLoad(ptr), pv);
     this.cgen.builder.createBr(loopCond);
 
     this.cgen.builder.setInsertionPoint(loopQuit);
