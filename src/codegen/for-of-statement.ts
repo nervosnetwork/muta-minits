@@ -11,7 +11,7 @@ export default class CodeGenForOf {
     this.cgen = cgen;
   }
 
-  public genForOfStatement(node: ts.ForOfStatement): void {
+  public genForOfStatementArray(node: ts.ForOfStatement): void {
     const pi = (() => {
       const name = 'loop.i';
       const initializer = llvm.ConstantInt.get(this.cgen.context, 0, 64);
@@ -60,5 +60,20 @@ export default class CodeGenForOf {
     this.cgen.builder.createBr(loopCond);
 
     this.cgen.builder.setInsertionPoint(loopQuit);
+  }
+
+  public genForOfStatement(node: ts.ForOfStatement): void {
+    const isTypeString = (() => {
+      if (node.expression.kind === ts.SyntaxKind.Identifier) {
+        const symbol = this.cgen.checker.getSymbolAtLocation(node.expression)!;
+        const type = this.cgen.checker.getTypeOfSymbolAtLocation(symbol, node.expression);
+        return type.flags === ts.TypeFlags.String;
+      }
+      return node.expression.kind === ts.SyntaxKind.StringLiteral;
+    })();
+    if (isTypeString) {
+      throw new Error('lll');
+    }
+    return this.genForOfStatementArray(node);
   }
 }

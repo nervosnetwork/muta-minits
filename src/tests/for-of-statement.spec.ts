@@ -14,10 +14,13 @@ function main(): number {
     for (let v of localearr) {
         s += v;
     }
+    for (let v of [1, 2, 3]) {
+        s += v;
+    }
     for (let v of emptyarr) {
         s += v;
     }
-    return s; // 21
+    return s; // 27
 }
 `;
 
