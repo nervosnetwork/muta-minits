@@ -43,7 +43,7 @@ export default class CodeGenFuncDecl {
         this.cgen.builder.setInsertionPoint(body);
         this.cgen.withFunction(func, () => {
           this.cgen.genBlock(node.body!);
-          if (!body.getTerminator()) {
+          if (!this.cgen.builder.getInsertBlock()!.getTerminator()) {
             this.cgen.builder.createRetVoid();
           }
         });

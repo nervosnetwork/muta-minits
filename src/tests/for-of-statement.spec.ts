@@ -24,7 +24,29 @@ function main(): number {
 }
 `;
 
-test('test statement for of', async t => {
+test('test for of array', async t => {
   await runCode(srcForOfArray);
+  t.pass();
+});
+
+const srcForOfString = `
+function main(): number {
+    let a = "Hello";
+    let s = "";
+    for (let i of a) {
+        s = s + i;
+    }
+    for (let i of "World") {
+        s = s + i;
+    }
+    if (s !== "HelloWorld") {
+        return 1;
+    }
+    return 0;
+}
+`;
+
+test('test for of string', async t => {
+  await runCode(srcForOfString);
   t.pass();
 });
