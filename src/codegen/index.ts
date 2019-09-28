@@ -26,6 +26,7 @@ import CodeGenPrefixUnary from './prefix-unary-expression';
 import CodeGenPropertyAccessExpression from './property-access-expression';
 import CodeGenReturn from './return-statement';
 import CodeGenString from './string-literal-expression';
+import CodeGenSwitch from './switch-statement';
 import CodeGenVarDecl from './variable-declaration';
 import CodeGenWhile from './while-statement';
 
@@ -59,6 +60,7 @@ export default class LLVMCodeGen {
   public readonly cgFuncDecl: CodeGenFuncDecl;
   public readonly cgIf: CodeGenIf;
   public readonly cgImport: CodeGenImport;
+  public readonly cgMain: CodeGenMain;
   public readonly cgNumeric: CodeGenNumeric;
   public readonly cgObject: CodeGenObject;
   public readonly cgPostfixUnary: CodeGenPostfixUnary;
@@ -66,9 +68,9 @@ export default class LLVMCodeGen {
   public readonly cgPropertyAccessExpression: CodeGenPropertyAccessExpression;
   public readonly cgReturn: CodeGenReturn;
   public readonly cgString: CodeGenString;
+  public readonly cgSwitch: CodeGenSwitch;
   public readonly cgVarDecl: CodeGenVarDecl;
   public readonly cgWhile: CodeGenWhile;
-  public readonly cgMain: CodeGenMain;
 
   public currentBreakBlock: llvm.BasicBlock | undefined;
   public currentContinueBlock: llvm.BasicBlock | undefined;
@@ -102,6 +104,7 @@ export default class LLVMCodeGen {
     this.cgFuncDecl = new CodeGenFuncDecl(this);
     this.cgIf = new CodeGenIf(this);
     this.cgImport = new CodeGenImport(this);
+    this.cgMain = new CodeGenMain(this);
     this.cgNumeric = new CodeGenNumeric(this);
     this.cgObject = new CodeGenObject(this);
     this.cgPostfixUnary = new CodeGenPostfixUnary(this);
@@ -109,9 +112,9 @@ export default class LLVMCodeGen {
     this.cgPropertyAccessExpression = new CodeGenPropertyAccessExpression(this);
     this.cgReturn = new CodeGenReturn(this);
     this.cgString = new CodeGenString(this);
+    this.cgSwitch = new CodeGenSwitch(this);
     this.cgVarDecl = new CodeGenVarDecl(this);
     this.cgWhile = new CodeGenWhile(this);
-    this.cgMain = new CodeGenMain(this);
 
     this.currentBreakBlock = undefined;
     this.currentContinueBlock = undefined;
@@ -352,6 +355,8 @@ export default class LLVMCodeGen {
         return this.genBreakStatement();
       case ts.SyntaxKind.ReturnStatement:
         return this.genReturnStatement(node as ts.ReturnStatement);
+      case ts.SyntaxKind.SwitchStatement:
+        return this.genSwitchStatement(node as ts.SwitchStatement);
       case ts.SyntaxKind.EnumDeclaration:
         return this.genEnumDeclaration(node as ts.EnumDeclaration);
       default:
@@ -383,6 +388,10 @@ export default class LLVMCodeGen {
 
   public genReturnStatement(node: ts.ReturnStatement): llvm.Value {
     return this.cgReturn.genReturnStatement(node);
+  }
+
+  public genSwitchStatement(node: ts.SwitchStatement): void {
+    return this.cgSwitch.genSwitchStatement(node);
   }
 
   public genFunctionDeclarationWithSignature(
