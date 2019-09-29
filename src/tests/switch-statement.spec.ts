@@ -58,3 +58,29 @@ test('test switch string', async t => {
   await runCode(srcSwitchString);
   t.pass();
 });
+
+const srcNoDefault = `
+function main(): number {
+  let a = 2;
+  let r = 0;
+
+  switch (a) {
+    case 0:
+      r = 0;
+      break;
+    case 1:
+      r = 1;
+      break;
+    case 2:
+      r = 2;
+      break;
+  }
+
+  return r;
+}
+`;
+
+test('test switch no default', async t => {
+  await runCode(srcNoDefault);
+  t.pass();
+});

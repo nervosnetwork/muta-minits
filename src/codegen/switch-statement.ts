@@ -18,10 +18,17 @@ export default class CodeGenSwitch {
       });
 
       if (v.kind === ts.SyntaxKind.CaseClause) {
+        const elseBlock = (() => {
+          if (i + 1 < a.length) {
+            return ts.createBlock([genNode(a[i + 1], i + 1, a)], true);
+          } else {
+            return undefined;
+          }
+        })();
         return ts.createIf(
           ts.createBinary(node.expression, ts.createToken(ts.SyntaxKind.EqualsEqualsToken), v.expression),
           ts.createBlock(statements, true),
-          ts.createBlock([genNode(a[i + 1], i + 1, a)], true)
+          elseBlock
         );
       }
       if (v.kind === ts.SyntaxKind.DefaultClause) {
