@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import shell from 'shelljs';
 
-import { PrepareImpot } from '../prepare';
+import * as prepare from '../prepare';
 import { runCode } from './util';
 
 const main = `
@@ -34,14 +34,13 @@ test('test prepare import', async t => {
   fs.writeFileSync(bFile, importB);
   fs.writeFileSync(cFile, importC);
 
-  const preImport = new PrepareImpot(mainFile);
+  const files = prepare.getDependency(mainFile);
   // [
   //   '/var/folders/v1/y82lbbsx7xz6_32ytzw9fvyw0000gn/T/main.ts',
   //   '/var/folders/v1/y82lbbsx7xz6_32ytzw9fvyw0000gn/T/import-a.ts',
   //   '/var/folders/v1/y82lbbsx7xz6_32ytzw9fvyw0000gn/T/import-b.ts',
   //   '/var/folders/v1/y82lbbsx7xz6_32ytzw9fvyw0000gn/T/import-c.ts',
   // ]
-  const files = preImport.getImportFiles();
 
   t.log(files);
   t.assert(files.length === 4);
