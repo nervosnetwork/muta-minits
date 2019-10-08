@@ -2,8 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import ts from 'typescript';
 
-import { completionSuffix, trimQuotes } from '../common';
-
 export default class PrepareImport {
   private readonly mainFile: string;
   private readonly sourceFile: ts.SourceFile;
@@ -28,13 +26,13 @@ export default class PrepareImport {
     this.sourceFile.forEachChild(node => {
       if (ts.isImportDeclaration(node)) {
         const importNode = node as ts.ImportDeclaration;
-        const importRelativePath = trimQuotes(importNode.moduleSpecifier.getText());
+        const importRelativePath = (importNode.moduleSpecifier as ts.StringLiteral).text;
 
         // TODO(@yejiayu): The case of import a system module needs to be handled.
         // if (importRelativePath.isSystemModule) {
         //
         // }
-        const importPath = completionSuffix(path.join(rootDir, importRelativePath));
+        const importPath = path.join(rootDir, importRelativePath) + '.ts';
 
         if (pathSet.has(importPath)) {
           return;
