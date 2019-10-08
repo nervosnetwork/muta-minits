@@ -6,7 +6,7 @@ import shell from 'shelljs';
 import ts from 'typescript';
 
 import LLVMCodeGen from '../codegen';
-import { PrepareDepends, PrepareImpot } from '../prepare';
+import * as prepare from '../prepare';
 
 export async function runCode(
   source: string,
@@ -39,21 +39,20 @@ async function compileToJS(
 
 export async function compileToLLVMIR(source: string): Promise<string> {
   const tmpFileName = sourceToHash(source);
-  const tempTSFile = path.join(shell.tempdir(), `${tmpFileName}.ts`);
+  const rootDir = shell.tempdir();
+  const tempTSFile = path.join(rootDir, `${tmpFileName}.ts`);
   fs.writeFileSync(tempTSFile, source);
 
-  const preImport = new PrepareImpot(tempTSFile);
-  const rootDir = preImport.getRoot();
-  const files = preImport.getImportFiles();
+  const files = prepare.getDependency(tempTSFile);
   const tsProgram = ts.createProgram(files, {});
-  const depends = new PrepareDepends(tsProgram);
+  const depends = new prepare.PrepareDepends(tsProgram);
   const dep = depends.genDepends(tempTSFile);
 
   const cgen = new LLVMCodeGen(rootDir, tsProgram, dep);
   cgen.genSourceFile(tempTSFile);
   llvm.verifyModule(cgen.module);
 
-  const tempFile = path.join(shell.tempdir(), `${tmpFileName}.ll`);
+  const tempFile = path.join(rootDir, `${tmpFileName}.ll`);
   fs.writeFileSync(tempFile, cgen.genText());
   return tempFile;
 }
