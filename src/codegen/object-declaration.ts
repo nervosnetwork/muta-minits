@@ -53,11 +53,12 @@ export default class GenObject {
   }
 
   public genObjectElementAccessPtr(node: ts.PropertyAccessExpression): llvm.Value {
-    const { inner, fields } = this.cgen.symtab.get(node.expression.getText()) as symtab.LLVMValue;
-    const field = node.name.getText();
-    const index = fields!.get(field)!;
+    const type = this.cgen.checker.getTypeAtLocation(node.expression);
+    const properties = this.cgen.checker.getPropertiesOfType(type);
+    const index = properties.findIndex(property => property.name === node.name.getText());
+    const value = this.cgen.symtab.get(node.expression.getText()) as symtab.LLVMValue;
 
-    return this.cgen.builder.createInBoundsGEP(inner, [
+    return this.cgen.builder.createInBoundsGEP(value.inner, [
       llvm.ConstantInt.get(this.cgen.context, 0, 32, true),
       llvm.ConstantInt.get(this.cgen.context, index, 32, true)
     ]);
