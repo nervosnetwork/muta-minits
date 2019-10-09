@@ -1,7 +1,6 @@
-import test from 'ava';
-import { runCode } from './util';
+import { runTest } from './util';
 
-const srcArray = `
+const srcNumber = `
 let globalarr = [1, 2, 3];
 
 function main(): number {
@@ -13,14 +12,6 @@ function main(): number {
     return s; // 6
 }
 `;
-
-test('test element access array', async t => {
-  if (await runCode(srcArray)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
 
 const srcString = `
 let globalstr = "Hello";
@@ -40,10 +31,5 @@ function main(): number {
 }
 `;
 
-test('test element access string', async t => {
-  if (await runCode(srcString)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
+runTest('test element: access number', srcNumber);
+runTest('test element: access string', srcString);

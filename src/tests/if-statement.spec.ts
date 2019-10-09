@@ -1,5 +1,4 @@
-import test from 'ava';
-import { runCode } from './util';
+import { runTest } from './util';
 
 const srcIf = `
 function main(): number {
@@ -16,14 +15,6 @@ function main(): number {
 }
 `;
 
-test('test if', async t => {
-  if (await runCode(srcIf)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
 const srcIfContainsFor = `
 function main(): number {
   let s = 0;
@@ -36,10 +27,5 @@ function main(): number {
 }
 `;
 
-test('test if contains for', async t => {
-  if (await runCode(srcIfContainsFor)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
+runTest('test if: smoke', srcIf);
+runTest('test if: contains for', srcIfContainsFor);

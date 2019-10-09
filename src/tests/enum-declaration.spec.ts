@@ -1,5 +1,4 @@
-import test from 'ava';
-import { runCode } from './util';
+import { runTest } from './util';
 
 const srcEnumInitializer = `
 enum Test {
@@ -13,14 +12,6 @@ function main(): number {
 }
 `;
 
-test('test enum initializer', async t => {
-  if (await runCode(srcEnumInitializer)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
 const srcEnumIota = `
 enum Test {
   a = 100,
@@ -33,14 +24,6 @@ function main(): number {
 }
 `;
 
-test('test enum iota', async t => {
-  if (await runCode(srcEnumIota)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
 const srcEnumReturn = `
 enum Test {
   a,
@@ -52,36 +35,20 @@ function main(): Test {
 }
 `;
 
-test('test enum return', async t => {
-  if (await runCode(srcEnumReturn)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
 const srcEnumVar = `
 enum Test {
   a,
   b
 }
 
-function test(t: Test): number {
+function runTest(t: Test): number {
   return t;
 }
 
 function main(): number {
-  return test(Test.b);
+  return runTest(Test.b);
 }
 `;
-
-test('test enum var', async t => {
-  if (await runCode(srcEnumVar)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
 
 const srcEnumPlus = `
 enum Test {
@@ -89,20 +56,18 @@ enum Test {
   b = 101
 }
 
-function test(n: number): number {
+function runTest(n: number): number {
   return n;
 }
 
 function main(): number {
-  test(1 + Test.a);
-  return test(Test.b + 1);
+  runTest(1 + Test.a);
+  return runTest(Test.b + 1);
 }
 `;
 
-test('test enum plus', async t => {
-  if (await runCode(srcEnumPlus)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
+runTest('test enum: initializer', srcEnumInitializer);
+runTest('test enum: iota', srcEnumIota);
+runTest('test enum: as return value', srcEnumReturn);
+runTest('test enum: var', srcEnumVar);
+runTest('test enum: plus', srcEnumPlus);

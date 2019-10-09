@@ -1,5 +1,4 @@
-import test from 'ava';
-import { runCode } from './util';
+import { runTest } from './util';
 
 const srcGlobalVar = `
 let a: number = 1;
@@ -11,14 +10,6 @@ function main(): number {
 }
 `;
 
-test('test declaration global var', async t => {
-  if (await runCode(srcGlobalVar)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
 const srcTypeInference = `
 function main(): number {
     let a = 10; // Skip the annotation type
@@ -27,10 +18,5 @@ function main(): number {
 }
 `;
 
-test('test declaration type inference', async t => {
-  if (await runCode(srcTypeInference)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
+runTest('test variable declaration: global var', srcGlobalVar);
+runTest('test variable declaration: type inference', srcTypeInference);

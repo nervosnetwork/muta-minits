@@ -1,7 +1,7 @@
 // Inspired by this project: https://github.com/mohanson/brainfuck
 //
-// $ minits build examples/brainfuck.ts -o brainfuck.s
-// $ clang brainfuck.s brainfuck
+// $ node build/main/index.js build examples/brainfuck.ts -o brainfuck.ll
+// $ clang brainfuck.ll -o brainfuck
 //
 // $ ./brainfuck "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>."
 // $ ./brainfuck ">++++[<++++++++>-]>++++++++[>++++<-]>>++>>>+>>>+<<<<<<<<<<[-[->+<]>[-<+>>>.<<]>>>[[->++++++++[>++++<-]>.<<[->+<]+>[->++++++++++<<+>]>.[-]>]]+<<<[-[->+<]+>[-<+>>>-[->+<]++>[-<->]<<<]<<<<]++++++++++.+++.[-]<]+++++"

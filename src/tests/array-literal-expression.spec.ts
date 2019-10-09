@@ -1,5 +1,4 @@
-import test from 'ava';
-import { runCode } from './util';
+import { runTest } from './util';
 
 const srcSizedArray = `
 function echo(a: number): number {
@@ -43,14 +42,6 @@ function main(): number {
 }
 `;
 
-test('test sized array', async t => {
-  if (await runCode(srcSizedArray)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
 const srcString = `
 let globalarr: string[] = ["10", "20"];
 
@@ -66,10 +57,5 @@ function main(): number {
 }
 `;
 
-test('test string', async t => {
-  if (await runCode(srcString)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
+runTest('test array: sized', srcSizedArray);
+runTest('test array: string', srcString);

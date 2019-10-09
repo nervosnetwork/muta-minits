@@ -1,5 +1,4 @@
-import test from 'ava';
-import { runCode } from './util';
+import { runTest } from './util';
 
 const srcObjectCallMut = `
 function mut(obj: { num: number; str: string }): void {
@@ -22,14 +21,6 @@ function main(): number {
 }
 `;
 
-test('test object call mut', async t => {
-  if (await runCode(srcObjectCallMut)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
 const srcObjectReturnNumber = `
 const Test = {
   a: 1,
@@ -45,14 +36,6 @@ function main(): number {
   return Test.c;
 }
 `;
-
-test('test object return number', async t => {
-  if (await runCode(srcObjectReturnNumber)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
 
 const srcObjectReturnString = `
 const Test = {
@@ -73,13 +56,13 @@ function main(): number {
 }
 `;
 
-test('test object return string', async t => {
-  if (await runCode(srcObjectReturnString)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
+const srcInitWithVariable = `
+function main(): number {
+  let n = 10;
+  let a = {a: n};
+  return a.a
+}
+`;
 
 const srcObjectDuckType = `
 function echo(num: { num: number }): number {
@@ -87,7 +70,7 @@ function echo(num: { num: number }): number {
 }
 
 function main(): number {
-  const val0 = echo({ num: 10 });
+  const val0 = echo({ num: 10 );
   if (val0 !== 10) {
     return 1;
   }
@@ -108,10 +91,22 @@ function main(): number {
 }
 `;
 
-test('test object duck type', async t => {
-  if (await runCode(srcObjectDuckType)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
+const srcObjectDuckTypeMut = `
+function echo(num: { num: number }): number {
+  num.num = 20;
+  return num.num;
+}
+
+function main(): number {
+  const obj1 = { num: 11, str: '12' };
+  echo(obj1);
+  return obj1.num;
+}
+`;
+
+runTest('test object: call mut', srcObjectCallMut);
+runTest('test object: return number', srcObjectReturnNumber);
+runTest('test object: return string', srcObjectReturnString);
+runTest('test object: init with variable', srcInitWithVariable);
+runTest('test object: duck type', srcObjectDuckType);
+runTest('test object: duck type mut', srcObjectDuckTypeMut);

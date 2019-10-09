@@ -1,5 +1,4 @@
-import test from 'ava';
-import { runCode } from './util';
+import { runTest } from './util';
 
 const srcForOfArray = `
 let globalarr = [1, 2, 3];
@@ -24,14 +23,6 @@ function main(): number {
 }
 `;
 
-test('test for of array', async t => {
-  if (await runCode(srcForOfArray)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
 const srcForOfString = `
 function main(): number {
     let a = "Hello";
@@ -49,10 +40,5 @@ function main(): number {
 }
 `;
 
-test('test for of string', async t => {
-  if (await runCode(srcForOfString)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
+runTest('test for of: array', srcForOfArray);
+runTest('test for of: string', srcForOfString);

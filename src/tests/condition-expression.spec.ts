@@ -1,5 +1,4 @@
-import test from 'ava';
-import { runCode } from './util';
+import { runTest } from './util';
 
 const srcNumber = `
 function main(): number {
@@ -17,18 +16,5 @@ function main(): number {
 }
 `;
 
-test('test condition number', async t => {
-  if (await runCode(srcNumber)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
-test('test condition string', async t => {
-  if (await runCode(srcString)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
+runTest('test condition: number', srcNumber);
+runTest('test condition: string', srcString);

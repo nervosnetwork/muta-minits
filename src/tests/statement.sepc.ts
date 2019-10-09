@@ -1,5 +1,4 @@
-import test from 'ava';
-import { runCode } from './util';
+import { runTest } from './util';
 
 const srcStatementBreak = `
 function main(): number {
@@ -23,14 +22,6 @@ function main(): number {
     return s;
 }
 `;
-
-test('test statement break', async t => {
-  if (await runCode(srcStatementBreak)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
 
 const srcStatementContinue = `
 function main(): number {
@@ -64,14 +55,6 @@ function main(): number {
 }
 `;
 
-test('test statement continue', async t => {
-  if (await runCode(srcStatementContinue)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
 const srcStatementDo = `
 function main(): number {
     let s = 0;
@@ -83,14 +66,6 @@ function main(): number {
     return s; // 55
 }
 `;
-
-test('test statement do', async t => {
-  if (await runCode(srcStatementDo)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
 
 const srcStatementForLoop = `
 function main(): number {
@@ -114,14 +89,6 @@ function main(): number {
     return s;
 }
 `;
-
-test('test statement for loop', async t => {
-  if (await runCode(srcStatementForLoop)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
 
 const srcStatementLogicAndOr = `
 function main(): number {
@@ -165,14 +132,6 @@ function main(): number {
 }
 `;
 
-test('test statement logic and or', async t => {
-  if (await runCode(srcStatementLogicAndOr)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
 const srcStatementWhile = `
 function main(): number {
     let s = 0;
@@ -183,10 +142,9 @@ function main(): number {
 }
 `;
 
-test('test statement while', async t => {
-  if (await runCode(srcStatementWhile)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
+runTest('test statement break', srcStatementBreak);
+runTest('test statement continue', srcStatementContinue);
+runTest('test statement do', srcStatementDo);
+runTest('test statement for loop', srcStatementForLoop);
+runTest('test statement logic and or', srcStatementLogicAndOr);
+runTest('test statement while', srcStatementWhile);

@@ -1,5 +1,4 @@
-import test from 'ava';
-import { runCode } from './util';
+import { runTest } from './util';
 
 const srcFactorial = `
 function factorial(n: number): number {
@@ -15,14 +14,6 @@ function main(): number {
 }
 `;
 
-test('test factorial', async t => {
-  if (await runCode(srcFactorial)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
 const srcFibonacci = `
 function fibo(n: number): number {
     if (n < 2) {
@@ -36,10 +27,5 @@ function main(): number {
 }
 `;
 
-test('test fibonacci', async t => {
-  if (await runCode(srcFibonacci)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
+runTest('test application: factorial', srcFactorial);
+runTest('test application: fibonacci', srcFibonacci);
