@@ -20,5 +20,9 @@ test('test args', async t => {
   shell.exec(`gcc ${name}.o -o ${name}`, { async: false });
   const ret = shell.exec(`${name} foo bar`, { async: false });
   t.log(ret.stdout);
-  t.pass();
+  if (ret.code === 0) {
+    t.pass();
+  } else {
+    t.fail();
+  }
 });

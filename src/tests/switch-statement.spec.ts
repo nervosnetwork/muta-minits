@@ -26,8 +26,11 @@ function main(): number {
 `;
 
 test('test switch case default', async t => {
-  await runCode(srcSwitchCaseDefault);
-  t.pass();
+  if (await runCode(srcSwitchCaseDefault)) {
+    t.pass();
+  } else {
+    t.fail();
+  }
 });
 
 const srcSwitchString = `
@@ -55,8 +58,11 @@ function main(): number {
 `;
 
 test('test switch string', async t => {
-  await runCode(srcSwitchString);
-  t.pass();
+  if (await runCode(srcSwitchString)) {
+    t.pass();
+  } else {
+    t.fail();
+  }
 });
 
 const srcNoDefault = `
@@ -81,6 +87,9 @@ function main(): number {
 `;
 
 test('test switch no default', async t => {
-  await runCode(srcNoDefault);
-  t.pass();
+  if (await runCode(srcNoDefault)) {
+    t.pass();
+  } else {
+    t.fail();
+  }
 });

@@ -17,8 +17,11 @@ function main(): number {
 `;
 
 test('test if', async t => {
-  await runCode(srcIf);
-  t.pass();
+  if (await runCode(srcIf)) {
+    t.pass();
+  } else {
+    t.fail();
+  }
 });
 
 const srcIfContainsFor = `
@@ -34,6 +37,9 @@ function main(): number {
 `;
 
 test('test if contains for', async t => {
-  await runCode(srcIfContainsFor);
-  t.pass();
+  if (await runCode(srcIfContainsFor)) {
+    t.pass();
+  } else {
+    t.fail();
+  }
 });

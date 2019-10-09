@@ -52,27 +52,31 @@ test('test prepare import', async t => {
   t.assert(set.has(cFile));
 });
 
+const srcPrepareDepends = `
+function main(): number {
+  funcA();
+  return 0;
+}
+
+function funcD() {
+  funcC();
+}
+
+function funcC() {}
+
+function funcB() {
+  funcD();
+}
+
+function funcA() {
+  funcD();
+}
+`;
+
 test('test prepare depends', async t => {
-  runCode(`
-    function main(): number {
-      funcA();
-      return 0;
-    }
-
-    function funcD() {
-      funcC();
-    }
-
-    function funcC() {}
-
-    function funcB() {
-      funcD();
-    }
-
-    function funcA() {
-      funcD();
-    }
-  `);
-
-  t.pass();
+  if (await runCode(srcPrepareDepends)) {
+    t.pass();
+  } else {
+    t.fail();
+  }
 });
