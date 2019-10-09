@@ -91,10 +91,12 @@ export function genFunctionHashWithCall(checker: ts.TypeChecker, call: ts.CallEx
   const code = funcDecl.getText();
   const args = call.arguments;
   const retType = funcDecl.type ? funcDecl.type : ts.createVoidZero();
+  let hasTypeLiteral: boolean = false;
 
   const argStr = funcDecl.parameters
     .map((param, index) => {
       if (ts.isTypeLiteralNode(param.type!)) {
+        hasTypeLiteral = true;
         const arg = args[index];
         if (ts.isIdentifier(arg)) {
           const sym = checker.getSymbolAtLocation(arg)!;
@@ -110,5 +112,9 @@ export function genFunctionHashWithCall(checker: ts.TypeChecker, call: ts.CallEx
 
   const retStr = ts.isVoidExpression(retType) ? 'void' : retType.getText();
 
-  return digestToHex([code, argStr, retStr].join('-'));
+  if (hasTypeLiteral) {
+    return digestToHex([code, argStr, retStr].join('-'));
+  } else {
+    return (call.expression as ts.Identifier).getText();
+  }
 }
