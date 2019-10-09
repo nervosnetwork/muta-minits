@@ -37,7 +37,10 @@ export default class CodeGenFuncDecl {
     this.cgen.symtab.set(hashName, new symtab.LLVMValue(func, 0));
 
     this.cgen.symtab.with(undefined, () => {
-      this.initArguments(func, node);
+      func.getArguments().forEach(item => {
+        item.name = node.parameters[item.argumentNumber].name.getText();
+        this.cgen.symtab.set(item.name, new symtab.LLVMValue(item, 0));
+      });
       if (node.body) {
         const body = llvm.BasicBlock.create(this.cgen.context, 'body', func);
         this.cgen.builder.setInsertionPoint(body);
@@ -53,31 +56,9 @@ export default class CodeGenFuncDecl {
     if (node.type) {
       const realType = common.findRealType(funcReturnType);
       if (realType.isStructTy()) {
-        const typeLiteral = node.type! as ts.TypeLiteralNode;
-        const fields = common.buildStructMaps(funcReturnType as llvm.StructType, typeLiteral);
-
-        this.cgen.symtab.set(realType.name!, new symtab.LLVMValue(func, 0, fields));
+        this.cgen.symtab.set(realType.name!, new symtab.LLVMValue(func, 0));
       }
     }
     return func;
-  }
-
-  private initArguments(func: llvm.Function, node: ts.FunctionDeclaration): void {
-    func.getArguments().forEach(item => {
-      item.name = node.parameters[item.argumentNumber].name.getText();
-
-      switch (common.findRealType(item.type).typeID) {
-        case llvm.Type.TypeID.StructTyID:
-          const fields = common.buildStructMaps(
-            item.type as llvm.StructType,
-            node.parameters[item.argumentNumber].type! as ts.TypeLiteralNode
-          );
-
-          this.cgen.symtab.set(item.name, new symtab.LLVMValue(item, 0, fields));
-          break;
-        default:
-          this.cgen.symtab.set(item.name, new symtab.LLVMValue(item, 0));
-      }
-    });
   }
 }

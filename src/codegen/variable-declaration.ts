@@ -38,18 +38,7 @@ export default class CodeGenArray {
     // ObjectLiteral
     const realType = common.findRealType(type);
     if (realType.isStructTy()) {
-      let fields: Map<string, number> = new Map();
-
-      // If the variable is a function return value, get the field information for the return value.
-      if (ts.isCallExpression(node.initializer!)) {
-        const funcName = (node.initializer! as ts.CallExpression).expression.getText();
-        const v = this.cgen.symtab.get(funcName)! as symtab.LLVMValue;
-        fields = v.fields!;
-      } else {
-        fields = common.buildStructMaps(realType, node.initializer! as ts.ObjectLiteralExpression);
-      }
-
-      this.cgen.symtab.set(name, new symtab.LLVMValue(initializer, 0, fields));
+      this.cgen.symtab.set(name, new symtab.LLVMValue(initializer, 0));
       return initializer;
     }
 
