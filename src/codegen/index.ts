@@ -7,6 +7,7 @@ import * as symtab from '../symtab';
 import { NodeDepends, StructMeta } from '../types';
 import CodeGenArray from './array-literal-expression';
 import CodeGenBinary from './binary-expression';
+import CodeGenBoolean from './boolean-literal-expression';
 import CodeGenCall from './call-expression';
 import CodeGenCondition from './condition-expression';
 import CodeGenDo from './do-statement';
@@ -49,6 +50,7 @@ export default class LLVMCodeGen {
 
   public readonly cgArray: CodeGenArray;
   public readonly cgBinary: CodeGenBinary;
+  public readonly cgBoolean: CodeGenBoolean;
   public readonly cgCall: CodeGenCall;
   public readonly cgCondition: CodeGenCondition;
   public readonly cgDo: CodeGenDo;
@@ -93,6 +95,7 @@ export default class LLVMCodeGen {
 
     this.cgArray = new CodeGenArray(this);
     this.cgBinary = new CodeGenBinary(this);
+    this.cgBoolean = new CodeGenBoolean(this);
     this.cgCall = new CodeGenCall(this);
     this.cgCondition = new CodeGenCondition(this);
     this.cgDo = new CodeGenDo(this);
@@ -206,14 +209,7 @@ export default class LLVMCodeGen {
   }
 
   public genBoolean(node: ts.BooleanLiteral): llvm.ConstantInt {
-    switch (node.kind) {
-      case ts.SyntaxKind.FalseKeyword:
-        return llvm.ConstantInt.get(this.context, 0, 1);
-      case ts.SyntaxKind.TrueKeyword:
-        return llvm.ConstantInt.get(this.context, 1, 1);
-      default:
-        throw new Error('Unsupported boolean value');
-    }
+    return this.cgBoolean.genBoolean(node);
   }
 
   public genIdentifier(node: ts.Identifier): llvm.Value {
