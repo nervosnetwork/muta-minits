@@ -15,8 +15,11 @@ function main(): number {
 `;
 
 test('test element access array', async t => {
-  await runCode(srcArray);
-  t.pass();
+  if (await runCode(srcArray)) {
+    t.pass();
+  } else {
+    t.fail();
+  }
 });
 
 const srcString = `
@@ -38,6 +41,9 @@ function main(): number {
 `;
 
 test('test element access string', async t => {
-  await runCode(srcString);
-  t.pass();
+  if (await runCode(srcString)) {
+    t.pass();
+  } else {
+    t.fail();
+  }
 });

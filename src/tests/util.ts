@@ -11,19 +11,17 @@ import * as prepare from '../prepare';
 export async function runCode(
   source: string,
   options: ts.TranspileOptions = { compilerOptions: { module: ts.ModuleKind.ES2015 } }
-): Promise<void> {
+): Promise<boolean> {
   const jsRet = await compileToJS(source, options);
   const irPath = await compileToLLVMIR(source);
-  const llvmRet = shell.exec(`lli ${irPath}`, {
-    async: false
-  });
+  const llvmRet = shell.exec(`lli ${irPath}`, { async: false });
   if (jsRet !== llvmRet.code) {
-    throw new Error(`The results don't match, js ${jsRet} llvm ${llvmRet.code}`);
+    return false;
   }
-
   if (llvmRet.stderr) {
-    throw new Error(llvmRet.stderr);
+    return false;
   }
+  return true;
 }
 
 async function compileToJS(

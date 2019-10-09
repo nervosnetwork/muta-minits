@@ -34,16 +34,25 @@ function main(): number {
 `;
 
 test('test string elem', async t => {
-  await runCode(srcStringElem);
-  t.pass();
+  if (await runCode(srcStringElem)) {
+    t.pass();
+  } else {
+    t.fail();
+  }
 });
 
 test('test string length', async t => {
-  await runCode(srcStringLength);
-  t.pass();
+  if (await runCode(srcStringLength)) {
+    t.pass();
+  } else {
+    t.fail();
+  }
 });
 
 test('test string concat', async t => {
-  await runCode(srcStringConcat);
-  t.pass();
+  if (await runCode(srcStringConcat)) {
+    t.pass();
+  } else {
+    t.fail();
+  }
 });

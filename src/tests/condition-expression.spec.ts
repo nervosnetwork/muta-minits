@@ -18,11 +18,17 @@ function main(): number {
 `;
 
 test('test condition number', async t => {
-  await runCode(srcNumber);
-  t.pass();
+  if (await runCode(srcNumber)) {
+    t.pass();
+  } else {
+    t.fail();
+  }
 });
 
 test('test condition string', async t => {
-  await runCode(srcString);
-  t.pass();
+  if (await runCode(srcString)) {
+    t.pass();
+  } else {
+    t.fail();
+  }
 });

@@ -25,8 +25,11 @@ function main(): number {
 `;
 
 test('test for of array', async t => {
-  await runCode(srcForOfArray);
-  t.pass();
+  if (await runCode(srcForOfArray)) {
+    t.pass();
+  } else {
+    t.fail();
+  }
 });
 
 const srcForOfString = `
@@ -47,6 +50,9 @@ function main(): number {
 `;
 
 test('test for of string', async t => {
-  await runCode(srcForOfString);
-  t.pass();
+  if (await runCode(srcForOfString)) {
+    t.pass();
+  } else {
+    t.fail();
+  }
 });
