@@ -382,15 +382,6 @@ export default class LLVMCodeGen {
     return this.cgSwitch.genSwitchStatement(node);
   }
 
-  // public genFunctionDeclarationWithSignature(
-  //   node: ts.FunctionDeclaration,
-  //   args: llvm.Type[],
-  //   ret: llvm.Type,
-  //   hashName: string
-  // ): llvm.Function {
-  //   return this.cgFuncDecl.genFunctionDeclarationWithSignature(node, args, ret, hashName);
-  // }
-
   public genIfStatement(node: ts.IfStatement): void {
     return this.cgIf.genIfStatement(node);
   }
