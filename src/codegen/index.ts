@@ -4,7 +4,6 @@ import ts from 'typescript';
 
 import { Stdlib } from '../stdlib';
 import * as symtab from '../symtab';
-import { NodeDepends, StructMeta } from '../types';
 import CodeGenArray from './array-literal-expression';
 import CodeGenBinary from './binary-expression';
 import CodeGenBoolean from './boolean-literal-expression';
@@ -19,7 +18,6 @@ import CodeGenFor from './for-statement';
 import CodeGenFuncDecl from './function-declaration';
 import CodeGenIf from './if-statement';
 import CodeGenImport from './import-declaration';
-import CodeGenMain from './main-declaration';
 import CodeGenNumeric from './numeric-expression';
 import CodeGenObject from './object-declaration';
 import CodeGenPostfixUnary from './postfix-unary-expression';
@@ -39,14 +37,12 @@ export default class LLVMCodeGen {
   public readonly rootDir: string;
   public readonly program: ts.Program;
   public readonly checker: ts.TypeChecker;
-  public readonly nodeDep: NodeDepends;
 
   public readonly builder: llvm.IRBuilder;
   public readonly context: llvm.LLVMContext;
   public readonly module: llvm.Module;
   public readonly symtab: symtab.Symtab;
   public readonly stdlib: Stdlib;
-  public readonly structTab: Map<string, StructMeta>;
 
   public readonly cgArray: CodeGenArray;
   public readonly cgBinary: CodeGenBinary;
@@ -62,7 +58,6 @@ export default class LLVMCodeGen {
   public readonly cgFuncDecl: CodeGenFuncDecl;
   public readonly cgIf: CodeGenIf;
   public readonly cgImport: CodeGenImport;
-  public readonly cgMain: CodeGenMain;
   public readonly cgNumeric: CodeGenNumeric;
   public readonly cgObject: CodeGenObject;
   public readonly cgPostfixUnary: CodeGenPostfixUnary;
@@ -80,18 +75,16 @@ export default class LLVMCodeGen {
   public currentType: ts.TypeNode | undefined;
   public currentName: string | undefined;
 
-  constructor(rootDir: string, program: ts.Program, nodeDep: NodeDepends) {
+  constructor(rootDir: string, program: ts.Program) {
     this.rootDir = rootDir;
     this.program = program;
     this.checker = program.getTypeChecker();
-    this.nodeDep = nodeDep;
 
     this.context = new llvm.LLVMContext();
     this.module = new llvm.Module('main', this.context);
     this.builder = new llvm.IRBuilder(this.context);
     this.symtab = new symtab.Symtab();
     this.stdlib = new Stdlib(this);
-    this.structTab = new Map();
 
     this.cgArray = new CodeGenArray(this);
     this.cgBinary = new CodeGenBinary(this);
@@ -107,7 +100,6 @@ export default class LLVMCodeGen {
     this.cgFuncDecl = new CodeGenFuncDecl(this);
     this.cgIf = new CodeGenIf(this);
     this.cgImport = new CodeGenImport(this);
-    this.cgMain = new CodeGenMain(this);
     this.cgNumeric = new CodeGenNumeric(this);
     this.cgObject = new CodeGenObject(this);
     this.cgPostfixUnary = new CodeGenPostfixUnary(this);
@@ -178,7 +170,7 @@ export default class LLVMCodeGen {
           this.genVariableStatement(node as ts.VariableStatement);
           break;
         case ts.SyntaxKind.FunctionDeclaration:
-          // this.genFunctionDeclaration(node as ts.FunctionDeclaration);
+          this.genFunctionDeclaration(node as ts.FunctionDeclaration);
           break;
         case ts.SyntaxKind.EnumDeclaration:
           this.genEnumDeclaration(node as ts.EnumDeclaration);
@@ -197,7 +189,7 @@ export default class LLVMCodeGen {
       }
     });
 
-    this.cgMain.genMainFunction();
+    this.cgFuncDecl.genImplemention();
   }
 
   public genNumeric(node: ts.NumericLiteral): llvm.ConstantInt {
@@ -390,15 +382,6 @@ export default class LLVMCodeGen {
     return this.cgSwitch.genSwitchStatement(node);
   }
 
-  public genFunctionDeclarationWithSignature(
-    node: ts.FunctionDeclaration,
-    args: llvm.Type[],
-    ret: llvm.Type,
-    hashName: string
-  ): llvm.Function {
-    return this.cgFuncDecl.genFunctionDeclarationWithSignature(node, args, ret, hashName);
-  }
-
   public genIfStatement(node: ts.IfStatement): void {
     return this.cgIf.genIfStatement(node);
   }
@@ -421,6 +404,10 @@ export default class LLVMCodeGen {
 
   public genForOfStatement(node: ts.ForOfStatement): void {
     return this.cgForOf.genForOfStatement(node);
+  }
+
+  public genFunctionDeclaration(node: ts.FunctionDeclaration): llvm.Value {
+    return this.cgFuncDecl.genFunctionDeclaration(node);
   }
 
   public genEnumDeclaration(node: ts.EnumDeclaration): void {
@@ -447,7 +434,7 @@ export default class LLVMCodeGen {
     return this.cgCondition.genConditionalExpression(node);
   }
 
-  public initObjectInst(varName: string, type: llvm.Type, values: llvm.Constant[]): llvm.Value {
+  public initObjectInst(varName: string, type: llvm.StructType, values: llvm.Constant[]): llvm.Value {
     return this.cgObject.initObjectInst(varName, type, values);
   }
 }

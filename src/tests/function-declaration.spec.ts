@@ -1,5 +1,4 @@
-import test from 'ava';
-import { runCode } from './util';
+import { runTest } from './util';
 
 const srcFunctionCall = `
 function echo(n: number): number {
@@ -14,41 +13,17 @@ function main(): number {
 }
 `;
 
-test('test function call', async t => {
-  if (await runCode(srcFunctionCall)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
 const srcFunctionReturnZero = `
 function main(): number {
     return 0;
 }
 `;
 
-test('test function return 0', async t => {
-  if (await runCode(srcFunctionReturnZero)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
 const srcFunctionReturnOne = `
 function main(): number {
     return 1;
 }
 `;
-
-test('test function return 1', async t => {
-  if (await runCode(srcFunctionReturnOne)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
 
 const srcFunctionIgnoreReturn = `
 function echo() {
@@ -61,10 +36,29 @@ function main(): number {
 }
 `;
 
-test('test function ignore return', async t => {
-  if (await runCode(srcFunctionIgnoreReturn)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
+const srcFunctionOrder = `
+function main(): number {
+  funcA();
+  return 0;
+}
+
+function funcD() {
+  funcC();
+}
+
+function funcC() {}
+
+function funcB() {
+  funcD();
+}
+
+function funcA() {
+  funcD();
+}
+`;
+
+runTest('test function: call', srcFunctionCall);
+runTest('test function: return 0', srcFunctionReturnZero);
+runTest('test function: return 1', srcFunctionReturnOne);
+runTest('test function: ignore return', srcFunctionIgnoreReturn);
+runTest('test function: order', srcFunctionOrder);

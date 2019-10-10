@@ -1,5 +1,4 @@
-import test from 'ava';
-import { runCode } from './util';
+import { runTest } from './util';
 
 const srcSwitchCaseDefault = `
 function main(): number {
@@ -25,14 +24,6 @@ function main(): number {
 }
 `;
 
-test('test switch case default', async t => {
-  if (await runCode(srcSwitchCaseDefault)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
 const srcSwitchString = `
 function main(): number {
   let a = "B";
@@ -57,14 +48,6 @@ function main(): number {
 }
 `;
 
-test('test switch string', async t => {
-  if (await runCode(srcSwitchString)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
 const srcNoDefault = `
 function main(): number {
   let a = 2;
@@ -86,10 +69,6 @@ function main(): number {
 }
 `;
 
-test('test switch no default', async t => {
-  if (await runCode(srcNoDefault)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
+runTest('test switch case default', srcSwitchCaseDefault);
+runTest('test switch string', srcSwitchString);
+runTest('test switch no default', srcNoDefault);

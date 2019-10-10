@@ -1,10 +1,9 @@
+import crypto from 'crypto';
 import Debug from 'debug';
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import * as common from '../common';
 import * as symtab from '../symtab';
-import { StructMetaType } from '../types';
 import LLVMCodeGen from './';
 
 const debug = Debug('minits:codegen:object');
@@ -19,7 +18,6 @@ export default class GenObject {
   }
 
   public genObjectLiteralExpression(node: ts.ObjectLiteralExpression): llvm.Value {
-    const varName = ts.isVariableDeclaration(node.parent) ? node.parent.name.getText() : '';
     const values: llvm.Value[] = [];
     const types = [];
 
@@ -33,18 +31,19 @@ export default class GenObject {
       }
     }
 
-    const typeHash = common.genTypesHash(types);
+    const typeHash = genTypesHash(types);
+    const name = 'TypeLiteral-' + typeHash;
 
-    if (!this.cgen.structTab.get(typeHash)) {
-      const structType = llvm.StructType.create(this.cgen.context, typeHash);
+    if (!this.cgen.module.getTypeByName(name)) {
+      const structType = llvm.StructType.create(this.cgen.context, name);
       structType.setBody(types, false);
-
-      this.cgen.structTab.set(typeHash, { metaType: StructMetaType.Class, typeHash, struct: structType });
     }
 
-    const structMeta = this.cgen.structTab.get(typeHash)!;
-
-    return this.initObjectInst(varName, structMeta.struct, values as llvm.Constant[]);
+    return this.initObjectInst(
+      this.cgen.currentName!,
+      this.cgen.module.getTypeByName(name)!,
+      values as llvm.Constant[]
+    );
   }
 
   public genObjectElementAccess(node: ts.PropertyAccessExpression): llvm.Value {
@@ -67,29 +66,24 @@ export default class GenObject {
   public genObjectLiteralType(type: ts.TypeLiteralNode): llvm.Type {
     const types: llvm.Type[] = [];
 
-    type.members.forEach(m => types.push(this.genPropertySignature(m as ts.PropertySignature)));
-    const typeHash = common.genTypesHash(types);
+    type.members.forEach(m => types.push(this.cgen.genType((m as ts.PropertySignature).type!)));
+    const typeHash = genTypesHash(types);
+    const name = 'TypeLiteral-' + typeHash;
 
-    if (!this.cgen.structTab.get(typeHash)) {
-      const structType = llvm.StructType.create(this.cgen.context, typeHash);
+    if (!this.cgen.module.getTypeByName(name)) {
+      const structType = llvm.StructType.create(this.cgen.context, name);
       structType.setBody(types, false);
-
-      this.cgen.structTab.set(typeHash, { metaType: StructMetaType.Class, typeHash, struct: structType });
     }
 
-    return this.cgen.structTab.get(typeHash)!.struct.getPointerTo();
+    return this.cgen.module.getTypeByName(name)!.getPointerTo();
   }
 
   public genPropertySignature(type: ts.PropertySignature): llvm.Type {
     return this.cgen.genType(type.type!);
   }
 
-  public initObjectInst(varName: string, type: llvm.Type, values: llvm.Constant[]): llvm.Value {
-    const structType = common.findRealType(type);
-    if (!structType.isStructTy()) {
-      throw new Error('The type must be a struct.');
-    }
-
+  public initObjectInst(varName: string, type: llvm.StructType, values: llvm.Constant[]): llvm.Value {
+    const structType = type;
     // TODO: If values is empty, assign an initial value.
     if (this.cgen.currentFunction === undefined) {
       return new llvm.GlobalVariable(
@@ -101,7 +95,14 @@ export default class GenObject {
       );
     } else {
       const alloc = this.cgen.builder.createAlloca(structType, undefined, varName);
-      this.cgen.builder.createStore(llvm.ConstantStruct.get(structType, values as llvm.Constant[]), alloc);
+
+      for (let i = 0; i < values.length; i++) {
+        const ptr = this.cgen.builder.createInBoundsGEP(alloc, [
+          llvm.ConstantInt.get(this.cgen.context, 0, 32, true),
+          llvm.ConstantInt.get(this.cgen.context, i, 32, true)
+        ]);
+        this.cgen.builder.createStore(values[i], ptr);
+      }
       return alloc;
     }
   }
@@ -109,4 +110,16 @@ export default class GenObject {
   private genPropertyAssignment(node: ts.PropertyAssignment): llvm.Value {
     return this.cgen.genExpression(node.initializer);
   }
+}
+
+export function genTypesHash(types: llvm.Type[]): string {
+  return digestToHex(types.map(t => t.typeID).join('-'));
+}
+
+export function digestToHex(buf: Buffer | string): string {
+  return crypto
+    .createHash('md5')
+    .update(buf)
+    .digest()
+    .toString('hex');
 }

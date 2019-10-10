@@ -1,5 +1,4 @@
-import test from 'ava';
-import { runCode } from './util';
+import { runTest } from './util';
 
 const srcStringElem = `
 function main(): number {
@@ -33,26 +32,6 @@ function main(): number {
 }
 `;
 
-test('test string elem', async t => {
-  if (await runCode(srcStringElem)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
-test('test string length', async t => {
-  if (await runCode(srcStringLength)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
-test('test string concat', async t => {
-  if (await runCode(srcStringConcat)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
+runTest('test string: elem', srcStringElem);
+runTest('test string: length', srcStringLength);
+runTest('test string: concat', srcStringConcat);

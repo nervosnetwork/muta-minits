@@ -1,7 +1,6 @@
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import * as common from '../common';
 import * as symtab from '../symtab';
 import LLVMCodeGen from './';
 
@@ -36,8 +35,7 @@ export default class CodeGenArray {
     }
 
     // ObjectLiteral
-    const realType = common.findRealType(type);
-    if (realType.isStructTy()) {
+    if (type.isPointerTy() && (type as llvm.PointerType).elementType.isStructTy()) {
       this.cgen.symtab.set(name, new symtab.LLVMValue(initializer, 0));
       return initializer;
     }

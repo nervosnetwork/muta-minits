@@ -3,8 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import shell from 'shelljs';
 
-import * as prepare from '../prepare';
-import { runCode } from './util';
+import * as pretreat from '../pre-treatment';
 
 const main = `
 import a from './import-a'
@@ -33,16 +32,7 @@ test('test prepare import', async t => {
   fs.writeFileSync(aFile, importA);
   fs.writeFileSync(bFile, importB);
   fs.writeFileSync(cFile, importC);
-
-  const files = prepare.getDependency(mainFile);
-  // [
-  //   '/var/folders/v1/y82lbbsx7xz6_32ytzw9fvyw0000gn/T/main.ts',
-  //   '/var/folders/v1/y82lbbsx7xz6_32ytzw9fvyw0000gn/T/import-a.ts',
-  //   '/var/folders/v1/y82lbbsx7xz6_32ytzw9fvyw0000gn/T/import-b.ts',
-  //   '/var/folders/v1/y82lbbsx7xz6_32ytzw9fvyw0000gn/T/import-c.ts',
-  // ]
-
-  t.log(files);
+  const files = pretreat.getDependency(mainFile);
   t.assert(files.length === 4);
 
   const set = new Set(files);
@@ -50,33 +40,4 @@ test('test prepare import', async t => {
   t.assert(set.has(aFile));
   t.assert(set.has(bFile));
   t.assert(set.has(cFile));
-});
-
-const srcPrepareDepends = `
-function main(): number {
-  funcA();
-  return 0;
-}
-
-function funcD() {
-  funcC();
-}
-
-function funcC() {}
-
-function funcB() {
-  funcD();
-}
-
-function funcA() {
-  funcD();
-}
-`;
-
-test('test prepare depends', async t => {
-  if (await runCode(srcPrepareDepends)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
 });

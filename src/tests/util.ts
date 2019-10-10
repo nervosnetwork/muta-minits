@@ -1,3 +1,4 @@
+import test from 'ava';
 import crypto from 'crypto';
 import fs from 'fs';
 import llvm from 'llvm-node';
@@ -6,7 +7,7 @@ import shell from 'shelljs';
 import ts from 'typescript';
 
 import LLVMCodeGen from '../codegen';
-import * as prepare from '../prepare';
+import * as pretreat from '../pre-treatment';
 
 export async function runCode(
   source: string,
@@ -22,6 +23,16 @@ export async function runCode(
     return false;
   }
   return true;
+}
+
+export function runTest(name: string, code: string): void {
+  test(name, async t => {
+    if (await runCode(code)) {
+      t.pass();
+    } else {
+      t.fail();
+    }
+  });
 }
 
 async function compileToJS(
@@ -41,12 +52,9 @@ export async function compileToLLVMIR(source: string): Promise<string> {
   const tempTSFile = path.join(rootDir, `${tmpFileName}.ts`);
   fs.writeFileSync(tempTSFile, source);
 
-  const files = prepare.getDependency(tempTSFile);
+  const files = pretreat.getDependency(tempTSFile);
   const tsProgram = ts.createProgram(files, {});
-  const depends = new prepare.PrepareDepends(tsProgram);
-  const dep = depends.genDepends(tempTSFile);
-
-  const cgen = new LLVMCodeGen(rootDir, tsProgram, dep);
+  const cgen = new LLVMCodeGen(rootDir, tsProgram);
   cgen.genSourceFile(tempTSFile);
   llvm.verifyModule(cgen.module);
 

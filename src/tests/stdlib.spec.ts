@@ -1,5 +1,4 @@
-import test from 'ava';
-import { runCode } from './util';
+import { runTest } from './util';
 
 const srcConsoleLog = `
 let globalstr = "globalstr";
@@ -15,10 +14,4 @@ function main(): number {
 }
 `;
 
-test('test stdlib console.log', async t => {
-  if (await runCode(srcConsoleLog)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
+runTest('test stdlib console.log', srcConsoleLog);

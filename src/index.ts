@@ -11,7 +11,7 @@ import shell from 'shelljs';
 import ts from 'typescript';
 
 import LLVMCodeGen from './codegen';
-import * as prepare from './prepare';
+import * as pretreat from './pre-treatment';
 
 const debug = Debug('minits');
 const program = new commander.Command();
@@ -49,13 +49,10 @@ function build(args: any, opts: any): string {
   llvm.initializeAllAsmPrinters();
 
   const rootDir = path.dirname(fileName);
-  const files = prepare.getDependency(fileName);
+  const files = pretreat.getDependency(fileName);
   const tsProgram = ts.createProgram(files, {});
 
-  const depends = new prepare.PrepareDepends(tsProgram);
-  const dep = depends.genDepends(fileName);
-
-  const cg = new LLVMCodeGen(rootDir, tsProgram, dep);
+  const cg = new LLVMCodeGen(rootDir, tsProgram);
   const triple: string = opts.triple ? opts.triple : llvm.config.LLVM_DEFAULT_TARGET_TRIPLE;
   const target = llvm.TargetRegistry.lookupTarget(triple);
   const m = target.createTargetMachine(triple, 'generic');

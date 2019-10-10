@@ -1,5 +1,4 @@
-import test from 'ava';
-import { runCode } from './util';
+import { runTest } from './util';
 
 const srcOperatorArithmeticOperations = `
 function main(): number {
@@ -13,14 +12,6 @@ function main(): number {
     return n;
 }
 `;
-
-test('test operator arithmetic operations', async t => {
-  if (await runCode(srcOperatorArithmeticOperations)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
 
 const srcOperatorBits = `
 const Test = {
@@ -37,14 +28,6 @@ function main(): number {
   return Test.c;
 }
 `;
-
-test('test operator bits', async t => {
-  if (await runCode(srcOperatorBits)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
 
 const srcOperatorCompare = `
 const Test = {
@@ -65,14 +48,6 @@ function main(): number {
 }
 `;
 
-test('test operator compare', async t => {
-  if (await runCode(srcOperatorCompare)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
 const srcOperatorCompoundAssignmentConst = `
 const Test = {
   a: 1
@@ -92,40 +67,24 @@ function main(): number {
 }
 `;
 
-test('test operator compound assignment const', async t => {
-  if (await runCode(srcOperatorCompoundAssignmentConst)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
 const srcoOperatorCompoundAssignmentVar = `
+const Test = {
+  a: 1
+};
+
+function main(): number {
   const Test = {
-    a: 1
+    a: 1,
+    c: 'str'
   };
 
-  function main(): number {
-    const Test = {
-      a: 1,
-      c: 'str'
-    };
-
-    if (Test.c === 'str') {
-      return 0;
-    }
-
-    return 1;
+  if (Test.c === 'str') {
+    return 0;
   }
-  `;
 
-test('test operator compound assignment var', async t => {
-  if (await runCode(srcoOperatorCompoundAssignmentVar)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
+  return 1;
+}
+`;
 
 const srcOperatorNumber = `
 const Test = {
@@ -146,14 +105,6 @@ function main(): number {
 }
 `;
 
-test('test operator number', async t => {
-  if (await runCode(srcOperatorNumber)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
-
 const srcOperatorParen = `
 const Test = {
   a: 1
@@ -172,14 +123,6 @@ function main(): number {
   return 1;
 }
 `;
-
-test('test operator paren', async t => {
-  if (await runCode(srcOperatorParen)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
 
 const srcOperatorPostfixUnary = `
 const Test = {
@@ -200,10 +143,11 @@ function main(): number {
 }
 `;
 
-test('test operator postfix unary', async t => {
-  if (await runCode(srcOperatorPostfixUnary)) {
-    t.pass();
-  } else {
-    t.fail();
-  }
-});
+runTest('test binary: arithmetic operations', srcOperatorArithmeticOperations);
+runTest('test binary: bits', srcOperatorBits);
+runTest('test binary: compare', srcOperatorCompare);
+runTest('test binary: compound assignment const', srcOperatorCompoundAssignmentConst);
+runTest('test binary: compound assignment var', srcoOperatorCompoundAssignmentVar);
+runTest('test binary: number', srcOperatorNumber);
+runTest('test binary: paren', srcOperatorParen);
+runTest('test binary: postfix unary', srcOperatorPostfixUnary);
