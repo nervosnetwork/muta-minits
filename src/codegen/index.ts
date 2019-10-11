@@ -291,7 +291,7 @@ export default class LLVMCodeGen {
     }
   }
 
-  public genArrayLiteral(node: ts.ArrayLiteralExpression): llvm.AllocaInst {
+  public genArrayLiteral(node: ts.ArrayLiteralExpression): llvm.Value {
     return this.cgArray.genArrayLiteral(node);
   }
 

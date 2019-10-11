@@ -28,12 +28,6 @@ export default class CodeGenArray {
     const initializer = this.cgen.genExpression(node.initializer!);
     const type = initializer.type;
 
-    // ArrayLiteral
-    if (type.isPointerTy() && (type as llvm.PointerType).elementType.isArrayTy()) {
-      this.cgen.symtab.set(name, new symtab.LLVMValue(initializer, 0));
-      return initializer;
-    }
-
     // ObjectLiteral
     if (type.isPointerTy() && (type as llvm.PointerType).elementType.isStructTy()) {
       this.cgen.symtab.set(name, new symtab.LLVMValue(initializer, 0));
@@ -93,7 +87,7 @@ export default class CodeGenArray {
     return v;
   }
 
-  public genVariableDeclarationGlobalArrayLiteral(node: ts.ArrayLiteralExpression): llvm.GlobalVariable {
+  public genVariableDeclarationGlobalArrayLiteral(node: ts.ArrayLiteralExpression): llvm.Value {
     const r = this.cgen.cgArray.genArrayLiteralGlobal(node);
     this.cgen.symtab.set(this.cgen.readName(), new symtab.LLVMValue(r, 0));
     return r;

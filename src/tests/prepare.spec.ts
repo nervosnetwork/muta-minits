@@ -22,7 +22,7 @@ const importC = `
 console.log('c module')
 `;
 
-test('test prepare import', async t => {
+test('test prepare: import', async t => {
   const mainFile = path.join(shell.tempdir(), `main.ts`);
   const aFile = path.join(shell.tempdir(), `import-a.ts`);
   const bFile = path.join(shell.tempdir(), `import-b.ts`);

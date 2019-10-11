@@ -14,4 +14,4 @@ function main(): number {
 }
 `;
 
-runTest('test stdlib console.log', srcConsoleLog);
+runTest('test stdlib: console.log', srcConsoleLog);
