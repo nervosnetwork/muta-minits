@@ -69,6 +69,6 @@ function main(): number {
 }
 `;
 
-runTest('test switch case default', srcSwitchCaseDefault);
-runTest('test switch string', srcSwitchString);
-runTest('test switch no default', srcNoDefault);
+runTest('test switch: switch case default', srcSwitchCaseDefault);
+runTest('test switch: string', srcSwitchString);
+runTest('test switch: no default', srcNoDefault);

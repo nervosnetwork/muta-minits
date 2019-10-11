@@ -57,5 +57,17 @@ function main(): number {
 }
 `;
 
+const srcAsArgument = `
+function echo(n: number[]): number {
+    return n[0]
+}
+
+function main(): number {
+    let l = [0x10, 0x11, 0x12];
+    return echo(l);
+}
+`;
+
 runTest('test array: sized', srcSizedArray);
 runTest('test array: string', srcString);
+runTest('test array: as argument', srcAsArgument);

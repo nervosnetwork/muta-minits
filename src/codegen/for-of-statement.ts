@@ -69,9 +69,9 @@ export default class CodeGenForOf {
       this.cgen.symtab.set(name, new symtab.LLVMValue(alloca, 1));
       return alloca;
     })();
-    const identifier = this.cgen.genExpression(node.expression) as llvm.AllocaInst;
+    const identifier = this.cgen.genExpression(node.expression);
     const pv = (() => {
-      const type = (identifier.type.elementType as llvm.ArrayType).elementType;
+      const type = (identifier.type as llvm.PointerType).elementType;
       const name = (node.initializer! as ts.VariableDeclarationList).declarations!.map(item => item.getText())[0];
       const alloca = this.cgen.builder.createAlloca(type, undefined, name);
       this.cgen.symtab.set(name, new symtab.LLVMValue(alloca, 1));
@@ -82,7 +82,14 @@ export default class CodeGenForOf {
     const loopIncr = llvm.BasicBlock.create(this.cgen.context, 'loop.incr', this.cgen.currentFunction);
     const loopQuit = llvm.BasicBlock.create(this.cgen.context, 'loop.quit', this.cgen.currentFunction);
 
-    const l = llvm.ConstantInt.get(this.cgen.context, (identifier.type.elementType as llvm.ArrayType).numElements, 64);
+    const numElements = (() => {
+      if (ts.isArrayLiteralExpression(node.expression)) {
+        return (node.expression as ts.ArrayLiteralExpression).elements.length;
+      }
+      const symbol = this.cgen.checker.getSymbolAtLocation(node.expression)!;
+      return (symbol.valueDeclaration as any).initializer.elements.length;
+    })();
+    const l = llvm.ConstantInt.get(this.cgen.context, numElements, 64);
     this.cgen.builder.createBr(loopCond);
     this.cgen.builder.setInsertionPoint(loopCond);
     const cond = this.cgen.builder.createICmpSLT(this.cgen.builder.createLoad(pi), l);

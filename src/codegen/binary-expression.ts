@@ -196,9 +196,9 @@ export default class CodeGenBinary {
       case ts.SyntaxKind.ElementAccessExpression:
         return (() => {
           const real = node as ts.ElementAccessExpression;
-          const ptr = this.genSymbolPtr(real.expression);
+          const ptr = this.cgen.genExpression(real.expression);
           const arg = this.cgen.genExpression(real.argumentExpression);
-          return this.cgen.builder.createInBoundsGEP(ptr, [llvm.ConstantInt.get(this.cgen.context, 0, 64), arg]);
+          return this.cgen.cgArray.getElementAccessPtr(ptr, arg);
         })();
       case ts.SyntaxKind.PropertyAccessExpression:
         return this.cgen.genPropertyAccessExpressionPtr(node as ts.PropertyAccessExpression);
