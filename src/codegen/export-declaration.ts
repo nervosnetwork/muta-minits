@@ -10,6 +10,7 @@ export default class CodeGenExport {
     this.cgen = cgen;
   }
 
+  // Internal/external variables have not been implemented yet.
   public genExportDeclaration(expr: ts.ExportDeclaration): void {
     assert(this.cgen);
     assert(expr);

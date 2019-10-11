@@ -104,9 +104,34 @@ function main(): number {
 }
 `;
 
+const srcObjectGlobal = `
+let a = { name: 10 };
+
+function main(): number {
+    return a.name;
+}
+`;
+
+const srcNest = `
+function echo(o: { a: { b: number } }): number {
+  return o.a.b
+}
+
+let d = { b: 20 };
+let c = { a: d };
+
+function main(): number {
+  let b = { b: 10 };
+  let a = { a: b };
+  return echo(a) + echo(c);
+}
+`;
+
 runTest('test object: call mut', srcObjectCallMut);
 runTest('test object: return number', srcObjectReturnNumber);
 runTest('test object: return string', srcObjectReturnString);
 runTest('test object: init with variable', srcInitWithVariable);
 runTest('test object: duck type', srcObjectDuckType);
 runTest('test object: duck type mut', srcObjectDuckTypeMut);
+runTest('test object: global', srcObjectGlobal);
+runTest('test object: nest', srcNest);

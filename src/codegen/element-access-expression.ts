@@ -10,18 +10,10 @@ export default class CodeGenElemAccess {
     this.cgen = cgen;
   }
 
-  public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
-    const isTypeString = (() => {
-      if (node.expression.kind === ts.SyntaxKind.Identifier) {
-        const symbol = this.cgen.checker.getSymbolAtLocation(node.expression)!;
-        const type = this.cgen.checker.getTypeOfSymbolAtLocation(symbol, node.expression);
-        return type.flags === ts.TypeFlags.String;
-      }
-      return node.expression.kind === ts.SyntaxKind.StringLiteral;
-    })();
+  public genElementAccessExpression(node: ts.ElementAccessExpression): llvm.Value {
     const identifer = this.cgen.genExpression(node.expression);
     const argumentExpression = this.cgen.genExpression(node.argumentExpression);
-    if (isTypeString) {
+    if (this.cgen.cgString.isStringLiteral(node.expression)) {
       return this.cgen.cgString.getElementAccess(identifer, argumentExpression);
     }
     return this.cgen.cgArray.getElementAccess(identifer, argumentExpression);

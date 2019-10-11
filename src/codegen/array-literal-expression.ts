@@ -32,8 +32,9 @@ export default class CodeGenArray {
   public genArrayLiteral(node: ts.ArrayLiteralExpression): llvm.Value {
     if (this.cgen.currentFunction) {
       return this.genArrayLiteralLocale(node);
+    } else {
+      return this.genArrayLiteralGlobal(node);
     }
-    return this.genArrayLiteralGlobal(node);
   }
 
   // [0] https://stackoverflow.com/questions/38548680/confused-about-llvm-arrays
@@ -79,7 +80,7 @@ export default class CodeGenArray {
     return this.cgen.builder.createInBoundsGEP(identifier, [i]);
   }
 
-  public genElementAccessPtr(node: ts.ElementAccessExpression): llvm.Value {
+  public genElementAccessExpressionPtr(node: ts.ElementAccessExpression): llvm.Value {
     const identifier = this.cgen.genExpression(node.expression);
     const argumentExpression = this.cgen.genExpression(node.argumentExpression);
     return this.getElementAccessPtr(identifier, argumentExpression);
@@ -90,7 +91,7 @@ export default class CodeGenArray {
     return this.cgen.builder.createLoad(ptr);
   }
 
-  public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
+  public genElementAccessExpressionAccess(node: ts.ElementAccessExpression): llvm.Value {
     const identifier = this.cgen.genExpression(node.expression);
     const argumentExpression = this.cgen.genExpression(node.argumentExpression);
     return this.getElementAccess(identifier, argumentExpression);

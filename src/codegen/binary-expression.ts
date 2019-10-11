@@ -51,31 +51,31 @@ export default class CodeGenBinary {
         return this.cgen.builder.createICmpSGE(lhs, rhs);
       // ==
       case ts.SyntaxKind.EqualsEqualsToken:
-        if (lhs.type.isPointerTy() && (lhs.type as llvm.PointerType).elementType.isIntegerTy()) {
+        if (this.cgen.cgString.isStringLiteral(expr.left)) {
           return this.cgen.cgString.eq(lhs, rhs);
         }
         return this.cgen.builder.createICmpEQ(lhs, rhs);
       // !=
       case ts.SyntaxKind.ExclamationEqualsToken:
-        if (lhs.type.isPointerTy() && (lhs.type as llvm.PointerType).elementType.isIntegerTy()) {
+        if (this.cgen.cgString.isStringLiteral(expr.left)) {
           return this.cgen.cgString.ne(lhs, rhs);
         }
         return this.cgen.builder.createICmpNE(lhs, rhs);
       // ===
       case ts.SyntaxKind.EqualsEqualsEqualsToken:
-        if (lhs.type.isPointerTy() && (lhs.type as llvm.PointerType).elementType.isIntegerTy()) {
+        if (this.cgen.cgString.isStringLiteral(expr.left)) {
           return this.cgen.cgString.eq(lhs, rhs);
         }
         return this.cgen.builder.createICmpEQ(lhs, rhs);
       // !==
       case ts.SyntaxKind.ExclamationEqualsEqualsToken:
-        if (lhs.type.isPointerTy() && (lhs.type as llvm.PointerType).elementType.isIntegerTy()) {
+        if (this.cgen.cgString.isStringLiteral(expr.left)) {
           return this.cgen.cgString.ne(lhs, rhs);
         }
         return this.cgen.builder.createICmpNE(lhs, rhs);
       // +
       case ts.SyntaxKind.PlusToken:
-        if (lhs.type.isPointerTy() && (lhs.type as llvm.PointerType).elementType.isIntegerTy()) {
+        if (this.cgen.cgString.isStringLiteral(expr.left)) {
           return this.cgen.cgString.concat(lhs, rhs);
         }
         return this.cgen.builder.createAdd(lhs, rhs);
@@ -181,10 +181,8 @@ export default class CodeGenBinary {
     rhs: llvm.Value,
     cb: (lhs: llvm.Value, rhs: llvm.Value) => llvm.Value
   ): llvm.Value {
-    const realLHS = this.cgen.builder.createLoad(lhs);
-    const realRHS = rhs.type.isPointerTy() ? this.cgen.builder.createLoad(rhs) : rhs;
-
-    const result = cb(realLHS, realRHS);
+    const lhsVal = this.cgen.builder.createLoad(lhs);
+    const result = cb(lhsVal, rhs);
     this.cgen.builder.createStore(result, lhs);
     return lhs;
   }
@@ -194,12 +192,7 @@ export default class CodeGenBinary {
       case ts.SyntaxKind.Identifier:
         return (this.cgen.symtab.get((node as ts.Identifier).getText()) as symtab.LLVMValue).inner;
       case ts.SyntaxKind.ElementAccessExpression:
-        return (() => {
-          const real = node as ts.ElementAccessExpression;
-          const ptr = this.cgen.genExpression(real.expression);
-          const arg = this.cgen.genExpression(real.argumentExpression);
-          return this.cgen.cgArray.getElementAccessPtr(ptr, arg);
-        })();
+        return this.cgen.cgArray.genElementAccessExpressionPtr(node as ts.ElementAccessExpression);
       case ts.SyntaxKind.PropertyAccessExpression:
         return this.cgen.genPropertyAccessExpressionPtr(node as ts.PropertyAccessExpression);
       default:

@@ -2,7 +2,6 @@
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
-import * as symtab from '../symtab';
 import LLVMCodeGen from './';
 
 export default class CodeGenString {
@@ -12,11 +11,25 @@ export default class CodeGenString {
     this.cgen = cgen;
   }
 
+  public isStringLiteral(expr: ts.Expression): boolean {
+    if (ts.isStringLiteral(expr)) {
+      return true;
+    }
+    const type = this.cgen.checker.getTypeAtLocation(expr);
+    if (type.isStringLiteral()) {
+      return true;
+    }
+    if (type.flags === ts.TypeFlags.String) {
+      return true;
+    }
+    return false;
+  }
+
   public genStringLiteral(node: ts.StringLiteral): llvm.Value {
-    if (this.cgen.currentFunction === undefined) {
-      return this.genStringLiteralGlobal(node);
-    } else {
+    if (this.cgen.currentFunction) {
       return this.genStringLiteralLocale(node);
+    } else {
+      return this.genStringLiteralGlobal(node);
     }
   }
 
@@ -59,7 +72,7 @@ export default class CodeGenString {
     return this.cgen.builder.createBitCast(arrayPtr, llvm.Type.getInt8PtrTy(this.cgen.context));
   }
 
-  public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
+  public genElementAccessExpression(node: ts.ElementAccessExpression): llvm.Value {
     const identifier = this.cgen.genExpression(node.expression);
     const argumentExpression = this.cgen.genExpression(node.argumentExpression);
     return this.getElementAccess(identifier, argumentExpression);
@@ -89,8 +102,7 @@ export default class CodeGenString {
   }
 
   public genPropertyAccessExpression(node: ts.PropertyAccessExpression): llvm.Value {
-    const symbol = this.cgen.symtab.get((node.expression as ts.Identifier).getText()) as symtab.LLVMValue;
-    const parent = this.cgen.builder.createLoad(symbol.inner);
+    const parent = this.cgen.genExpression(node.expression);
     switch (node.name.getText()) {
       case 'length':
         return this.cgen.stdlib.strlen([parent]);
