@@ -14,10 +14,10 @@ export default class CodeGenArray {
   public genVariableDeclaration(node: ts.VariableDeclaration): llvm.Value {
     return this.cgen.withName(node.name.getText(), () => {
       return this.cgen.withType(node.type, () => {
-        if (this.cgen.currentFunction === undefined) {
-          return this.genVariableDeclarationGlobal(node);
-        } else {
+        if (this.cgen.currentFunction) {
           return this.genVariableDeclarationLocale(node);
+        } else {
+          return this.genVariableDeclarationGlobal(node);
         }
       });
     });
@@ -28,13 +28,6 @@ export default class CodeGenArray {
     const initializer = this.cgen.genExpression(node.initializer!);
     const type = initializer.type;
 
-    // ObjectLiteral
-    if (type.isPointerTy() && (type as llvm.PointerType).elementType.isStructTy()) {
-      this.cgen.symtab.set(name, new symtab.LLVMValue(initializer, 0));
-      return initializer;
-    }
-
-    // Others
     const alloca = this.cgen.builder.createAlloca(type, undefined, name);
     this.cgen.builder.createStore(initializer, alloca);
     this.cgen.symtab.set(name, new symtab.LLVMValue(alloca, 1));
@@ -44,51 +37,42 @@ export default class CodeGenArray {
   public genVariableDeclarationGlobal(node: ts.VariableDeclaration): llvm.Value {
     switch (node.initializer!.kind) {
       case ts.SyntaxKind.NumericLiteral:
-        return this.genVariableDeclarationGlobalNumeric(node.initializer! as ts.NumericLiteral);
+        return this.genNumericGlobal(node.initializer! as ts.NumericLiteral);
       case ts.SyntaxKind.StringLiteral:
-        return this.genVariableDeclarationGlobalStringLiteral(node.initializer! as ts.StringLiteral);
+        return this.genStringLiteralGlobal(node.initializer! as ts.StringLiteral);
       case ts.SyntaxKind.ArrayLiteralExpression:
-        return this.genVariableDeclarationGlobalArrayLiteral(node.initializer! as ts.ArrayLiteralExpression);
+        return this.genArrayLiteralGlobal(node.initializer! as ts.ArrayLiteralExpression);
       case ts.SyntaxKind.ObjectLiteralExpression:
-        return this.cgen.genObjectLiteralExpression(node.initializer! as ts.ObjectLiteralExpression);
-      case ts.SyntaxKind.BinaryExpression:
-        return this.cgen.genBinaryExpression(node.initializer! as ts.BinaryExpression);
+        return this.genObjectLiteralGlobal(node.initializer! as ts.ObjectLiteralExpression);
       default:
-        throw new Error(`Unsupported type ${node.initializer!.kind}`);
+        throw new Error(`Unsupported grammar: ${node.getText()}`);
     }
   }
 
-  public genVariableDeclarationGlobalNumeric(node: ts.NumericLiteral): llvm.GlobalVariable {
+  private genNumericGlobal(node: ts.NumericLiteral): llvm.GlobalVariable {
     const a = this.cgen.cgNumeric.genNumericGlobal(node);
-    const r = new llvm.GlobalVariable(
-      this.cgen.module,
-      a.type,
-      false,
-      llvm.LinkageTypes.ExternalLinkage,
-      a,
-      this.cgen.symtab.name() + this.cgen.readName()
-    );
-
+    const argName = this.cgen.symtab.name() + this.cgen.readName();
+    const r = new llvm.GlobalVariable(this.cgen.module, a.type, false, llvm.LinkageTypes.ExternalLinkage, a, argName);
     this.cgen.symtab.set(this.cgen.readName(), new symtab.LLVMValue(r, 1));
     return r;
   }
 
-  public genVariableDeclarationGlobalStringLiteral(node: ts.StringLiteral): llvm.GlobalVariable {
-    const a = this.cgen.cgString.genStringLiteralGlobal(node);
-    const v = new llvm.GlobalVariable(
-      this.cgen.module,
-      a.type,
-      false,
-      llvm.LinkageTypes.ExternalLinkage,
-      a as llvm.Constant,
-      this.cgen.symtab.name() + this.cgen.readName()
-    );
+  private genStringLiteralGlobal(node: ts.StringLiteral): llvm.GlobalVariable {
+    const a = this.cgen.cgString.genStringLiteralGlobal(node) as llvm.Constant;
+    const argName = this.cgen.symtab.name() + this.cgen.readName();
+    const v = new llvm.GlobalVariable(this.cgen.module, a.type, false, llvm.LinkageTypes.ExternalLinkage, a, argName);
     this.cgen.symtab.set(this.cgen.readName(), new symtab.LLVMValue(v, 1));
     return v;
   }
 
-  public genVariableDeclarationGlobalArrayLiteral(node: ts.ArrayLiteralExpression): llvm.Value {
+  private genArrayLiteralGlobal(node: ts.ArrayLiteralExpression): llvm.Value {
     const r = this.cgen.cgArray.genArrayLiteralGlobal(node);
+    this.cgen.symtab.set(this.cgen.readName(), new symtab.LLVMValue(r, 0));
+    return r;
+  }
+
+  private genObjectLiteralGlobal(node: ts.ObjectLiteralExpression): llvm.Value {
+    const r = this.cgen.cgObject.genObjectLiteralExpression(node);
     this.cgen.symtab.set(this.cgen.readName(), new symtab.LLVMValue(r, 0));
     return r;
   }

@@ -19,7 +19,7 @@ import CodeGenFuncDecl from './function-declaration';
 import CodeGenIf from './if-statement';
 import CodeGenImport from './import-declaration';
 import CodeGenNumeric from './numeric-expression';
-import CodeGenObject from './object-declaration';
+import CodeGenObject from './object-literal-expression';
 import CodeGenPostfixUnary from './postfix-unary-expression';
 import CodeGenPrefixUnary from './prefix-unary-expression';
 import CodeGenPropertyAccessExpression from './property-access-expression';
@@ -296,7 +296,7 @@ export default class LLVMCodeGen {
   }
 
   public genElementAccess(node: ts.ElementAccessExpression): llvm.Value {
-    return this.cgElemAccess.genElementAccess(node);
+    return this.cgElemAccess.genElementAccessExpression(node);
   }
 
   public genCallExpression(node: ts.CallExpression): llvm.Value {
@@ -423,7 +423,7 @@ export default class LLVMCodeGen {
   }
 
   public genPropertyAccessExpressionPtr(node: ts.PropertyAccessExpression): llvm.Value {
-    return this.cgObject.genObjectElementAccessPtr(node);
+    return this.cgObject.genPropertyAccessExpressionPtr(node);
   }
 
   public genObjectLiteralExpression(node: ts.ObjectLiteralExpression): llvm.Value {
@@ -432,9 +432,5 @@ export default class LLVMCodeGen {
 
   public genConditionalExpression(node: ts.ConditionalExpression): llvm.Value {
     return this.cgCondition.genConditionalExpression(node);
-  }
-
-  public initObjectInst(varName: string, type: llvm.StructType, values: llvm.Constant[]): llvm.Value {
-    return this.cgObject.initObjectInst(varName, type, values);
   }
 }

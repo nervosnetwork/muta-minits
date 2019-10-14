@@ -11,10 +11,10 @@ export default class CodeGenNumeric {
   }
 
   public genNumeric(node: ts.NumericLiteral): llvm.ConstantInt {
-    if (this.cgen.currentFunction === undefined) {
-      return this.genNumericGlobal(node);
-    } else {
+    if (this.cgen.currentFunction) {
       return this.genNumericLocale(node);
+    } else {
+      return this.genNumericGlobal(node);
     }
   }
 

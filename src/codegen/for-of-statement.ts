@@ -115,15 +115,7 @@ export default class CodeGenForOf {
   }
 
   public genForOfStatement(node: ts.ForOfStatement): void {
-    const isTypeString = (() => {
-      if (node.expression.kind === ts.SyntaxKind.Identifier) {
-        const symbol = this.cgen.checker.getSymbolAtLocation(node.expression)!;
-        const type = this.cgen.checker.getTypeOfSymbolAtLocation(symbol, node.expression);
-        return type.flags === ts.TypeFlags.String;
-      }
-      return node.expression.kind === ts.SyntaxKind.StringLiteral;
-    })();
-    if (isTypeString) {
+    if (this.cgen.cgString.isStringLiteral(node.expression)) {
       return this.genForOfStatementString(node);
     } else {
       return this.genForOfStatementArray(node);
