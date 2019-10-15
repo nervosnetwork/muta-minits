@@ -217,6 +217,8 @@ export default class LLVMCodeGen {
     switch (type.kind) {
       case ts.SyntaxKind.VoidKeyword:
         return llvm.Type.getVoidTy(this.context);
+      case ts.SyntaxKind.AnyKeyword:
+        return llvm.Type.getInt64Ty(this.context);
       case ts.SyntaxKind.BooleanKeyword:
         return llvm.Type.getInt1Ty(this.context);
       case ts.SyntaxKind.NumberKeyword:
