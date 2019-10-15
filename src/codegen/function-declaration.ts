@@ -39,7 +39,7 @@ export default class CodeGenFuncDecl {
     }
     this.cgen.symtab.set(name, new symtab.LLVMValue(func, 0));
     if (name === 'syscall') {
-      return func
+      return func;
     }
     this.list.push({ func, node });
     return func;
