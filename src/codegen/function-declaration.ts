@@ -38,6 +38,9 @@ export default class CodeGenFuncDecl {
       func.addFnAttr(llvm.Attribute.AttrKind.OptimizeNone);
     }
     this.cgen.symtab.set(name, new symtab.LLVMValue(func, 0));
+    if (name === 'syscall') {
+      return func
+    }
     this.list.push({ func, node });
     return func;
   }
