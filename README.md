@@ -19,7 +19,7 @@ Then install minits:
 ```
 $ git clone https://github.com/cryptape/minits
 $ npm install
-$ npm build
+$ npm run build
 ```
 
 # Writing and Compiling a TypeScript Program
@@ -43,7 +43,7 @@ $ ./main
 
 # Analysis for a minits Program: Brainfuck
 
-minits is a completely static language, similar to clang or rust, `function main()` is the entry point to every executable minits program. It receives(optional) 2 parameters `argc: number` and `argv: string[]`, and returns the exit code. So you can also write it as `function main(argc: number, argc: string[]): number`.
+minits is a completely static language, similar to clang or rust, `function main()` is the entry point to every executable minits program. It receives(optional) 2 parameters `argc: number` and `argv: string[]`, and returns the exit code. So you can also write it as `function main(argc: number, argv: string[]): number`.
 
 We suggest you read the source code under `./examples`. Let's hava a look at `./examples/brainfuck.ts`. Brainfuck is an esoteric programming language created in 1993 by Urban Müller, and is notable for its extreme minimalism. We wrote a brainfuck interpreter by minits. Compile this interpreter by
 
