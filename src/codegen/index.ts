@@ -18,6 +18,7 @@ import CodeGenFor from './for-statement';
 import CodeGenFuncDecl from './function-declaration';
 import CodeGenIf from './if-statement';
 import CodeGenImport from './import-declaration';
+import CodeGenNew from './new-expression';
 import CodeGenNumeric from './numeric-expression';
 import CodeGenObject from './object-literal-expression';
 import CodeGenPostfixUnary from './postfix-unary-expression';
@@ -60,6 +61,7 @@ export default class LLVMCodeGen {
   public readonly cgImport: CodeGenImport;
   public readonly cgNumeric: CodeGenNumeric;
   public readonly cgObject: CodeGenObject;
+  public readonly cgNew: CodeGenNew;
   public readonly cgPostfixUnary: CodeGenPostfixUnary;
   public readonly cgPrefixUnary: CodeGenPrefixUnary;
   public readonly cgPropertyAccessExpression: CodeGenPropertyAccessExpression;
@@ -102,6 +104,7 @@ export default class LLVMCodeGen {
     this.cgImport = new CodeGenImport(this);
     this.cgNumeric = new CodeGenNumeric(this);
     this.cgObject = new CodeGenObject(this);
+    this.cgNew = new CodeGenNew(this);
     this.cgPostfixUnary = new CodeGenPostfixUnary(this);
     this.cgPrefixUnary = new CodeGenPrefixUnary(this);
     this.cgPropertyAccessExpression = new CodeGenPropertyAccessExpression(this);
@@ -286,6 +289,8 @@ export default class LLVMCodeGen {
         return this.genPropertyAccessExpression(expr as ts.PropertyAccessExpression);
       case ts.SyntaxKind.ObjectLiteralExpression:
         return this.genObjectLiteralExpression(expr as ts.ObjectLiteralExpression);
+      case ts.SyntaxKind.NewExpression:
+        return this.genNewExpression(expr as ts.NewExpression);
       case ts.SyntaxKind.ConditionalExpression:
         return this.genConditionalExpression(expr as ts.ConditionalExpression);
       default:
@@ -430,6 +435,10 @@ export default class LLVMCodeGen {
 
   public genObjectLiteralExpression(node: ts.ObjectLiteralExpression): llvm.Value {
     return this.cgObject.genObjectLiteralExpression(node);
+  }
+
+  public genNewExpression(node: ts.NewExpression): llvm.Value {
+    return this.cgNew.genNewExpression(node);
   }
 
   public genConditionalExpression(node: ts.ConditionalExpression): llvm.Value {
