@@ -29,7 +29,7 @@ export default class CodeGenFuncDecl {
         return this.cgen.stdlib.syscall(callArgs);
       default:
         const value = this.cgen.symtab.get(funcName);
-        const func = (value as symtab.LLVMValue).inner as llvm.Function;
+        const func = (value as symtab.Leaf).data as llvm.Function;
         const frgs = func.getArguments();
         const back: Array<{ src: llvm.Value; dst: llvm.Value }> = [];
 

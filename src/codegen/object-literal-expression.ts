@@ -1,13 +1,8 @@
 import crypto from 'crypto';
-import Debug from 'debug';
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
 import LLVMCodeGen from '.';
-
-const debug = Debug('minits:codegen:object');
-
-debug('codegen-object');
 
 export default class GenObject {
   private cgen: LLVMCodeGen;
@@ -18,14 +13,24 @@ export default class GenObject {
 
   public getObjectLiteralTypeName(memberTypes: llvm.Type[]): string {
     const data = memberTypes.map(t => t.typeID).join('-');
-    return (
-      'TypeLiteral-' +
-      crypto
-        .createHash('md5')
-        .update(data)
-        .digest()
-        .toString('hex')
-    );
+    const prefix = 'TypeLiteral-';
+    const suffix = crypto
+      .createHash('md5')
+      .update(data)
+      .digest()
+      .toString('hex');
+    return prefix + suffix;
+  }
+
+  public genObjectLiteralType(type: ts.TypeLiteralNode): llvm.Type {
+    const memberTypes: llvm.Type[] = [];
+    type.members.forEach(m => memberTypes.push(this.cgen.genType((m as ts.PropertySignature).type!)));
+    const name = this.getObjectLiteralTypeName(memberTypes);
+    if (!this.cgen.module.getTypeByName(name)) {
+      const structType = llvm.StructType.create(this.cgen.context, name);
+      structType.setBody(memberTypes, false);
+    }
+    return this.cgen.module.getTypeByName(name)!.getPointerTo();
   }
 
   public genObjectLiteralExpression(node: ts.ObjectLiteralExpression): llvm.Value {
@@ -68,8 +73,7 @@ export default class GenObject {
   public genObjectLiteralExpressionGlobal(structType: llvm.StructType, values: llvm.Value[]): llvm.Value {
     const argInitializer = llvm.ConstantStruct.get(structType, values as llvm.Constant[]);
     const argLinkage = llvm.LinkageTypes.ExternalLinkage;
-    const argName = this.cgen.symtab.name() + 'object';
-    return new llvm.GlobalVariable(this.cgen.module, structType, false, argLinkage, argInitializer, argName);
+    return new llvm.GlobalVariable(this.cgen.module, structType, false, argLinkage, argInitializer);
   }
 
   public genPropertyAccessExpressionPtr(node: ts.PropertyAccessExpression): llvm.Value {
@@ -87,16 +91,5 @@ export default class GenObject {
   public genPropertyAccessExpression(node: ts.PropertyAccessExpression): llvm.Value {
     const ptr = this.genPropertyAccessExpressionPtr(node);
     return this.cgen.builder.createLoad(ptr);
-  }
-
-  public genObjectLiteralType(type: ts.TypeLiteralNode): llvm.Type {
-    const memberTypes: llvm.Type[] = [];
-    type.members.forEach(m => memberTypes.push(this.cgen.genType((m as ts.PropertySignature).type!)));
-    const name = this.getObjectLiteralTypeName(memberTypes);
-    if (!this.cgen.module.getTypeByName(name)) {
-      const structType = llvm.StructType.create(this.cgen.context, name);
-      structType.setBody(memberTypes, false);
-    }
-    return this.cgen.module.getTypeByName(name)!.getPointerTo();
   }
 }

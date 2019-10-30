@@ -18,14 +18,14 @@ export default class CodeGenForOf {
       const type = initializer.type;
       const alloca = this.cgen.builder.createAlloca(type, undefined, name);
       this.cgen.builder.createStore(initializer, alloca);
-      this.cgen.symtab.set(name, new symtab.LLVMValue(alloca, 1));
+      this.cgen.symtab.set(name, new symtab.Leaf(alloca, 1));
       return alloca;
     })();
     const identifier = this.cgen.genExpression(node.expression) as llvm.AllocaInst;
     const pv = (() => {
       const name = (node.initializer! as ts.VariableDeclarationList).declarations!.map(item => item.getText())[0];
       const alloca = this.cgen.builder.createAlloca(llvm.Type.getInt8PtrTy(this.cgen.context), undefined, name);
-      this.cgen.symtab.set(name, new symtab.LLVMValue(alloca, 1));
+      this.cgen.symtab.set(name, new symtab.Leaf(alloca, 1));
       return alloca;
     })();
 
@@ -66,7 +66,7 @@ export default class CodeGenForOf {
       const type = initializer.type;
       const alloca = this.cgen.builder.createAlloca(type, undefined, name);
       this.cgen.builder.createStore(initializer, alloca);
-      this.cgen.symtab.set(name, new symtab.LLVMValue(alloca, 1));
+      this.cgen.symtab.set(name, new symtab.Leaf(alloca, 1));
       return alloca;
     })();
     const identifier = this.cgen.genExpression(node.expression);
@@ -74,7 +74,7 @@ export default class CodeGenForOf {
       const type = (identifier.type as llvm.PointerType).elementType;
       const name = (node.initializer! as ts.VariableDeclarationList).declarations!.map(item => item.getText())[0];
       const alloca = this.cgen.builder.createAlloca(type, undefined, name);
-      this.cgen.symtab.set(name, new symtab.LLVMValue(alloca, 1));
+      this.cgen.symtab.set(name, new symtab.Leaf(alloca, 1));
       return alloca;
     })();
     const loopCond = llvm.BasicBlock.create(this.cgen.context, 'loop.cond', this.cgen.currentFunction);

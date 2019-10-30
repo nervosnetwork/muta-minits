@@ -28,6 +28,7 @@ function main(): number {
   let a = "Hello";
   let b = "World";
   let c = a + " " + b;
+  c += "!";
   return c.length
 }
 `;

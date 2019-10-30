@@ -58,6 +58,24 @@ function main(): number {
 }
 `;
 
+const srcClassConstructor = `
+class Employee {
+    empCode: number;
+    empName: string;
+
+    constructor(empCode: number, empName: string) {
+        this.empCode = empCode;
+        this.empName = empName;
+    }
+}
+
+function main(): number {
+    const a = new Employee(42, "Mohanson");
+    return a.empCode;
+}
+`;
+
 runTest('test class: init', srcClassInit);
 runTest('test class: as function argument', srcClassAsFunctionArgument);
 runTest('test class: class in class', srcClassInClass);
+runTest('test class: constructor', srcClassConstructor);

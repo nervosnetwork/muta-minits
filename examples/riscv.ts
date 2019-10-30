@@ -7,9 +7,7 @@
 // $ llc -filetype=obj /tmp/main.bc -o /tmp/main.obj
 // $ riscv64-unknown-elf-gcc /tmp/main.obj -o /tmp/main.out
 
-function syscall(n: number, a: any, b: any, c: any, d: any, e: any, f: any): number {
-    return 0;
-}
+declare function syscall(n: number, a: any, b: any, c: any, d: any, e: any, f: any): number;
 
 function main(): number {
     let a = "Hello World!";

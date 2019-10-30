@@ -1,4 +1,3 @@
-import Debug from 'debug';
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
@@ -17,6 +16,7 @@ import CodeGenExport from './export-declaration';
 import CodeGenForOf from './for-of-statement';
 import CodeGenFor from './for-statement';
 import CodeGenFuncDecl from './function-declaration';
+import CodeGenGlobalObjectInt8Array from './global-object-int8array';
 import CodeGenIf from './if-statement';
 import CodeGenImport from './import-declaration';
 import CodeGenNew from './new-expression';
@@ -27,13 +27,8 @@ import CodeGenPrefixUnary from './prefix-unary-expression';
 import CodeGenPropertyAccessExpression from './property-access-expression';
 import CodeGenReturn from './return-statement';
 import CodeGenString from './string-literal-expression';
-import CodeGenSwitch from './switch-statement';
 import CodeGenVarDecl from './variable-declaration';
 import CodeGenWhile from './while-statement';
-
-const debug = Debug('minits:codegen');
-
-debug('codegen');
 
 export default class LLVMCodeGen {
   public readonly rootDir: string;
@@ -59,6 +54,7 @@ export default class LLVMCodeGen {
   public readonly cgForOf: CodeGenForOf;
   public readonly cgFor: CodeGenFor;
   public readonly cgFuncDecl: CodeGenFuncDecl;
+  public readonly cgInt8Array: CodeGenGlobalObjectInt8Array;
   public readonly cgIf: CodeGenIf;
   public readonly cgImport: CodeGenImport;
   public readonly cgNumeric: CodeGenNumeric;
@@ -69,7 +65,6 @@ export default class LLVMCodeGen {
   public readonly cgPropertyAccessExpression: CodeGenPropertyAccessExpression;
   public readonly cgReturn: CodeGenReturn;
   public readonly cgString: CodeGenString;
-  public readonly cgSwitch: CodeGenSwitch;
   public readonly cgVarDecl: CodeGenVarDecl;
   public readonly cgWhile: CodeGenWhile;
 
@@ -77,7 +72,6 @@ export default class LLVMCodeGen {
   public currentContinueBlock: llvm.BasicBlock | undefined;
   public currentFunction: llvm.Function | undefined;
   public currentType: ts.TypeNode | undefined;
-  public currentName: string | undefined;
 
   constructor(rootDir: string, program: ts.Program) {
     this.rootDir = rootDir;
@@ -103,6 +97,7 @@ export default class LLVMCodeGen {
     this.cgForOf = new CodeGenForOf(this);
     this.cgFor = new CodeGenFor(this);
     this.cgFuncDecl = new CodeGenFuncDecl(this);
+    this.cgInt8Array = new CodeGenGlobalObjectInt8Array(this);
     this.cgIf = new CodeGenIf(this);
     this.cgImport = new CodeGenImport(this);
     this.cgNumeric = new CodeGenNumeric(this);
@@ -113,7 +108,6 @@ export default class LLVMCodeGen {
     this.cgPropertyAccessExpression = new CodeGenPropertyAccessExpression(this);
     this.cgReturn = new CodeGenReturn(this);
     this.cgString = new CodeGenString(this);
-    this.cgSwitch = new CodeGenSwitch(this);
     this.cgVarDecl = new CodeGenVarDecl(this);
     this.cgWhile = new CodeGenWhile(this);
 
@@ -121,7 +115,6 @@ export default class LLVMCodeGen {
     this.currentContinueBlock = undefined;
     this.currentFunction = undefined;
     this.currentType = undefined;
-    this.currentName = undefined;
   }
 
   public withFunction(func: llvm.Function, body: () => any): any {
@@ -140,14 +133,6 @@ export default class LLVMCodeGen {
     return r;
   }
 
-  public withName(name: string | undefined, body: () => any): any {
-    const a = this.currentName;
-    this.currentName = name;
-    const r = body();
-    this.currentName = a;
-    return r;
-  }
-
   public withContinueBreakBlock(c: llvm.BasicBlock, b: llvm.BasicBlock, body: () => any): any {
     const rc = this.currentContinueBlock;
     this.currentContinueBlock = c;
@@ -159,12 +144,18 @@ export default class LLVMCodeGen {
     return r;
   }
 
-  public readName(): string {
-    return this.currentName ? this.currentName : 'unnamed';
-  }
-
   public genText(): string {
     return this.module.print();
+  }
+
+  public genGlobalVariable(initializer: llvm.Constant): llvm.Value {
+    return new llvm.GlobalVariable(
+      this.module,
+      initializer.type,
+      false,
+      llvm.LinkageTypes.ExternalLinkage,
+      initializer
+    );
   }
 
   public genSourceFile(file: string): void {
@@ -214,9 +205,9 @@ export default class LLVMCodeGen {
   }
 
   public genIdentifier(node: ts.Identifier): llvm.Value {
-    const symbol = this.symtab.get(node.getText())! as symtab.LLVMValue;
-    let r = symbol.inner;
-    for (let i = 0; i < symbol.deref; i++) {
+    const symbol = this.symtab.get(node.getText())! as symtab.Leaf;
+    let r = symbol.data;
+    for (let i = 0; i < symbol.ptrs; i++) {
       r = this.builder.createLoad(r);
     }
     return r;
@@ -246,17 +237,14 @@ export default class LLVMCodeGen {
             return structType.getPointerTo();
           }
           const dest = this.symtab.get(typeName);
-          if (symtab.isScope(dest)) {
-            for (const v of dest.inner.values()) {
-              return (v as symtab.LLVMValue).inner.type;
+          if (symtab.isMeso(dest)) {
+            for (const v of dest.data.values()) {
+              return (v as symtab.Leaf).data.type;
             }
           }
           throw new Error('Unsupported type'); // TODO: impl struct
         }
-        if (real.typeName.kind === ts.SyntaxKind.QualifiedName) {
-          throw new Error('Unsupported type'); // TODO
-        }
-        throw new Error('Unsupported type');
+        throw new Error(`Unsupported type ${type.getText()}`);
       case ts.SyntaxKind.TypeLiteral:
         return this.cgObject.genObjectLiteralType(type as ts.TypeLiteralNode);
       case ts.SyntaxKind.ArrayType:
@@ -346,6 +334,8 @@ export default class LLVMCodeGen {
         return this.genBlock(node as ts.Block);
       case ts.SyntaxKind.VariableStatement:
         return this.genVariableStatement(node as ts.VariableStatement);
+      case ts.SyntaxKind.EmptyStatement:
+        return;
       case ts.SyntaxKind.ExpressionStatement:
         return this.genExpressionStatement(node as ts.ExpressionStatement);
       case ts.SyntaxKind.IfStatement:
@@ -364,8 +354,6 @@ export default class LLVMCodeGen {
         return this.genBreakStatement();
       case ts.SyntaxKind.ReturnStatement:
         return this.genReturnStatement(node as ts.ReturnStatement);
-      case ts.SyntaxKind.SwitchStatement:
-        return this.genSwitchStatement(node as ts.SwitchStatement);
       case ts.SyntaxKind.EnumDeclaration:
         return this.genEnumDeclaration(node as ts.EnumDeclaration);
       default:
@@ -373,8 +361,8 @@ export default class LLVMCodeGen {
     }
   }
 
-  public genVariableDeclaration(node: ts.VariableDeclaration): llvm.Value {
-    return this.cgVarDecl.genVariableDeclaration(node);
+  public genVariableDeclaration(node: ts.VariableDeclaration): void {
+    this.cgVarDecl.genVariableDeclaration(node);
   }
 
   public genVariableStatement(node: ts.VariableStatement): void {
@@ -397,10 +385,6 @@ export default class LLVMCodeGen {
 
   public genReturnStatement(node: ts.ReturnStatement): llvm.Value {
     return this.cgReturn.genReturnStatement(node);
-  }
-
-  public genSwitchStatement(node: ts.SwitchStatement): void {
-    return this.cgSwitch.genSwitchStatement(node);
   }
 
   public genIfStatement(node: ts.IfStatement): void {
@@ -427,7 +411,7 @@ export default class LLVMCodeGen {
     return this.cgForOf.genForOfStatement(node);
   }
 
-  public genFunctionDeclaration(node: ts.FunctionDeclaration): llvm.Value {
+  public genFunctionDeclaration(node: ts.FunctionDeclaration): void {
     return this.cgFuncDecl.genFunctionDeclaration(node);
   }
 

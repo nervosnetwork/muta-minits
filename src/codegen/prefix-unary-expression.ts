@@ -12,14 +12,16 @@ export default class CodeGenPrefixUnary {
 
   public genPrefixUnaryExpression(expr: ts.PrefixUnaryExpression): llvm.Value {
     switch (expr.operator) {
-      // !
+      // ~
       case ts.SyntaxKind.TildeToken:
         return this.cgen.builder.createXor(
           this.cgen.genExpression(expr.operand),
           llvm.ConstantInt.get(this.cgen.context, -1, 64)
         );
-      default:
-        throw new Error('Unsupported prefix unary expression');
+      // !
+      case ts.SyntaxKind.ExclamationToken:
+        return this.cgen.builder.createNot(this.cgen.genExpression(expr.operand));
     }
+    throw new Error('Error that should never happen');
   }
 }

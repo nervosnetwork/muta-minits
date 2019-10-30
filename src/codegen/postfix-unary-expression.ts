@@ -20,7 +20,7 @@ export default class CodeGenPostfixUnary {
         return (() => {
           const one = llvm.ConstantInt.get(this.cgen.context, 1, 64);
           const r = this.cgen.builder.createAdd(lhs, one);
-          const ptr = (this.cgen.symtab.get(e.getText())! as symtab.LLVMValue).inner;
+          const ptr = (this.cgen.symtab.get(e.getText())! as symtab.Leaf).data;
           this.cgen.builder.createStore(r, ptr);
           return lhs;
         })();
@@ -29,12 +29,11 @@ export default class CodeGenPostfixUnary {
         return (() => {
           const one = llvm.ConstantInt.get(this.cgen.context, 1, 64);
           const r = this.cgen.builder.createSub(lhs, one);
-          const ptr = (this.cgen.symtab.get(e.getText()) as symtab.LLVMValue).inner;
+          const ptr = (this.cgen.symtab.get(e.getText()) as symtab.Leaf).data;
           this.cgen.builder.createStore(r, ptr);
           return lhs;
         })();
-      default:
-        throw new Error('Unsupported postfix unary expression');
     }
+    throw new Error('Error that should never happen');
   }
 }

@@ -18,13 +18,12 @@ export default class CodeGenStruct {
         const v = this.cgen.checker.getConstantValue(item);
         switch (typeof v) {
           case 'string':
-            this.cgen.symtab.set(
-              name,
-              new symtab.LLVMValue(this.cgen.cgString.genStringLiteral(item.initializer! as ts.StringLiteral), 0)
-            );
+            const a = new symtab.Leaf(this.cgen.genStringLiteral(item.initializer! as ts.StringLiteral), 0);
+            this.cgen.symtab.set(name, a);
             break;
           case 'number':
-            this.cgen.symtab.set(name, new symtab.LLVMValue(llvm.ConstantInt.get(this.cgen.context, v, 64), 0));
+            const b = new symtab.Leaf(llvm.ConstantInt.get(this.cgen.context, v, 64), 0);
+            this.cgen.symtab.set(name, b);
             break;
         }
       });

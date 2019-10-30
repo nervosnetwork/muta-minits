@@ -34,20 +34,13 @@ export default class CodeGenString {
   }
 
   public genStringLiteralLocale(node: ts.StringLiteral): llvm.Value {
-    return this.cgen.builder.createGlobalStringPtr(node.text, this.cgen.symtab.name() + 'str');
+    return this.cgen.builder.createGlobalStringPtr(node.text);
   }
 
   // [0] How to create global string array? http://lists.llvm.org/pipermail/llvm-dev/2010-June/032072.html
   public genStringLiteralGlobal(node: ts.StringLiteral): llvm.Value {
     const v = llvm.ConstantDataArray.getString(this.cgen.context, node.text);
-    const r = new llvm.GlobalVariable(
-      this.cgen.module,
-      v.type,
-      false,
-      llvm.LinkageTypes.ExternalLinkage,
-      v,
-      this.cgen.symtab.name() + 'str'
-    );
+    const r = new llvm.GlobalVariable(this.cgen.module, v.type, false, llvm.LinkageTypes.ExternalLinkage, v);
     return this.cgen.builder.createBitCast(r, llvm.Type.getInt8PtrTy(this.cgen.context));
   }
 
@@ -101,13 +94,18 @@ export default class CodeGenString {
     return ptr;
   }
 
-  public genPropertyAccessExpression(node: ts.PropertyAccessExpression): llvm.Value {
-    const parent = this.cgen.genExpression(node.expression);
-    switch (node.name.getText()) {
+  public getPropertyAccessExpression(s: llvm.Value, property: string): llvm.Value {
+    switch (property) {
       case 'length':
-        return this.cgen.stdlib.strlen([parent]);
+        return this.cgen.stdlib.strlen([s]);
       default:
-        throw new Error('Unsupported Attribute');
+        throw new Error(`Object doesn't support property or method '${property}'`);
     }
+  }
+
+  public genPropertyAccessExpression(node: ts.PropertyAccessExpression): llvm.Value {
+    const s = this.cgen.genExpression(node.expression);
+    const property = node.name.getText();
+    return this.getPropertyAccessExpression(s, property);
   }
 }
