@@ -8,4 +8,12 @@ function main(): number {
 }
 `;
 
+const srcNewWithNumberArray = `
+function main(): number {
+    let a = new Buffer([1, 2000, 3]);
+    return a[1];
+}
+`;
+
 runTest('test buffer: get and set', srcGetAndSet);
+runTest('test buffer: new with number array', srcNewWithNumberArray);
