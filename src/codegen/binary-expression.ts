@@ -137,6 +137,14 @@ export default class CodeGenBinary {
         return bbPhi;
       // =
       case ts.SyntaxKind.EqualsToken:
+        if (expr.left.kind === ts.SyntaxKind.ElementAccessExpression) {
+          const e = (expr.left as ts.ElementAccessExpression).expression;
+          const type = this.cgen.checker.getTypeAtLocation(e);
+          if (type.symbol.escapedName === 'Buffer') {
+            const v = this.cgen.builder.createIntCast(rhs, llvm.Type.getInt8Ty(this.cgen.context), true);
+            return this.cgen.builder.createStore(v, lhs);
+          }
+        }
         return this.cgen.builder.createStore(rhs, lhs);
       // +=
       case ts.SyntaxKind.PlusEqualsToken:

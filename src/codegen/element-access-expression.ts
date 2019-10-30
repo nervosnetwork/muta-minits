@@ -16,6 +16,11 @@ export default class CodeGenElemAccess {
     if (this.cgen.cgString.isStringLiteral(node.expression)) {
       return this.cgen.cgString.getElementAccess(identifer, argumentExpression);
     }
-    return this.cgen.cgArray.getElementAccess(identifer, argumentExpression);
+    const e = this.cgen.cgArray.getElementAccess(identifer, argumentExpression);
+    const type = this.cgen.checker.getTypeAtLocation(node.expression);
+    if (type.symbol.escapedName === 'Buffer') {
+      return this.cgen.builder.createIntCast(e, llvm.Type.getInt64Ty(this.cgen.context), true);
+    }
+    return e;
   }
 }
