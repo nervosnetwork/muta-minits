@@ -14,7 +14,7 @@ export default class CodeGenNew {
     if (node.expression.kind === ts.SyntaxKind.Identifier) {
       const name = (node.expression as ts.Identifier).getText();
       switch (name) {
-        case 'Buffer':
+        case 'Int8Array':
           switch (node.arguments![0].kind) {
             case ts.SyntaxKind.NumericLiteral:
               const n = parseInt((node.arguments![0] as ts.NumericLiteral).getText(), 10);

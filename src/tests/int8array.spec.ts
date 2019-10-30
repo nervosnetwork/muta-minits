@@ -2,7 +2,7 @@ import { runTest } from './util';
 
 const srcGetAndSet = `
 function main(): number {
-    let a = new Buffer(10);
+    let a = new Int8Array(10);
     a[0] = 278;
     return a[0];
 }
@@ -10,7 +10,7 @@ function main(): number {
 
 const srcNewWithNumberArray = `
 function main(): number {
-    let a = new Buffer([1, 2000, 3]);
+    let a = new Int8Array([1, 2000, 3]);
     return a[1];
 }
 `;
