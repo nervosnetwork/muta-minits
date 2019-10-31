@@ -231,7 +231,11 @@ export default class LLVMCodeGen {
       case ts.SyntaxKind.TypeReference:
         const real = type as ts.TypeReferenceNode;
         if (real.typeName.kind === ts.SyntaxKind.Identifier) {
-          const dest = this.symtab.get((real.typeName as ts.Identifier).getText());
+          const typeName = (real.typeName as ts.Identifier).getText();
+          if (typeName === 'Int8Array') {
+            return llvm.Type.getInt8PtrTy(this.context);
+          }
+          const dest = this.symtab.get(typeName);
           if (symtab.isScope(dest)) {
             for (const v of dest.inner.values()) {
               return (v as symtab.LLVMValue).inner.type;
