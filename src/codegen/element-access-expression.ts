@@ -18,7 +18,7 @@ export default class CodeGenElemAccess {
     }
     const e = this.cgen.cgArray.getElementAccess(identifer, argumentExpression);
     const type = this.cgen.checker.getTypeAtLocation(node.expression);
-    if (type.symbol.escapedName === 'Buffer') {
+    if (type.symbol.escapedName === 'Int8Array') {
       return this.cgen.builder.createIntCast(e, llvm.Type.getInt64Ty(this.cgen.context), true);
     }
     return e;

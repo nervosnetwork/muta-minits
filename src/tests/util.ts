@@ -16,7 +16,7 @@ export async function runCode(
   const jsRet = await compileToJS(source, options);
   const irPath = await compileToLLVMIR(source);
   const llvmRet = shell.exec(`lli ${irPath}`, { async: false });
-  if (jsRet !== llvmRet.code) {
+  if (jsRet !== llvmRet.code && 256 + jsRet !== llvmRet.code) {
     return false;
   }
   if (llvmRet.stderr) {
