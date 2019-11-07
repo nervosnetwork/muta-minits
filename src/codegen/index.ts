@@ -243,7 +243,7 @@ export default class LLVMCodeGen {
           }
           const structType = this.module.getTypeByName(typeName);
           if (structType) {
-            return structType;
+            return structType.getPointerTo();
           }
           const dest = this.symtab.get(typeName);
           if (symtab.isScope(dest)) {
