@@ -8,6 +8,7 @@ import CodeGenArray from './array-literal-expression';
 import CodeGenBinary from './binary-expression';
 import CodeGenBoolean from './boolean-literal-expression';
 import CodeGenCall from './call-expression';
+import CodeGenClassDeclaration from './class-declaration';
 import CodeGenCondition from './condition-expression';
 import CodeGenDo from './do-statement';
 import CodeGenElemAccess from './element-access-expression';
@@ -49,6 +50,7 @@ export default class LLVMCodeGen {
   public readonly cgBinary: CodeGenBinary;
   public readonly cgBoolean: CodeGenBoolean;
   public readonly cgCall: CodeGenCall;
+  public readonly cgClassDeclaration: CodeGenClassDeclaration;
   public readonly cgCondition: CodeGenCondition;
   public readonly cgDo: CodeGenDo;
   public readonly cgElemAccess: CodeGenElemAccess;
@@ -92,6 +94,7 @@ export default class LLVMCodeGen {
     this.cgBinary = new CodeGenBinary(this);
     this.cgBoolean = new CodeGenBoolean(this);
     this.cgCall = new CodeGenCall(this);
+    this.cgClassDeclaration = new CodeGenClassDeclaration(this);
     this.cgCondition = new CodeGenCondition(this);
     this.cgDo = new CodeGenDo(this);
     this.cgElemAccess = new CodeGenElemAccess(this);
@@ -175,6 +178,9 @@ export default class LLVMCodeGen {
         case ts.SyntaxKind.FunctionDeclaration:
           this.genFunctionDeclaration(node as ts.FunctionDeclaration);
           break;
+        case ts.SyntaxKind.ClassDeclaration:
+          this.genClassDeclaration(node as ts.ClassDeclaration);
+          break;
         case ts.SyntaxKind.EnumDeclaration:
           this.genEnumDeclaration(node as ts.EnumDeclaration);
           break;
@@ -234,6 +240,10 @@ export default class LLVMCodeGen {
           const typeName = (real.typeName as ts.Identifier).getText();
           if (typeName === 'Int8Array') {
             return llvm.Type.getInt8PtrTy(this.context);
+          }
+          const structType = this.module.getTypeByName(typeName);
+          if (structType) {
+            return structType;
           }
           const dest = this.symtab.get(typeName);
           if (symtab.isScope(dest)) {
@@ -419,6 +429,10 @@ export default class LLVMCodeGen {
 
   public genFunctionDeclaration(node: ts.FunctionDeclaration): llvm.Value {
     return this.cgFuncDecl.genFunctionDeclaration(node);
+  }
+
+  public genClassDeclaration(node: ts.ClassDeclaration): llvm.StructType {
+    return this.cgClassDeclaration.genClassDeclaration(node);
   }
 
   public genEnumDeclaration(node: ts.EnumDeclaration): void {

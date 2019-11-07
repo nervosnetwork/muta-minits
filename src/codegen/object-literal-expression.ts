@@ -35,8 +35,13 @@ export default class GenObject {
       members.push(e);
     }
     const memberTypes = members.map(e => e.type);
-    const name = this.getObjectLiteralTypeName(memberTypes);
-
+    const name = (() => {
+      if (this.cgen.currentType) {
+        return this.cgen.currentType!.getText();
+      } else {
+        return this.getObjectLiteralTypeName(memberTypes);
+      }
+    })();
     if (!this.cgen.module.getTypeByName(name)) {
       const structType = llvm.StructType.create(this.cgen.context, name);
       structType.setBody(memberTypes, false);
