@@ -34,5 +34,30 @@ function main(): number {
 }
 `;
 
+const srcClassInClass = `
+class Employee {
+    empCode: number;
+    empName: string;
+}
+
+class Man {
+    employee: Employee;
+    name: string;
+}
+
+function main(): number {
+    const e: Employee = {
+        empCode: 42,
+        empName: "dddd",
+    };
+    const m: Man = {
+        employee: e,
+        name: "jack",
+    }
+    return m.employee.empCode;
+}
+`;
+
 runTest('test class: init', srcClassInit);
 runTest('test class: as function argument', srcClassAsFunctionArgument);
+runTest('test class: class in class', srcClassInClass);
