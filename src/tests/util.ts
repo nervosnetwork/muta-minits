@@ -53,6 +53,7 @@ export async function compileToLLVMIR(source: string): Promise<string> {
     .digest()
     .toString('hex');
 
+  fs.mkdirSync(path.join(shell.tempdir(), 'minits'), { recursive: true });
   const name = path.join(shell.tempdir(), 'minits', hash + '.ts');
   fs.writeFileSync(name, source);
 
