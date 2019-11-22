@@ -15,47 +15,18 @@ export default class CodeGenNew {
       const name = (node.expression as ts.Identifier).getText();
       switch (name) {
         case 'Int8Array':
-          switch (node.arguments![0].kind) {
-            case ts.SyntaxKind.NumericLiteral:
-              const n = parseInt((node.arguments![0] as ts.NumericLiteral).getText(), 10);
-              const arrayType = llvm.ArrayType.get(llvm.Type.getInt8Ty(this.cgen.context), n);
-              const arrayPtr = this.cgen.builder.createAlloca(arrayType);
-              return this.cgen.builder.createInBoundsGEP(arrayPtr, [
-                llvm.ConstantInt.get(this.cgen.context, 0, 64),
-                llvm.ConstantInt.get(this.cgen.context, 0, 64)
-              ]);
-            case ts.SyntaxKind.ArrayLiteralExpression:
-              return (() => {
-                const expr = node.arguments![0] as ts.ArrayLiteralExpression;
-                const l = expr.elements.length;
-                const arrayType = llvm.ArrayType.get(llvm.Type.getInt8Ty(this.cgen.context), l);
-                const arrayPtr = this.cgen.builder.createAlloca(arrayType);
-                for (let i = 0; i < l; i++) {
-                  const item = this.cgen.builder.createIntCast(
-                    this.cgen.genExpression(expr.elements[i]),
-                    llvm.Type.getInt8Ty(this.cgen.context),
-                    true
-                  );
-
-                  const ptr = this.cgen.builder.createInBoundsGEP(arrayPtr, [
-                    llvm.ConstantInt.get(this.cgen.context, 0, 64),
-                    llvm.ConstantInt.get(this.cgen.context, i, 64)
-                  ]);
-                  this.cgen.builder.createStore(item, ptr);
-                }
-                return this.cgen.builder.createInBoundsGEP(arrayPtr, [
-                  llvm.ConstantInt.get(this.cgen.context, 0, 64),
-                  llvm.ConstantInt.get(this.cgen.context, 0, 64)
-                ]);
-              })();
-            default:
-              throw new Error('Upsupported grammar');
-          }
+          return this.cgen.cgInt8Array.genNewExpression(node);
         default:
-          throw new Error('Unsupported struct');
+          const type = this.cgen.module.getTypeByName(name)!;
+          const alloc = this.cgen.builder.createAlloca(type);
+
+          const func = this.cgen.module.getFunction(name + '_constructor')!;
+          let args = node.arguments!.map(e => this.cgen.genExpression(e));
+          args = [alloc, ...args];
+          this.cgen.builder.createCall(func, args);
+          return alloc;
       }
     }
-
-    return llvm.ConstantInt.get(this.cgen.context, 10, 64);
+    throw new Error(`Failed to initialize struct: ${node.getText()}`);
   }
 }

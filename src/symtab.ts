@@ -1,50 +1,56 @@
 import llvm from 'llvm-node';
 
-interface Value {
-  inner: llvm.Value | Map<string, Value>;
+interface Node {
+  data: llvm.Value | Map<string, Node>;
 }
 
-class LLVMValue implements Value {
-  public readonly inner: llvm.Value;
-  public readonly deref: number;
+class Leaf implements Node {
+  public readonly data: llvm.Value;
+  public readonly ptrs: number;
 
-  constructor(inner: llvm.Value, deref: number) {
-    this.inner = inner;
-    this.deref = deref;
+  constructor(data: llvm.Value, ptrs: number) {
+    this.data = data;
+    this.ptrs = ptrs;
   }
 }
 
-class Scope implements Value {
-  public name?: string;
-  public inner: Map<string, Value>;
-  public parent?: Scope;
+class Meso implements Node {
+  public parent: Meso | undefined;
+  public name: string;
+  public deep: number;
+  public data: Map<string, Node>;
 
-  constructor(name?: string, parent?: Scope) {
-    this.name = name;
-    this.inner = new Map();
+  constructor(parent: Meso | undefined, name: string) {
     this.parent = parent;
+    this.name = name;
+    this.deep = this.parent ? this.parent.deep + 1 : 0;
+    this.data = new Map();
   }
 }
 
-function isLLVMValue(value: Value): value is LLVMValue {
-  return value instanceof LLVMValue ? true : false;
+function isLeaf(node: Node): node is Leaf {
+  return node instanceof Leaf;
 }
 
-function isScope(value: Value): value is Scope {
-  return value instanceof Scope ? true : false;
+function isMeso(node: Node): node is Meso {
+  return node instanceof Meso;
 }
 
 class Symtab {
-  public data: Scope;
+  public data: Meso;
 
   constructor() {
-    this.data = new Scope('');
+    this.data = new Meso(undefined, 'main');
   }
 
-  public into(name: string | undefined): Scope {
-    const n = new Scope(name, this.data);
+  public deep(): number {
+    return this.data.deep;
+  }
+
+  public into(name: string): Meso {
+    const n = new Meso(this.data, name);
     if (name) {
-      this.data.inner.set(name, n);
+      this.data.data.set(name, n);
     }
     this.data = n;
     return n;
@@ -60,7 +66,7 @@ class Symtab {
     }
 
     const list = [];
-    let n: Scope | undefined = this.data;
+    let n: Meso | undefined = this.data;
     for (;;) {
       if (!n) {
         break;
@@ -73,30 +79,29 @@ class Symtab {
     return list.reverse().join('.') + '.';
   }
 
-  public with(name: string | undefined, body: () => void): void {
+  public with(name: string, body: () => void): void {
     this.into(name);
     body();
     this.exit();
   }
 
-  public set(key: string, value: Value): void {
-    this.data.inner.set(key, value);
+  public set(key: string, node: Node): void {
+    this.data.data.set(key, node);
   }
 
-  public get(key: string): Value {
-    const value = this.tryGet(key);
-    if (value) {
-      return value;
+  public get(key: string): Node {
+    const node = this.tryGet(key);
+    if (node) {
+      return node;
     }
-
     throw new Error(`Symbol ${key} not found`);
   }
 
-  public tryGet(key: string): Value | null {
-    let n: Scope = this.data;
+  public tryGet(key: string): Node | null {
+    let n: Meso = this.data;
 
     while (true) {
-      const v = n.inner.get(key);
+      const v = n.data.get(key);
       if (v) {
         return v;
       }
@@ -110,4 +115,4 @@ class Symtab {
   }
 }
 
-export { Value, Scope, Symtab, LLVMValue, isLLVMValue, isScope };
+export { Node, Leaf, Meso, isLeaf, isMeso, Symtab };

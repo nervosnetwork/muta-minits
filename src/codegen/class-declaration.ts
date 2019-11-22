@@ -12,9 +12,12 @@ export default class CodeGenClassDeclaration {
 
   public genClassDeclaration(node: ts.ClassDeclaration): llvm.StructType {
     const name = node.name!.getText();
-    const memberTypeList = node.members
-      .filter(ts.isPropertyDeclaration)
-      .map(e => this.cgen.genType((e as ts.PropertyDeclaration).type!));
+    const properties: ts.PropertyDeclaration[] = [];
+    for (const e of node.members) {
+      properties.push(e as ts.PropertyDeclaration);
+      continue;
+    }
+    const memberTypeList = properties.map(e => this.cgen.genType(e.type!));
     const structType = llvm.StructType.create(this.cgen.context, name);
     structType.setBody(memberTypeList, false);
     return structType;

@@ -11,21 +11,38 @@ export default class CodeGenPropertyAccessExpression {
     this.cgen = cgen;
   }
 
-  public genPropertyAccessExpression(node: ts.PropertyAccessExpression): llvm.Value {
-    if (node.expression.kind === ts.SyntaxKind.Identifier) {
-      const parent = this.cgen.symtab.get((node.expression as ts.Identifier).getText());
-      if (symtab.isScope(parent)) {
-        const son = parent.inner.get(node.name.getText())! as symtab.LLVMValue;
-        let r = son.inner;
-        for (let i = 0; i < son.deref; i++) {
-          r = this.cgen.builder.createLoad(r);
-        }
-        return r;
+  public getPropertyAccessExpression(node: ts.PropertyAccessExpression): symtab.Node {
+    let parent: symtab.Node;
+    if (node.expression.kind === ts.SyntaxKind.PropertyAccessExpression) {
+      parent = this.getPropertyAccessExpression(node.expression as ts.PropertyAccessExpression);
+    } else if (node.expression.kind === ts.SyntaxKind.Identifier) {
+      parent = this.cgen.symtab.get((node.expression as ts.Identifier).getText());
+    } else {
+      parent = new symtab.Leaf(this.cgen.genExpression(node.expression), 0);
+    }
+
+    if (symtab.isMeso(parent)) {
+      return parent.data.get(node.name.getText())!;
+    } else if (this.cgen.cgString.isStringLiteral(node.expression)) {
+      const p = parent as symtab.Leaf;
+      let v = p.data;
+      for (let i = 0; i < p.ptrs; i++) {
+        v = this.cgen.builder.createLoad(v);
       }
+      const e = this.cgen.cgString.getPropertyAccessExpression(v, node.name.getText());
+      return new symtab.Leaf(e, 0);
+    } else {
+      const e = this.cgen.cgObject.genPropertyAccessExpression(node);
+      return new symtab.Leaf(e, 0);
     }
-    if (this.cgen.cgString.isStringLiteral(node.expression)) {
-      return this.cgen.cgString.genPropertyAccessExpression(node);
+  }
+
+  public genPropertyAccessExpression(node: ts.PropertyAccessExpression): llvm.Value {
+    const real = this.getPropertyAccessExpression(node) as symtab.Leaf;
+    let r = real.data;
+    for (let i = 0; i < real.ptrs; i++) {
+      r = this.cgen.builder.createLoad(r);
     }
-    return this.cgen.cgObject.genPropertyAccessExpression(node);
+    return r;
   }
 }

@@ -17,7 +17,7 @@ export default class CodeGenBoolean {
       case ts.SyntaxKind.TrueKeyword:
         return llvm.ConstantInt.get(this.cgen.context, 1, 1);
       default:
-        throw new Error('Unsupported boolean value');
+        throw new Error('Error that should never happen');
     }
   }
 }

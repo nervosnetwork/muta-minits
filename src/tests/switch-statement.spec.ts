@@ -69,6 +69,40 @@ function main(): number {
 }
 `;
 
+const srcNoCase = `
+function main(): number {
+  let a = 2;
+  switch (a) {
+  }
+  return a;
+}
+`;
+
+const srcSwitchInSwitch = `
+function main(): number {
+  let a = 1;
+  let b = 2;
+  let r = 0;
+
+  switch (a) {
+    case 0:
+      r = 0;
+      break
+    case 1:
+        switch (b) {
+          case a:
+            r = 10;
+          case 2:
+            r = 20;
+        }
+      break;
+  }
+  return r;
+}
+`;
+
 runTest('test switch: switch case default', srcSwitchCaseDefault);
 runTest('test switch: string', srcSwitchString);
 runTest('test switch: no default', srcNoDefault);
+runTest('test switch: no case', srcNoCase);
+runTest('test switch: switch in switch', srcSwitchInSwitch);

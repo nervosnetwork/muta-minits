@@ -7,7 +7,7 @@ import shell from 'shelljs';
 import ts from 'typescript';
 
 import LLVMCodeGen from '../codegen';
-import * as pretreat from '../pre-treatment';
+import Prelude from '../prelude';
 
 export async function runCode(
   source: string,
@@ -47,26 +47,30 @@ async function compileToJS(
 }
 
 export async function compileToLLVMIR(source: string): Promise<string> {
-  const tmpFileName = sourceToHash(source);
-  const rootDir = shell.tempdir();
-  const tempTSFile = path.join(rootDir, `${tmpFileName}.ts`);
-  fs.writeFileSync(tempTSFile, source);
-
-  const files = pretreat.getDependency(tempTSFile);
-  const tsProgram = ts.createProgram(files, {});
-  const cgen = new LLVMCodeGen(rootDir, tsProgram);
-  cgen.genSourceFile(tempTSFile);
-  llvm.verifyModule(cgen.module);
-
-  const tempFile = path.join(rootDir, `${tmpFileName}.ll`);
-  fs.writeFileSync(tempFile, cgen.genText());
-  return tempFile;
-}
-
-function sourceToHash(str: string): string {
-  return crypto
-    .createHash('sha256')
-    .update(str)
+  const hash = crypto
+    .createHash('md5')
+    .update(source)
     .digest()
     .toString('hex');
+
+  fs.mkdirSync(path.join(shell.tempdir(), 'minits'), { recursive: true });
+  const name = path.join(shell.tempdir(), 'minits', hash + '.ts');
+  fs.writeFileSync(name, source);
+
+  const prelude = new Prelude(name);
+  prelude.process();
+
+  const fullFile = [prelude.main, ...prelude.depends]
+    .map(e => path.relative(prelude.rootdir, e))
+    .map(e => path.join(prelude.tempdir, e));
+  const mainFile = fullFile[0];
+
+  const program = ts.createProgram(fullFile, {});
+  const cgen = new LLVMCodeGen(prelude.tempdir, program);
+  cgen.genSourceFile(mainFile);
+  llvm.verifyModule(cgen.module);
+
+  const output = path.join(prelude.tempdir, 'output.ll');
+  fs.writeFileSync(output, cgen.genText());
+  return output;
 }

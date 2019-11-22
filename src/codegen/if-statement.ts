@@ -17,18 +17,24 @@ export default class CodeGenIf {
     const quitBlock = llvm.BasicBlock.create(this.cgen.context, 'if.quit', this.cgen.currentFunction);
     this.cgen.builder.createCondBr(condition, thenBlock, elseBlock);
 
-    this.cgen.builder.setInsertionPoint(thenBlock);
-    this.cgen.genStatement(node.thenStatement);
-    if (!this.cgen.builder.getInsertBlock()!.getTerminator()) {
-      this.cgen.builder.createBr(quitBlock);
-    }
-    this.cgen.builder.setInsertionPoint(elseBlock);
-    if (node.elseStatement) {
-      this.cgen.genStatement(node.elseStatement);
-    }
-    if (!this.cgen.builder.getInsertBlock()!.getTerminator()) {
-      this.cgen.builder.createBr(quitBlock);
-    }
+    this.cgen.symtab.with('', () => {
+      this.cgen.builder.setInsertionPoint(thenBlock);
+      this.cgen.genStatement(node.thenStatement);
+      if (!this.cgen.builder.getInsertBlock()!.getTerminator()) {
+        this.cgen.builder.createBr(quitBlock);
+      }
+    });
+
+    this.cgen.symtab.with('', () => {
+      this.cgen.builder.setInsertionPoint(elseBlock);
+      if (node.elseStatement) {
+        this.cgen.genStatement(node.elseStatement);
+      }
+      if (!this.cgen.builder.getInsertBlock()!.getTerminator()) {
+        this.cgen.builder.createBr(quitBlock);
+      }
+    });
+
     this.cgen.builder.setInsertionPoint(quitBlock);
   }
 }

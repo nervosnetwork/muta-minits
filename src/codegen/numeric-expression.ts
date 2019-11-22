@@ -11,14 +11,6 @@ export default class CodeGenNumeric {
   }
 
   public genNumeric(node: ts.NumericLiteral): llvm.ConstantInt {
-    if (this.cgen.currentFunction) {
-      return this.genNumericLocale(node);
-    } else {
-      return this.genNumericGlobal(node);
-    }
-  }
-
-  public genNumericLocale(node: ts.NumericLiteral): llvm.ConstantInt {
     const text = node.getText();
     const bits = (() => {
       if (text.startsWith('0x')) {
@@ -28,9 +20,5 @@ export default class CodeGenNumeric {
       }
     })();
     return llvm.ConstantInt.get(this.cgen.context, parseInt(text, bits), 64);
-  }
-
-  public genNumericGlobal(node: ts.NumericLiteral): llvm.ConstantInt {
-    return this.genNumericLocale(node);
   }
 }

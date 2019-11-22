@@ -4,22 +4,6 @@ import ts from 'typescript';
 import * as symtab from '../symtab';
 import LLVMCodeGen from './';
 
-const CompoundAssignmentOperator = [
-  ts.SyntaxKind.PlusEqualsToken,
-  ts.SyntaxKind.MinusEqualsToken,
-  ts.SyntaxKind.AsteriskAsteriskEqualsToken,
-  ts.SyntaxKind.AsteriskEqualsToken,
-  ts.SyntaxKind.SlashEqualsToken,
-  ts.SyntaxKind.PercentEqualsToken,
-  ts.SyntaxKind.AmpersandEqualsToken,
-  ts.SyntaxKind.BarEqualsToken,
-  ts.SyntaxKind.CaretEqualsToken,
-  ts.SyntaxKind.LessThanLessThanEqualsToken,
-  ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken,
-  ts.SyntaxKind.GreaterThanGreaterThanEqualsToken
-];
-const AssignmentOperator = [ts.SyntaxKind.EqualsToken].concat(CompoundAssignmentOperator);
-
 export default class CodeGenBinary {
   private cgen: LLVMCodeGen;
 
@@ -29,7 +13,7 @@ export default class CodeGenBinary {
 
   public genBinaryExpression(expr: ts.BinaryExpression): llvm.Value {
     const lhs = (() => {
-      if (AssignmentOperator.includes(expr.operatorToken.kind)) {
+      if (expr.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
         return this.genSymbolPtr(expr.left);
       }
       return this.cgen.genExpression(expr.left);
@@ -51,15 +35,9 @@ export default class CodeGenBinary {
         return this.cgen.builder.createICmpSGE(lhs, rhs);
       // ==
       case ts.SyntaxKind.EqualsEqualsToken:
-        if (this.cgen.cgString.isStringLiteral(expr.left)) {
-          return this.cgen.cgString.eq(lhs, rhs);
-        }
         return this.cgen.builder.createICmpEQ(lhs, rhs);
       // !=
       case ts.SyntaxKind.ExclamationEqualsToken:
-        if (this.cgen.cgString.isStringLiteral(expr.left)) {
-          return this.cgen.cgString.ne(lhs, rhs);
-        }
         return this.cgen.builder.createICmpNE(lhs, rhs);
       // ===
       case ts.SyntaxKind.EqualsEqualsEqualsToken:
@@ -146,59 +124,15 @@ export default class CodeGenBinary {
           }
         }
         return this.cgen.builder.createStore(rhs, lhs);
-      // +=
-      case ts.SyntaxKind.PlusEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createAdd(l, r));
-      // -=
-      case ts.SyntaxKind.MinusEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createSub(l, r));
-      // *=
-      case ts.SyntaxKind.AsteriskEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createMul(l, r));
-      // /=
-      case ts.SyntaxKind.SlashEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createSDiv(l, r));
-      // %=
-      case ts.SyntaxKind.PercentEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createSRem(l, r));
-      // <<=
-      case ts.SyntaxKind.LessThanLessThanEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createShl(l, r));
-      // &=
-      case ts.SyntaxKind.AmpersandEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createAnd(l, r));
-      // |=
-      case ts.SyntaxKind.BarEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createOr(l, r));
-      // ^=
-      case ts.SyntaxKind.CaretEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createXor(l, r));
-      // >>=
-      case ts.SyntaxKind.GreaterThanGreaterThanEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createAShr(l, r));
-      // >>>=
-      case ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken:
-        return this.genCompoundAssignment(lhs, rhs, (l, r) => this.cgen.builder.createLShr(l, r));
       default:
-        throw new Error('Unsupported binary expression');
+        throw new Error('Error that should never happen');
     }
-  }
-
-  public genCompoundAssignment(
-    lhs: llvm.Value,
-    rhs: llvm.Value,
-    cb: (lhs: llvm.Value, rhs: llvm.Value) => llvm.Value
-  ): llvm.Value {
-    const lhsVal = this.cgen.builder.createLoad(lhs);
-    const result = cb(lhsVal, rhs);
-    this.cgen.builder.createStore(result, lhs);
-    return lhs;
   }
 
   public genSymbolPtr(node: ts.Expression): llvm.Value {
     switch (node.kind) {
       case ts.SyntaxKind.Identifier:
-        return (this.cgen.symtab.get((node as ts.Identifier).getText()) as symtab.LLVMValue).inner;
+        return (this.cgen.symtab.get((node as ts.Identifier).getText()) as symtab.Leaf).data;
       case ts.SyntaxKind.ElementAccessExpression:
         return this.cgen.cgArray.genElementAccessExpressionPtr(node as ts.ElementAccessExpression);
       case ts.SyntaxKind.PropertyAccessExpression:

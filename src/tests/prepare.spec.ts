@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import shell from 'shelljs';
 
-import * as pretreat from '../pre-treatment';
+import Prelude from '../prelude';
 
 const main = `
 import a from './import-a'
@@ -32,11 +32,11 @@ test('test prepare: import', async t => {
   fs.writeFileSync(aFile, importA);
   fs.writeFileSync(bFile, importB);
   fs.writeFileSync(cFile, importC);
-  const files = pretreat.getDependency(mainFile);
-  t.assert(files.length === 4);
+  const prelude = new Prelude(mainFile);
+  prelude.process();
+  t.assert(prelude.depends.length === 3);
 
-  const set = new Set(files);
-  t.assert(set.has(mainFile));
+  const set = new Set(prelude.depends);
   t.assert(set.has(aFile));
   t.assert(set.has(bFile));
   t.assert(set.has(cFile));

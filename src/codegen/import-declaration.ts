@@ -1,12 +1,12 @@
 import path from 'path';
 import ts from 'typescript';
 
-import { Scope } from '../symtab';
+import * as symtab from '../symtab';
 import LLVMCodeGen from './';
 
 export default class CodeGenImport {
   private cgen: LLVMCodeGen;
-  private maps: Map<string, Scope>;
+  private maps: Map<string, symtab.Meso>;
 
   constructor(cgen: LLVMCodeGen) {
     this.cgen = cgen;

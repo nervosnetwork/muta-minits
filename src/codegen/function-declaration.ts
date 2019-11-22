@@ -6,7 +6,8 @@ import LLVMCodeGen from './';
 
 interface LLVMFunctionWithTsDeclaration {
   func: llvm.Function;
-  node: ts.FunctionDeclaration;
+  parameters: ts.NodeArray<ts.ParameterDeclaration>;
+  body: ts.Block;
 }
 
 export default class CodeGenFuncDecl {
@@ -18,7 +19,10 @@ export default class CodeGenFuncDecl {
     this.list = [];
   }
 
-  public genFunctionDeclaration(node: ts.FunctionDeclaration): llvm.Function {
+  public genFunctionDeclaration(node: ts.FunctionDeclaration): void {
+    if (node.modifiers && node.modifiers[0].kind === ts.SyntaxKind.DeclareKeyword) {
+      return;
+    }
     const funcReturnType = (() => {
       if (node.type) {
         return this.cgen.genType(node.type);
@@ -37,31 +41,26 @@ export default class CodeGenFuncDecl {
       func.addFnAttr(llvm.Attribute.AttrKind.NoInline);
       func.addFnAttr(llvm.Attribute.AttrKind.OptimizeNone);
     }
-    this.cgen.symtab.set(name, new symtab.LLVMValue(func, 0));
-    if (name === 'syscall') {
-      return func;
-    }
-    this.list.push({ func, node });
-    return func;
+    this.cgen.symtab.set(name, new symtab.Leaf(func, 0));
+    this.list.push({ func, parameters: node.parameters, body: node.body! });
+    return;
   }
 
   public genImplemention(): void {
-    for (const { func, node } of this.list) {
-      this.cgen.symtab.with(undefined, () => {
+    for (const { func, parameters, body } of this.list) {
+      this.cgen.symtab.with('', () => {
         func.getArguments().forEach(item => {
-          item.name = node.parameters[item.argumentNumber].name.getText();
-          this.cgen.symtab.set(item.name, new symtab.LLVMValue(item, 0));
+          item.name = parameters[item.argumentNumber].name.getText();
+          this.cgen.symtab.set(item.name, new symtab.Leaf(item, 0));
         });
-        if (node.body) {
-          const body = llvm.BasicBlock.create(this.cgen.context, 'body', func);
-          this.cgen.builder.setInsertionPoint(body);
-          this.cgen.withFunction(func, () => {
-            this.cgen.genBlock(node.body!);
-            if (!body.getTerminator()) {
-              this.cgen.builder.createRetVoid();
-            }
-          });
-        }
+        const bd = llvm.BasicBlock.create(this.cgen.context, 'body', func);
+        this.cgen.builder.setInsertionPoint(bd);
+        this.cgen.withFunction(func, () => {
+          this.cgen.genBlock(body);
+          if (!this.cgen.builder.getInsertBlock()!.getTerminator()) {
+            this.cgen.builder.createRetVoid();
+          }
+        });
       });
     }
   }

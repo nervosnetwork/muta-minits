@@ -13,14 +13,14 @@ export default class CodeGenElemAccess {
   public genElementAccessExpression(node: ts.ElementAccessExpression): llvm.Value {
     const identifer = this.cgen.genExpression(node.expression);
     const argumentExpression = this.cgen.genExpression(node.argumentExpression);
+    const type = this.cgen.checker.getTypeAtLocation(node.expression);
+
     if (this.cgen.cgString.isStringLiteral(node.expression)) {
       return this.cgen.cgString.getElementAccess(identifer, argumentExpression);
     }
-    const e = this.cgen.cgArray.getElementAccess(identifer, argumentExpression);
-    const type = this.cgen.checker.getTypeAtLocation(node.expression);
     if (type.symbol.escapedName === 'Int8Array') {
-      return this.cgen.builder.createIntCast(e, llvm.Type.getInt64Ty(this.cgen.context), true);
+      return this.cgen.cgInt8Array.getElementAccess(identifer, argumentExpression);
     }
-    return e;
+    return this.cgen.cgArray.getElementAccess(identifer, argumentExpression);
   }
 }

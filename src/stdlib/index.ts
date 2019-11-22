@@ -10,74 +10,64 @@ export class Stdlib {
   }
 
   public printf(args: llvm.Value[]): llvm.Value {
-    const func = this.cgen.module.getOrInsertFunction(
-      'printf',
-      llvm.FunctionType.get(llvm.Type.getInt64Ty(this.cgen.context), [llvm.Type.getInt8PtrTy(this.cgen.context)], true)
-    );
+    const name = 'printf';
+    const i = [llvm.Type.getInt8PtrTy(this.cgen.context)];
+    const varg = true;
+    const o = llvm.Type.getInt64Ty(this.cgen.context);
+    const func = this.cgen.module.getOrInsertFunction(name, llvm.FunctionType.get(o, i, varg));
     return this.cgen.builder.createCall(func, args);
   }
 
   public strcat(args: llvm.Value[]): llvm.Value {
-    const func = this.cgen.module.getOrInsertFunction(
-      'strcat',
-      llvm.FunctionType.get(
-        llvm.Type.getInt8PtrTy(this.cgen.context),
-        [llvm.Type.getInt8PtrTy(this.cgen.context), llvm.Type.getInt8PtrTy(this.cgen.context)],
-        false
-      )
-    );
+    const name = 'strcat';
+    const i = [llvm.Type.getInt8PtrTy(this.cgen.context), llvm.Type.getInt8PtrTy(this.cgen.context)];
+    const varg = false;
+    const o = llvm.Type.getInt8PtrTy(this.cgen.context);
+    const func = this.cgen.module.getOrInsertFunction(name, llvm.FunctionType.get(o, i, varg));
     return this.cgen.builder.createCall(func, args);
   }
 
   public strcmp(args: llvm.Value[]): llvm.Value {
-    const func = this.cgen.module.getOrInsertFunction(
-      'strcmp',
-      llvm.FunctionType.get(
-        llvm.Type.getInt64Ty(this.cgen.context),
-        [llvm.Type.getInt8PtrTy(this.cgen.context), llvm.Type.getInt8PtrTy(this.cgen.context)],
-        false
-      )
-    );
+    const name = 'strcmp';
+    const i = [llvm.Type.getInt8PtrTy(this.cgen.context), llvm.Type.getInt8PtrTy(this.cgen.context)];
+    const varg = false;
+    const o = llvm.Type.getInt64Ty(this.cgen.context);
+    const func = this.cgen.module.getOrInsertFunction(name, llvm.FunctionType.get(o, i, varg));
     return this.cgen.builder.createCall(func, args);
   }
 
   public strcpy(args: llvm.Value[]): llvm.Value {
-    const func = this.cgen.module.getOrInsertFunction(
-      'strcpy',
-      llvm.FunctionType.get(
-        llvm.Type.getInt8PtrTy(this.cgen.context),
-        [llvm.Type.getInt8PtrTy(this.cgen.context), llvm.Type.getInt8PtrTy(this.cgen.context)],
-        false
-      )
-    );
+    const name = 'strcpy';
+    const i = [llvm.Type.getInt8PtrTy(this.cgen.context), llvm.Type.getInt8PtrTy(this.cgen.context)];
+    const varg = false;
+    const o = llvm.Type.getInt8PtrTy(this.cgen.context);
+    const func = this.cgen.module.getOrInsertFunction(name, llvm.FunctionType.get(o, i, varg));
     return this.cgen.builder.createCall(func, args);
   }
 
   public strlen(args: llvm.Value[]): llvm.Value {
-    const func = this.cgen.module.getOrInsertFunction(
-      'strlen',
-      llvm.FunctionType.get(llvm.Type.getInt64Ty(this.cgen.context), [llvm.Type.getInt8PtrTy(this.cgen.context)], false)
-    );
+    const name = 'strlen';
+    const i = [llvm.Type.getInt8PtrTy(this.cgen.context)];
+    const varg = false;
+    const o = llvm.Type.getInt64Ty(this.cgen.context);
+    const func = this.cgen.module.getOrInsertFunction(name, llvm.FunctionType.get(o, i, varg));
     return this.cgen.builder.createCall(func, args);
   }
 
   public syscall(args: llvm.Value[]): llvm.Value {
-    const func = this.cgen.module.getOrInsertFunction(
-      'syscall',
-      llvm.FunctionType.get(
-        llvm.Type.getInt64Ty(this.cgen.context),
-        [
-          llvm.Type.getInt64Ty(this.cgen.context),
-          llvm.Type.getInt64Ty(this.cgen.context),
-          llvm.Type.getInt64Ty(this.cgen.context),
-          llvm.Type.getInt64Ty(this.cgen.context),
-          llvm.Type.getInt64Ty(this.cgen.context),
-          llvm.Type.getInt64Ty(this.cgen.context),
-          llvm.Type.getInt64Ty(this.cgen.context)
-        ],
-        false
-      )
-    );
+    const name = 'syscall';
+    const i = [
+      llvm.Type.getInt64Ty(this.cgen.context),
+      llvm.Type.getInt64Ty(this.cgen.context),
+      llvm.Type.getInt64Ty(this.cgen.context),
+      llvm.Type.getInt64Ty(this.cgen.context),
+      llvm.Type.getInt64Ty(this.cgen.context),
+      llvm.Type.getInt64Ty(this.cgen.context),
+      llvm.Type.getInt64Ty(this.cgen.context)
+    ];
+    const varg = false;
+    const o = llvm.Type.getInt64Ty(this.cgen.context);
+    const func = this.cgen.module.getOrInsertFunction(name, llvm.FunctionType.get(o, i, varg));
     const argl = args.map(item => {
       if (item.type.isPointerTy()) {
         return this.cgen.builder.createPtrToInt(item, llvm.Type.getInt64Ty(this.cgen.context));
