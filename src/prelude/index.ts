@@ -162,6 +162,7 @@ export default class Prelude {
 
   // 223 SyntaxKind.IfStatement
   public genIfStatement(node: ts.IfStatement): ts.IfStatement {
+    node.expression = this.genExpression(node.expression);
     node.thenStatement = this.genStatement(node.thenStatement);
     if (node.elseStatement) {
       node.elseStatement = this.genStatement(node.elseStatement);
@@ -177,12 +178,16 @@ export default class Prelude {
 
   // 225 SyntaxKind.WhileStatement
   public genWhileStatement(node: ts.WhileStatement): ts.WhileStatement {
+    node.expression = this.genExpression(node.expression);
     node.statement = this.genStatement(node.statement);
     return node;
   }
 
   // 226 SyntaxKind.ForStatement
   public genForStatement(node: ts.ForStatement): ts.ForStatement {
+    if (node.condition) {
+      node.condition = this.genExpression(node.condition);
+    }
     node.statement = this.genStatement(node.statement);
     return node;
   }
