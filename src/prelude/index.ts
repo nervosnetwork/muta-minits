@@ -144,7 +144,7 @@ export default class Prelude {
         statements.push(e);
       }
     });
-    return ts.createBlock(statements);
+    return ts.createBlock(statements, true);
   }
 
   // 220 SyntaxKind.VariableStatement
@@ -162,8 +162,8 @@ export default class Prelude {
 
   // 222 SyntaxKind.ExpressionStatement
   public genExpressionStatement(node: ts.ExpressionStatement): ts.ExpressionStatement {
-    node.expression = this.genExpression(node.expression);
-    return node;
+    const expression = this.genExpression(node.expression);
+    return ts.createExpressionStatement(expression);
   }
 
   // 223 SyntaxKind.IfStatement
