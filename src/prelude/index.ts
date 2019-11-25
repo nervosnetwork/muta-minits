@@ -122,6 +122,12 @@ export default class Prelude {
     return this.preludePropertyAccessExpression.genPropertyAccessExpression(node);
   }
 
+  // 192 SyntaxKind.CallExpression
+  public genCallExpression(node: ts.CallExpression): ts.CallExpression {
+    const args = ts.createNodeArray(node.arguments.map(e => this.genExpression(e)));
+    return ts.createCall(node.expression, node.typeArguments, args);
+  }
+
   // 205 SyntaxKind.BinaryExpression
   public genBinaryExpression(node: ts.BinaryExpression): ts.Expression {
     return this.preludeBinaryExpression.genBinaryExpression(node);
@@ -243,6 +249,8 @@ export default class Prelude {
     switch (node.kind) {
       case ts.SyntaxKind.PropertyAccessExpression:
         return this.genPropertyAccessExpression(node as ts.PropertyAccessExpression);
+      case ts.SyntaxKind.CallExpression:
+        return this.genCallExpression(node as ts.CallExpression);
       case ts.SyntaxKind.BinaryExpression:
         return this.genBinaryExpression(node as ts.BinaryExpression);
     }
