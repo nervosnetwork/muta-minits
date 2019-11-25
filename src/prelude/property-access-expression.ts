@@ -14,6 +14,8 @@ export default class PreludePropertyAccessExpression {
     if (node.expression.kind === ts.SyntaxKind.ThisKeyword) {
       return ts.createPropertyAccess(ts.createIdentifier('_this'), node.name);
     }
-    return node;
+    const expression = this.lude.genExpression(node.expression);
+    const name = node.name;
+    return ts.createPropertyAccess(expression, name);
   }
 }
