@@ -20,6 +20,7 @@ export default class Prelude {
   public readonly tempdir: string;
   public readonly allfile: string[];
   public readonly program: ts.Program;
+  public readonly checker: ts.TypeChecker;
 
   public readonly preludeBinaryExpression: PreludeBinaryExpression;
   public readonly preludeClassDeclaration: PreludeClassDeclaration;
@@ -36,6 +37,7 @@ export default class Prelude {
     }
     this.allfile = [this.main, ...this.depends];
     this.program = ts.createProgram(this.allfile, {});
+    this.checker = ts.createProgram(this.allfile, {}).getTypeChecker();
 
     const hash = crypto
       .createHash('md5')
@@ -164,52 +166,60 @@ export default class Prelude {
 
   // 222 SyntaxKind.ExpressionStatement
   public genExpressionStatement(node: ts.ExpressionStatement): ts.ExpressionStatement {
-    const expression = this.genExpression(node.expression);
-    return ts.createExpressionStatement(expression);
+    return ts.createExpressionStatement(this.genExpression(node.expression));
   }
 
   // 223 SyntaxKind.IfStatement
   public genIfStatement(node: ts.IfStatement): ts.IfStatement {
-    node.expression = this.genExpression(node.expression);
-    node.thenStatement = this.genStatement(node.thenStatement);
-    if (node.elseStatement) {
-      node.elseStatement = this.genStatement(node.elseStatement);
-    }
-    return node;
+    return ts.createIf(
+      this.genExpression(node.expression),
+      this.genStatement(node.thenStatement),
+      node.elseStatement ? this.genStatement(node.elseStatement) : undefined
+    );
   }
 
   // 224 SyntaxKind.DoStatement
   public genDoStatement(node: ts.DoStatement): ts.DoStatement {
-    node.statement = this.genStatement(node);
-    return node;
+    return ts.createDo(this.genStatement(node), this.genExpression(node.expression));
   }
 
   // 225 SyntaxKind.WhileStatement
   public genWhileStatement(node: ts.WhileStatement): ts.WhileStatement {
-    node.expression = this.genExpression(node.expression);
-    node.statement = this.genStatement(node.statement);
-    return node;
+    return ts.createWhile(this.genExpression(node.expression), this.genStatement(node.statement));
   }
 
   // 226 SyntaxKind.ForStatement
   public genForStatement(node: ts.ForStatement): ts.ForStatement {
-    if (node.condition) {
-      node.condition = this.genExpression(node.condition);
-    }
-    node.statement = this.genStatement(node.statement);
-    return node;
+    return ts.createFor(
+      node.initializer ? this.genExpression(node.initializer as ts.Expression) : undefined,
+      node.condition ? this.genExpression(node.condition) : undefined,
+      node.incrementor ? this.genExpression(node.incrementor) : undefined,
+      this.genStatement(node.statement)
+    );
   }
 
   // 228 SyntaxKind.ForOfStatement
   public genForOfStatement(node: ts.ForOfStatement): ts.ForOfStatement {
-    node.statement = this.genStatement(node.statement);
-    return node;
+    return ts.createForOf(
+      node.awaitModifier,
+      this.genExpression(node.initializer as ts.Expression),
+      this.genExpression(node.expression),
+      this.genStatement(node.statement)
+    );
   }
 
   // 240 SyntaxKind.FunctionDeclaration
   public genFunctionDeclaration(node: ts.FunctionDeclaration): ts.FunctionDeclaration {
-    node.body = this.genBlock(node.body!);
-    return node;
+    return ts.createFunctionDeclaration(
+      node.decorators,
+      node.modifiers,
+      node.asteriskToken,
+      node.name,
+      node.typeParameters,
+      node.parameters,
+      node.type,
+      node.body ? this.genBlock(node.body) : undefined
+    );
   }
 
   // 241 SyntaxKind.ClassDeclaration
