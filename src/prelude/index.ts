@@ -131,7 +131,7 @@ export default class Prelude {
     return ts.createCall(
       this.genExpression(node.expression),
       node.typeArguments,
-      ts.createNodeArray(node.arguments.map(e => this.genExpression(e))),
+      ts.createNodeArray(node.arguments.map(e => this.genExpression(e)))
     );
   }
 
