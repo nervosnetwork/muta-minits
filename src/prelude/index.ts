@@ -18,6 +18,7 @@ export default class Prelude {
   public readonly rootdir: string;
   public readonly depends: string[];
   public readonly tempdir: string;
+  public readonly allfile: string[];
 
   public readonly preludeBinaryExpression: PreludeBinaryExpression;
   public readonly preludeClassDeclaration: PreludeClassDeclaration;
@@ -32,6 +33,7 @@ export default class Prelude {
     for (const e of this.depends) {
       debug(`Depend ${e}`);
     }
+    this.allfile = [this.main, ...this.depends];
 
     const hash = crypto
       .createHash('md5')
@@ -82,9 +84,8 @@ export default class Prelude {
   public process(): void {
     debug(`Create TmpDir ${this.tempdir}`);
     fs.mkdirSync(this.tempdir, { recursive: true });
-    const allfile = [this.main, ...this.depends];
-    const program = ts.createProgram(allfile, {});
-    allfile.forEach(file => {
+    const program = ts.createProgram(this.allfile, {});
+    this.allfile.forEach(file => {
       const sources = program.getSourceFile(file)!;
       const tmpPath = path.join(this.tempdir, path.relative(this.rootdir, file));
 
