@@ -128,8 +128,11 @@ export default class Prelude {
 
   // 192 SyntaxKind.CallExpression
   public genCallExpression(node: ts.CallExpression): ts.CallExpression {
-    const args = ts.createNodeArray(node.arguments.map(e => this.genExpression(e)));
-    return ts.createCall(this.genExpression(node.expression), node.typeArguments, args);
+    return ts.createCall(
+      this.genExpression(node.expression),
+      node.typeArguments,
+      ts.createNodeArray(node.arguments.map(e => this.genExpression(e))),
+    );
   }
 
   // 205 SyntaxKind.BinaryExpression
