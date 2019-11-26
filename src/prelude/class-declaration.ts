@@ -30,7 +30,6 @@ export default class PreludeClassDeclaration {
     }
 
     const statements: ts.Statement[] = [];
-    // node.members = ts.createNodeArray(properties);
     statements.push(node);
 
     if (constructor.length !== 0) {
