@@ -141,6 +141,11 @@ export default class Prelude {
     return ts.createStringLiteral(node.text);
   }
 
+  // 073 SyntaxKind.Identifier
+  public genIdentifier(node: ts.Identifier): ts.Identifier {
+    return ts.createIdentifier(node.text);
+  }
+
   // 188 SyntaxKind.ArrayLiteralExpression
   public genArrayLiteralExpression(node: ts.ArrayLiteralExpression): ts.ArrayLiteralExpression {
     return ts.createArrayLiteral(node.elements.map(e => this.genExpression(e)), false);
@@ -167,13 +172,17 @@ export default class Prelude {
 
   // 192 SyntaxKind.CallExpression
   public genCallExpression(node: ts.CallExpression): ts.CallExpression {
-    // if (node.expression.kind === ts.SyntaxKind.PropertyAccessExpression) {
-    //   const real = node.expression as ts.PropertyAccessExpression;
-    //   console.log(real.expression);
-    //   const symbol = this.checker.getSymbolAtLocation(real.expression);
-    //   console.log(symbol, '???');
-    // }
-
+    if (node.expression.kind === ts.SyntaxKind.PropertyAccessExpression) {
+      const real = node.expression as ts.PropertyAccessExpression;
+      const type = this.checker.getTypeAtLocation(real.expression);
+      if (type.isClass()) {
+        return ts.createCall(
+          ts.createIdentifier(type.symbol.name + '_' + real.name.text),
+          node.typeArguments,
+          [real.expression, ...node.arguments].map(e => this.genExpression(e))
+        );
+      }
+    }
     return ts.createCall(
       this.genExpression(node.expression),
       node.typeArguments,
@@ -369,6 +378,8 @@ export default class Prelude {
         return this.genNumericLiteral(node as ts.NumericLiteral);
       case ts.SyntaxKind.StringLiteral:
         return this.genStringLiteral(node as ts.StringLiteral);
+      case ts.SyntaxKind.Identifier:
+        return this.genIdentifier(node as ts.Identifier);
       case ts.SyntaxKind.ArrayLiteralExpression:
         return this.genArrayLiteralExpression(node as ts.ArrayLiteralExpression);
       case ts.SyntaxKind.ObjectLiteralExpression:
