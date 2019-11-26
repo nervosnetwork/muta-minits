@@ -37,7 +37,7 @@ export default class Prelude {
     }
     this.allfile = [this.main, ...this.depends];
     this.program = ts.createProgram(this.allfile, {});
-    this.checker = ts.createProgram(this.allfile, {}).getTypeChecker();
+    this.checker = this.program.getTypeChecker();
 
     const hash = crypto
       .createHash('md5')
@@ -100,16 +100,26 @@ export default class Prelude {
       sources.forEachChild(node => {
         switch (node.kind) {
           case ts.SyntaxKind.FunctionDeclaration:
-            const a = this.genFunctionDeclaration(node as ts.FunctionDeclaration);
+            const a = this.genStatement(node as ts.FunctionDeclaration);
             r.push(printer.printNode(ts.EmitHint.Unspecified, a, tmpFile));
             r.push('\n');
             break;
           case ts.SyntaxKind.ClassDeclaration:
-            const b = this.genClassDeclaration(node as ts.ClassDeclaration);
+            const b = this.genStatement(node as ts.ClassDeclaration);
             b.forEachChild(e => {
               r.push(printer.printNode(ts.EmitHint.Unspecified, e, tmpFile));
               r.push('\n');
             });
+            break;
+          case ts.SyntaxKind.VariableStatement:
+            const c = this.genStatement(node as ts.VariableStatement);
+            r.push(printer.printNode(ts.EmitHint.Unspecified, c, tmpFile));
+            r.push('\n');
+            break;
+          case ts.SyntaxKind.EnumDeclaration:
+            const d = this.genStatement(node as ts.EnumDeclaration);
+            r.push(printer.printNode(ts.EmitHint.Unspecified, d, tmpFile));
+            r.push('\n');
             break;
           default:
             r.push(printer.printNode(ts.EmitHint.Unspecified, node, tmpFile));
@@ -121,13 +131,49 @@ export default class Prelude {
     });
   }
 
+  // 008 SyntaxKind.NumericLiteral
+  public genNumericLiteral(node: ts.NumericLiteral): ts.NumericLiteral {
+    return ts.createNumericLiteral(node.text);
+  }
+
+  // 010 SyntaxKind.StringLiteral
+  public genStringLiteral(node: ts.StringLiteral): ts.StringLiteral {
+    return ts.createStringLiteral(node.text);
+  }
+
+  // 188 SyntaxKind.ArrayLiteralExpression
+  public genArrayLiteralExpression(node: ts.ArrayLiteralExpression): ts.ArrayLiteralExpression {
+    return ts.createArrayLiteral(node.elements.map(e => this.genExpression(e)), false);
+  }
+
+  // 189 SyntaxKind.ObjectLiteralExpression
+  public genObjectLiteralExpression(node: ts.ObjectLiteralExpression): ts.ObjectLiteralExpression {
+    const properties = node.properties.map(e => {
+      const a = e as ts.PropertyAssignment;
+      return ts.createPropertyAssignment(a.name, this.genExpression(a.initializer));
+    });
+    return ts.createObjectLiteral(properties, false);
+  }
+
   // 190 SyntaxKind.PropertyAccessExpression
   public genPropertyAccessExpression(node: ts.PropertyAccessExpression): ts.PropertyAccessExpression {
     return this.preludePropertyAccessExpression.genPropertyAccessExpression(node);
   }
 
+  // 191 SyntaxKind.ElementAccessExpression
+  public genElementAccessExpression(node: ts.ElementAccessExpression): ts.ElementAccessExpression {
+    return ts.createElementAccess(this.genExpression(node.expression), this.genExpression(node.argumentExpression));
+  }
+
   // 192 SyntaxKind.CallExpression
   public genCallExpression(node: ts.CallExpression): ts.CallExpression {
+    // if (node.expression.kind === ts.SyntaxKind.PropertyAccessExpression) {
+    //   const real = node.expression as ts.PropertyAccessExpression;
+    //   console.log(real.expression);
+    //   const symbol = this.checker.getSymbolAtLocation(real.expression);
+    //   console.log(symbol, '???');
+    // }
+
     return ts.createCall(
       this.genExpression(node.expression),
       node.typeArguments,
@@ -135,9 +181,27 @@ export default class Prelude {
     );
   }
 
+  // 193 SyntaxKind.NewExpression
+  public genNewExpression(node: ts.NewExpression): ts.NewExpression {
+    return ts.createNew(
+      this.genExpression(node.expression),
+      node.typeArguments,
+      node.arguments ? node.arguments!.map(e => this.genExpression(e)) : undefined
+    );
+  }
+
   // 205 SyntaxKind.BinaryExpression
   public genBinaryExpression(node: ts.BinaryExpression): ts.Expression {
     return this.preludeBinaryExpression.genBinaryExpression(node);
+  }
+
+  // 206 SyntaxKind.ConditionalExpression
+  public genConditionalExpression(node: ts.ConditionalExpression): ts.ConditionalExpression {
+    return ts.createConditional(
+      this.genExpression(node.condition),
+      this.genExpression(node.whenTrue),
+      this.genExpression(node.whenFalse)
+    );
   }
 
   // 219 SyntaxKind.Block
@@ -156,15 +220,7 @@ export default class Prelude {
 
   // 220 SyntaxKind.VariableStatement
   public genVariableStatement(node: ts.VariableStatement): ts.VariableStatement {
-    const declarations = node.declarationList.declarations.map(item => {
-      if (item.initializer) {
-        const initializer = this.genExpression(item.initializer);
-        return ts.createVariableDeclaration(item.name, item.type, initializer);
-      } else {
-        return item;
-      }
-    });
-    return ts.createVariableStatement(node.modifiers, ts.createVariableDeclarationList(declarations));
+    return ts.createVariableStatement(node.modifiers, this.genVariableDeclarationList(node.declarationList));
   }
 
   // 222 SyntaxKind.ExpressionStatement
@@ -193,8 +249,17 @@ export default class Prelude {
 
   // 226 SyntaxKind.ForStatement
   public genForStatement(node: ts.ForStatement): ts.ForStatement {
+    const initializer = (() => {
+      if (!node.initializer) {
+        return undefined;
+      }
+      if (ts.isVariableDeclarationList(node.initializer)) {
+        return this.genVariableDeclarationList(node.initializer);
+      }
+      return this.genExpression(node.initializer);
+    })();
     return ts.createFor(
-      node.initializer ? this.genExpression(node.initializer as ts.Expression) : undefined,
+      initializer,
       node.condition ? this.genExpression(node.condition) : undefined,
       node.incrementor ? this.genExpression(node.incrementor) : undefined,
       this.genStatement(node.statement)
@@ -208,6 +273,29 @@ export default class Prelude {
       this.genExpression(node.initializer as ts.Expression),
       this.genExpression(node.expression),
       this.genStatement(node.statement)
+    );
+  }
+
+  // 231 SyntaxKind.ReturnStatement
+  public genReturnStatement(node: ts.ReturnStatement): ts.ReturnStatement {
+    return ts.createReturn(node.expression ? this.genExpression(node.expression) : undefined);
+  }
+
+  // 233 SyntaxKind.SwitchStatement
+  public genSwitchStatement(node: ts.SwitchStatement): ts.Statement {
+    return this.preludeSwitchStatement.genSwitchStatement(node);
+  }
+
+  // 239 SyntaxKind.VariableDeclarationList
+  public genVariableDeclarationList(node: ts.VariableDeclarationList): ts.VariableDeclarationList {
+    return ts.createVariableDeclarationList(
+      node.declarations.map(e => {
+        return ts.createVariableDeclaration(
+          e.name,
+          e.type,
+          e.initializer ? this.genExpression(e.initializer) : undefined
+        );
+      })
     );
   }
 
@@ -230,9 +318,16 @@ export default class Prelude {
     return this.preludeClassDeclaration.genClassDeclaration(node);
   }
 
-  // 233 SyntaxKind.SwitchStatement
-  public genSwitchStatement(node: ts.SwitchStatement): ts.Statement {
-    return this.preludeSwitchStatement.genSwitchStatement(node);
+  // 244 SyntaxKind.EnumDeclaration
+  public genEnumDeclaration(node: ts.EnumDeclaration): ts.EnumDeclaration {
+    return ts.createEnumDeclaration(
+      node.decorators,
+      node.modifiers,
+      node.name,
+      node.members.map(e => {
+        return ts.createEnumMember(e.name, e.initializer ? this.genExpression(e.initializer) : undefined);
+      })
+    );
   }
 
   public genStatement(node: ts.Statement): ts.Statement {
@@ -253,8 +348,16 @@ export default class Prelude {
         return this.genForStatement(node as ts.ForStatement);
       case ts.SyntaxKind.ForOfStatement:
         return this.genForOfStatement(node as ts.ForOfStatement);
+      case ts.SyntaxKind.ReturnStatement:
+        return this.genReturnStatement(node as ts.ReturnStatement);
       case ts.SyntaxKind.SwitchStatement:
         return this.genSwitchStatement(node as ts.SwitchStatement);
+      case ts.SyntaxKind.FunctionDeclaration:
+        return this.genFunctionDeclaration(node as ts.FunctionDeclaration);
+      case ts.SyntaxKind.ClassDeclaration:
+        return this.genClassDeclaration(node as ts.ClassDeclaration);
+      case ts.SyntaxKind.EnumDeclaration:
+        return this.genEnumDeclaration(node as ts.EnumDeclaration);
       default:
         return node;
     }
@@ -262,12 +365,26 @@ export default class Prelude {
 
   public genExpression(node: ts.Expression): ts.Expression {
     switch (node.kind) {
+      case ts.SyntaxKind.NumericLiteral:
+        return this.genNumericLiteral(node as ts.NumericLiteral);
+      case ts.SyntaxKind.StringLiteral:
+        return this.genStringLiteral(node as ts.StringLiteral);
+      case ts.SyntaxKind.ArrayLiteralExpression:
+        return this.genArrayLiteralExpression(node as ts.ArrayLiteralExpression);
+      case ts.SyntaxKind.ObjectLiteralExpression:
+        return this.genObjectLiteralExpression(node as ts.ObjectLiteralExpression);
       case ts.SyntaxKind.PropertyAccessExpression:
         return this.genPropertyAccessExpression(node as ts.PropertyAccessExpression);
+      case ts.SyntaxKind.ElementAccessExpression:
+        return this.genElementAccessExpression(node as ts.ElementAccessExpression);
       case ts.SyntaxKind.CallExpression:
         return this.genCallExpression(node as ts.CallExpression);
+      case ts.SyntaxKind.NewExpression:
+        return this.genNewExpression(node as ts.NewExpression);
       case ts.SyntaxKind.BinaryExpression:
         return this.genBinaryExpression(node as ts.BinaryExpression);
+      case ts.SyntaxKind.ConditionalExpression:
+        return this.genConditionalExpression(node as ts.ConditionalExpression);
     }
     return node;
   }

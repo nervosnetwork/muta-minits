@@ -18,7 +18,7 @@ export default class PreludeSwitchStatement {
 
     for (const e of node.caseBlock.clauses) {
       if (e.kind === ts.SyntaxKind.CaseClause) {
-        const b = this.createCase(e, node.expression);
+        const b = this.createCase(e, this.lude.genExpression(node.expression));
         data.push(b);
       } else {
         const b = this.createDefault(e);
@@ -56,7 +56,11 @@ export default class PreludeSwitchStatement {
       ts.createBinary(
         ts.createPrefix(ts.SyntaxKind.ExclamationToken, ts.createIdentifier('_quit')),
         ts.createToken(ts.SyntaxKind.AmpersandAmpersandToken),
-        ts.createBinary(node.expression, ts.createToken(ts.SyntaxKind.EqualsEqualsEqualsToken), cond)
+        ts.createBinary(
+          this.lude.genExpression(node.expression),
+          ts.createToken(ts.SyntaxKind.EqualsEqualsEqualsToken),
+          cond
+        )
       ),
       ts.createBlock(data),
       undefined
