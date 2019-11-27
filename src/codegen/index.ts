@@ -22,7 +22,6 @@ import CodeGenImport from './import-declaration';
 import CodeGenNew from './new-expression';
 import CodeGenNumeric from './numeric-expression';
 import CodeGenObject from './object-literal-expression';
-import CodeGenPostfixUnary from './postfix-unary-expression';
 import CodeGenPrefixUnary from './prefix-unary-expression';
 import CodeGenPropertyAccessExpression from './property-access-expression';
 import CodeGenReturn from './return-statement';
@@ -60,7 +59,6 @@ export default class LLVMCodeGen {
   public readonly cgNumeric: CodeGenNumeric;
   public readonly cgObject: CodeGenObject;
   public readonly cgNew: CodeGenNew;
-  public readonly cgPostfixUnary: CodeGenPostfixUnary;
   public readonly cgPrefixUnary: CodeGenPrefixUnary;
   public readonly cgPropertyAccessExpression: CodeGenPropertyAccessExpression;
   public readonly cgReturn: CodeGenReturn;
@@ -103,7 +101,6 @@ export default class LLVMCodeGen {
     this.cgNumeric = new CodeGenNumeric(this);
     this.cgObject = new CodeGenObject(this);
     this.cgNew = new CodeGenNew(this);
-    this.cgPostfixUnary = new CodeGenPostfixUnary(this);
     this.cgPrefixUnary = new CodeGenPrefixUnary(this);
     this.cgPropertyAccessExpression = new CodeGenPropertyAccessExpression(this);
     this.cgReturn = new CodeGenReturn(this);
@@ -283,8 +280,6 @@ export default class LLVMCodeGen {
         return this.genParenthesizedExpression(expr as ts.ParenthesizedExpression);
       case ts.SyntaxKind.PrefixUnaryExpression:
         return this.genPrefixUnaryExpression(expr as ts.PrefixUnaryExpression);
-      case ts.SyntaxKind.PostfixUnaryExpression:
-        return this.genPostfixUnaryExpression(expr as ts.PostfixUnaryExpression);
       case ts.SyntaxKind.BinaryExpression:
         return this.genBinaryExpression(expr as ts.BinaryExpression);
       case ts.SyntaxKind.PropertyAccessExpression:
@@ -318,10 +313,6 @@ export default class LLVMCodeGen {
 
   public genPrefixUnaryExpression(node: ts.PrefixUnaryExpression): llvm.Value {
     return this.cgPrefixUnary.genPrefixUnaryExpression(node);
-  }
-
-  public genPostfixUnaryExpression(node: ts.PostfixUnaryExpression): llvm.Value {
-    return this.cgPostfixUnary.genPostfixUnaryExpression(node);
   }
 
   public genBinaryExpression(node: ts.BinaryExpression): llvm.Value {

@@ -30,11 +30,14 @@ export default class PreludeClassDeclaration {
     }
 
     const statements: ts.Statement[] = [];
-    node.members = ts.createNodeArray(properties);
     statements.push(node);
 
     if (constructor.length !== 0) {
       const c = this.genConstructorDeclaration(constructor[0], node.name!.text);
+      statements.push(c);
+    }
+    for (const e of methods) {
+      const c = this.genMethodDeclaration(e, node.name!.text);
       statements.push(c);
     }
 
@@ -67,6 +70,38 @@ export default class PreludeClassDeclaration {
       undefined,
       args,
       ts.createKeywordTypeNode(ts.SyntaxKind.VoidKeyword),
+      ts.createBlock(body, true)
+    );
+
+    return full;
+  }
+
+  private genMethodDeclaration(node: ts.MethodDeclaration, name: string): ts.FunctionDeclaration {
+    const body: ts.Statement[] = [];
+    for (const e of node.body!.statements) {
+      const f = this.lude.genStatement(e);
+      body.push(f);
+    }
+
+    const arg0 = ts.createParameter(
+      undefined,
+      undefined,
+      undefined,
+      ts.createIdentifier('_this'),
+      undefined,
+      ts.createTypeReferenceNode(ts.createIdentifier(name), undefined),
+      undefined
+    );
+    const args = [arg0, ...node.parameters];
+
+    const full = ts.createFunctionDeclaration(
+      undefined,
+      undefined,
+      undefined,
+      ts.createIdentifier(name + '_' + (node.name as ts.Identifier).text),
+      undefined,
+      args,
+      node.type,
       ts.createBlock(body, true)
     );
 

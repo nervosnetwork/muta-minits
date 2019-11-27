@@ -14,8 +14,9 @@ export default class CodeGenClassDeclaration {
     const name = node.name!.getText();
     const properties: ts.PropertyDeclaration[] = [];
     for (const e of node.members) {
-      properties.push(e as ts.PropertyDeclaration);
-      continue;
+      if (ts.isPropertyDeclaration(e)) {
+        properties.push(e);
+      }
     }
     const memberTypeList = properties.map(e => this.cgen.genType(e.type!));
     const structType = llvm.StructType.create(this.cgen.context, name);
