@@ -92,7 +92,13 @@ export default class Prelude {
       const sources = this.program.getSourceFile(file)!;
       const tmpPath = path.join(this.tempdir, path.relative(this.rootdir, file));
 
-      const tmpFile = ts.createSourceFile(tmpPath, '', ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
+      const tmpFile = ts.createSourceFile(
+        tmpPath,
+        fs.readFileSync(file).toString(),
+        ts.ScriptTarget.Latest,
+        false,
+        ts.ScriptKind.TS
+      );
       const printer = ts.createPrinter({
         newLine: ts.NewLineKind.LineFeed
       });
