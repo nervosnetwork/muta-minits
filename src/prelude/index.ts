@@ -7,6 +7,7 @@ import shell from 'shelljs';
 import ts from 'typescript';
 
 import PreludeBinaryExpression from './binary-expression';
+import PreludeCallExpression from './call-expression';
 import PreludeClassDeclaration from './class-declaration';
 import PreludePostfixUnaryExpression from './postfix-unary-expression';
 import PreludePropertyAccessExpression from './property-access-expression';
@@ -24,6 +25,7 @@ export default class Prelude {
   public readonly checker: ts.TypeChecker;
 
   public readonly preludeBinaryExpression: PreludeBinaryExpression;
+  public readonly preludeCallExpression: PreludeCallExpression;
   public readonly preludeClassDeclaration: PreludeClassDeclaration;
   public readonly preludePostfixUnaryExpression: PreludePostfixUnaryExpression;
   public readonly preludePropertyAccessExpression: PreludePropertyAccessExpression;
@@ -49,6 +51,7 @@ export default class Prelude {
 
     this.tempdir = path.join(shell.tempdir(), 'minits', hash);
     this.preludeBinaryExpression = new PreludeBinaryExpression(this);
+    this.preludeCallExpression = new PreludeCallExpression(this);
     this.preludeClassDeclaration = new PreludeClassDeclaration(this);
     this.preludePostfixUnaryExpression = new PreludePostfixUnaryExpression(this);
     this.preludePropertyAccessExpression = new PreludePropertyAccessExpression(this);
@@ -181,31 +184,7 @@ export default class Prelude {
 
   // 192 SyntaxKind.CallExpression
   public genCallExpression(node: ts.CallExpression): ts.CallExpression {
-    if (node.expression.kind === ts.SyntaxKind.PropertyAccessExpression) {
-      const real = node.expression as ts.PropertyAccessExpression;
-      const type = this.checker.getTypeAtLocation(real.expression);
-      // Object.method()
-      if (type.isClass()) {
-        return ts.createCall(
-          ts.createIdentifier(type.symbol.name + '_' + real.name.text),
-          node.typeArguments,
-          [real.expression, ...node.arguments].map(e => this.genExpression(e))
-        );
-      }
-      // This.method()
-      if (real.expression.kind === ts.SyntaxKind.ThisKeyword) {
-        return ts.createCall(
-          ts.createIdentifier(type.symbol.name + '_' + real.name.text),
-          node.typeArguments,
-          [this.genExpression(ts.createIdentifier('_this')), ...node.arguments].map(e => this.genExpression(e))
-        );
-      }
-    }
-    return ts.createCall(
-      this.genExpression(node.expression),
-      node.typeArguments,
-      ts.createNodeArray(node.arguments.map(e => this.genExpression(e)))
-    );
+    return this.preludeCallExpression.genCallExpression(node);
   }
 
   // 193 SyntaxKind.NewExpression
