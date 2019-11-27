@@ -8,6 +8,7 @@ import ts from 'typescript';
 
 import PreludeBinaryExpression from './binary-expression';
 import PreludeClassDeclaration from './class-declaration';
+import PreludePostfixUnaryExpression from './postfix-unary-expression';
 import PreludePropertyAccessExpression from './property-access-expression';
 import PreludeSwitchStatement from './switch-statement';
 
@@ -24,6 +25,7 @@ export default class Prelude {
 
   public readonly preludeBinaryExpression: PreludeBinaryExpression;
   public readonly preludeClassDeclaration: PreludeClassDeclaration;
+  public readonly preludePostfixUnaryExpression: PreludePostfixUnaryExpression;
   public readonly preludePropertyAccessExpression: PreludePropertyAccessExpression;
   public readonly preludeSwitchStatement: PreludeSwitchStatement;
 
@@ -48,6 +50,7 @@ export default class Prelude {
     this.tempdir = path.join(shell.tempdir(), 'minits', hash);
     this.preludeBinaryExpression = new PreludeBinaryExpression(this);
     this.preludeClassDeclaration = new PreludeClassDeclaration(this);
+    this.preludePostfixUnaryExpression = new PreludePostfixUnaryExpression(this);
     this.preludePropertyAccessExpression = new PreludePropertyAccessExpression(this);
     this.preludeSwitchStatement = new PreludeSwitchStatement(this);
   }
@@ -203,6 +206,11 @@ export default class Prelude {
       node.typeArguments,
       node.arguments ? node.arguments!.map(e => this.genExpression(e)) : undefined
     );
+  }
+
+  // 204 SyntaxKind.PostfixUnaryExpression
+  public genPostfixUnaryExpression(node: ts.PostfixUnaryExpression): ts.BinaryExpression {
+    return this.preludePostfixUnaryExpression.genPostfixUnaryExpression(node);
   }
 
   // 205 SyntaxKind.BinaryExpression
@@ -398,6 +406,8 @@ export default class Prelude {
         return this.genCallExpression(node as ts.CallExpression);
       case ts.SyntaxKind.NewExpression:
         return this.genNewExpression(node as ts.NewExpression);
+      case ts.SyntaxKind.PostfixUnaryExpression:
+        return this.genPostfixUnaryExpression(node as ts.PostfixUnaryExpression);
       case ts.SyntaxKind.BinaryExpression:
         return this.genBinaryExpression(node as ts.BinaryExpression);
       case ts.SyntaxKind.ConditionalExpression:
