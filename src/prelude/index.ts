@@ -184,11 +184,20 @@ export default class Prelude {
     if (node.expression.kind === ts.SyntaxKind.PropertyAccessExpression) {
       const real = node.expression as ts.PropertyAccessExpression;
       const type = this.checker.getTypeAtLocation(real.expression);
+      // Object.method()
       if (type.isClass()) {
         return ts.createCall(
           ts.createIdentifier(type.symbol.name + '_' + real.name.text),
           node.typeArguments,
           [real.expression, ...node.arguments].map(e => this.genExpression(e))
+        );
+      }
+      // This.method()
+      if (real.expression.kind === ts.SyntaxKind.ThisKeyword) {
+        return ts.createCall(
+          ts.createIdentifier(type.symbol.name + '_' + real.name.text),
+          node.typeArguments,
+          [this.genExpression(ts.createIdentifier('_this')), ...node.arguments].map(e => this.genExpression(e))
         );
       }
     }

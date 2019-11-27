@@ -75,7 +75,46 @@ function main(): number {
 }
 `;
 
+const srcClassMethod = `
+class Son {
+    age: number
+
+    constructor(age: number) {
+        this.age = age;
+    }
+
+    get(): number {
+        return this.age
+    }
+}
+
+class Father {
+    age: number;
+    son: Son;
+
+    constructor(age: number, son: Son) {
+        this.age = age;
+        this.son = son;
+    }
+
+    get(): number {
+        return this.age
+    }
+
+    all(): number {
+        return this.get() + this.son.get()
+    }
+}
+
+function main(): number {
+    const son = new Son(18);
+    const father = new Father(38, son);
+    return father.all();
+}
+`;
+
 runTest('test class: init', srcClassInit);
 runTest('test class: as function argument', srcClassAsFunctionArgument);
 runTest('test class: class in class', srcClassInClass);
 runTest('test class: constructor', srcClassConstructor);
+runTest('test class: method', srcClassMethod);

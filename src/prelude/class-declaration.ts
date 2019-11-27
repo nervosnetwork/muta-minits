@@ -101,7 +101,7 @@ export default class PreludeClassDeclaration {
       ts.createIdentifier(name + '_' + (node.name as ts.Identifier).text),
       undefined,
       args,
-      ts.createKeywordTypeNode(ts.SyntaxKind.VoidKeyword),
+      node.type,
       ts.createBlock(body, true)
     );
 
