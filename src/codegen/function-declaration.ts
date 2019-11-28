@@ -1,8 +1,11 @@
+import Debug from 'debug';
 import llvm from 'llvm-node';
 import ts from 'typescript';
 
 import * as symtab from '../symtab';
 import LLVMCodeGen from './';
+
+const debug = Debug('minits:codegen');
 
 interface LLVMFunctionWithTsDeclaration {
   func: llvm.Function;
@@ -23,20 +26,16 @@ export default class CodeGenFuncDecl {
     if (node.modifiers && node.modifiers[0].kind === ts.SyntaxKind.DeclareKeyword) {
       return;
     }
-    const funcReturnType = (() => {
-      if (node.type) {
-        return this.cgen.genType(node.type);
-      } else {
-        return llvm.Type.getVoidTy(this.cgen.context);
-      }
-    })();
+    const funcReturnType = this.cgen.genType(node.type!);
     const funcArgsType = node.parameters.map(item => {
       return this.cgen.genType(item.type!);
     });
     const fnty = llvm.FunctionType.get(funcReturnType, funcArgsType, false);
     const name = (node.name as ts.Identifier).text;
     const linkage = llvm.LinkageTypes.ExternalLinkage;
-    const func = llvm.Function.create(fnty, linkage, this.cgen.symtab.name() + name, this.cgen.module);
+    const show = this.cgen.symtab.name() + name;
+    debug(`Declare function ${show}`);
+    const func = llvm.Function.create(fnty, linkage, show, this.cgen.module);
     if (name === 'main') {
       func.addFnAttr(llvm.Attribute.AttrKind.NoInline);
       func.addFnAttr(llvm.Attribute.AttrKind.OptimizeNone);

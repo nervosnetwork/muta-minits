@@ -4,19 +4,16 @@
 
 process.env.DEBUG_COLORS = '0';
 process.env.DEBUG_HIDE_DATE = '1';
+process.env.DEBUG = 'minits*';
 
 import commander from 'commander';
-// import Debug from 'debug';
 import fs from 'fs';
 import llvm from 'llvm-node';
 import path from 'path';
 import shell from 'shelljs';
-import ts from 'typescript';
 
 import LLVMCodeGen from './codegen';
 import Prelude from './prelude';
-
-// const debug = Debug('minits:main');
 
 const program = new commander.Command();
 
@@ -50,25 +47,19 @@ function build(args: any, opts: any): BuildInfo {
   llvm.initializeAllAsmPrinters();
 
   const prelude = new Prelude(args);
-  prelude.process();
+  const outputs = prelude.process();
 
-  const fullFile = [prelude.main, ...prelude.depends]
-    .map(e => path.relative(prelude.rootdir, e))
-    .map(e => path.join(prelude.tempdir, e));
-  const mainFile = fullFile[0];
-
-  const program = ts.createProgram(fullFile, {});
-  const cg = new LLVMCodeGen(prelude.tempdir, program);
+  const codegen = new LLVMCodeGen([outputs]);
   const triple: string = opts.triple ? opts.triple : llvm.config.LLVM_DEFAULT_TARGET_TRIPLE;
   const target = llvm.TargetRegistry.lookupTarget(triple);
   const m = target.createTargetMachine(triple, 'generic');
-  cg.module.dataLayout = m.createDataLayout();
-  cg.module.targetTriple = triple;
-  cg.module.sourceFileName = mainFile;
-  cg.genSourceFile(mainFile);
+  codegen.module.dataLayout = m.createDataLayout();
+  codegen.module.targetTriple = triple;
+  codegen.module.sourceFileName = outputs;
+  codegen.genSourceFile(outputs);
 
-  const codeText = cg.genText();
-  const output = path.join(prelude.tempdir, 'output.ll');
+  const codeText = codegen.genText();
+  const output = path.join(path.dirname(outputs), 'output.ll');
   fs.writeFileSync(output, codeText);
   if (opts.show) {
     process.stdout.write(codeText);
@@ -76,10 +67,10 @@ function build(args: any, opts: any): BuildInfo {
   if (opts.output) {
     fs.copyFileSync(output, opts.output);
   }
-  llvm.verifyModule(cg.module);
+  llvm.verifyModule(codegen.module);
 
   return {
-    tempdir: prelude.tempdir
+    tempdir: path.dirname(outputs)
   };
 }
 

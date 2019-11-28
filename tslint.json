@@ -4,6 +4,7 @@
     "max-line-length": [true, 120],
     "max-classes-per-file": false,
     "interface-name": [true, "never-prefix"],
+    "no-bitwise": false,
     "no-implicit-dependencies": [true, "dev"],
     "no-var-keyword": true,
     "no-parameter-reassignment": true,

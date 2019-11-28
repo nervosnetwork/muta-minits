@@ -33,29 +33,17 @@ export default class CodeGenBinary {
       // >=
       case ts.SyntaxKind.GreaterThanEqualsToken:
         return this.cgen.builder.createICmpSGE(lhs, rhs);
-      // ==
-      case ts.SyntaxKind.EqualsEqualsToken:
-        return this.cgen.builder.createICmpEQ(lhs, rhs);
       // !=
       case ts.SyntaxKind.ExclamationEqualsToken:
         return this.cgen.builder.createICmpNE(lhs, rhs);
       // ===
       case ts.SyntaxKind.EqualsEqualsEqualsToken:
-        if (this.cgen.cgString.isStringLiteral(expr.left)) {
-          return this.cgen.cgString.eq(lhs, rhs);
-        }
         return this.cgen.builder.createICmpEQ(lhs, rhs);
       // !==
       case ts.SyntaxKind.ExclamationEqualsEqualsToken:
-        if (this.cgen.cgString.isStringLiteral(expr.left)) {
-          return this.cgen.cgString.ne(lhs, rhs);
-        }
         return this.cgen.builder.createICmpNE(lhs, rhs);
       // +
       case ts.SyntaxKind.PlusToken:
-        if (this.cgen.cgString.isStringLiteral(expr.left)) {
-          return this.cgen.cgString.concat(lhs, rhs);
-        }
         return this.cgen.builder.createAdd(lhs, rhs);
       // -
       case ts.SyntaxKind.MinusToken:

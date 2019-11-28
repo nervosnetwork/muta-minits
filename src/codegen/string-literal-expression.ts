@@ -70,42 +70,4 @@ export default class CodeGenString {
     const argumentExpression = this.cgen.genExpression(node.argumentExpression);
     return this.getElementAccess(identifier, argumentExpression);
   }
-
-  public eq(lhs: llvm.Value, rhs: llvm.Value): llvm.Value {
-    const r = this.cgen.stdlib.strcmp([lhs, rhs]);
-    return this.cgen.builder.createICmpEQ(r, llvm.ConstantInt.get(this.cgen.context, 0, 64));
-  }
-
-  public ne(lhs: llvm.Value, rhs: llvm.Value): llvm.Value {
-    const r = this.cgen.stdlib.strcmp([lhs, rhs]);
-    return this.cgen.builder.createICmpNE(r, llvm.ConstantInt.get(this.cgen.context, 0, 64));
-  }
-
-  public concat(lhs: llvm.Value, rhs: llvm.Value): llvm.Value {
-    const lhsLength = this.cgen.stdlib.strlen([lhs]);
-    const rhsLength = this.cgen.stdlib.strlen([rhs]);
-    const length = this.cgen.builder.createAdd(
-      this.cgen.builder.createAdd(lhsLength, rhsLength),
-      llvm.ConstantInt.get(this.cgen.context, 1, 64)
-    );
-    const ptr = this.cgen.builder.createAlloca(llvm.Type.getInt8Ty(this.cgen.context), length);
-    this.cgen.stdlib.strcpy([ptr, lhs]);
-    this.cgen.stdlib.strcat([ptr, rhs]);
-    return ptr;
-  }
-
-  public getPropertyAccessExpression(s: llvm.Value, property: string): llvm.Value {
-    switch (property) {
-      case 'length':
-        return this.cgen.stdlib.strlen([s]);
-      default:
-        throw new Error(`Object doesn't support property or method '${property}'`);
-    }
-  }
-
-  public genPropertyAccessExpression(node: ts.PropertyAccessExpression): llvm.Value {
-    const s = this.cgen.genExpression(node.expression);
-    const property = node.name.getText();
-    return this.getPropertyAccessExpression(s, property);
-  }
 }
