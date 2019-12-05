@@ -1096,6 +1096,7 @@ export default class Prelude {
     option.entryfn = new PreludeLayer4(option).process();
     option.entryfn = new PreludeLayer5(option).process();
     const out = path.join(tempdir, 'output.ts');
+    debug(`Rename ${option.entryfn} => ${out}`);
     fs.copyFileSync(option.entryfn, out);
     return out;
   }
