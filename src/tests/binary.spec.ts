@@ -29,10 +29,11 @@ test('test args', async t => {
 
   const prelude = new Prelude(name);
   const outputs = prelude.process();
-  const codegen = new LLVMCodeGen([outputs]);
+  const codegen = new LLVMCodeGen(outputs);
   codegen.genSourceFile(outputs);
 
   const full = path.join(path.dirname(outputs), 'output');
+  fs.writeFileSync(`${full}.ll`, codegen.genText());
   shell.exec(`llvm-as ${full}.ll -o ${full}.bc`, { async: false });
   shell.exec(`llc -filetype=obj ${full}.bc -o ${full}.o`, { async: false });
   shell.exec(`gcc ${full}.o -o ${full}`, { async: false });

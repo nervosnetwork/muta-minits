@@ -38,7 +38,7 @@ async function runWithLLVM(source: string): Promise<any> {
 
   const prelude = new Prelude(name);
   const outputs = prelude.process();
-  const codegen = new LLVMCodeGen([outputs]);
+  const codegen = new LLVMCodeGen(outputs);
   codegen.genSourceFile(outputs);
 
   const tmppath = path.join(path.dirname(outputs), 'output.ll');

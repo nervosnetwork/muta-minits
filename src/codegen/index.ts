@@ -70,8 +70,8 @@ export default class LLVMCodeGen {
   public currentFunction: llvm.Function | undefined;
   public currentType: ts.TypeNode | undefined;
 
-  constructor(full: string[]) {
-    this.program = ts.createProgram(full, {});
+  constructor(main: string) {
+    this.program = ts.createProgram([main], {});
     this.checker = this.program.getTypeChecker();
 
     this.context = new llvm.LLVMContext();
