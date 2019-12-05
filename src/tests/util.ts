@@ -1,7 +1,6 @@
 import test from 'ava';
 import crypto from 'crypto';
 import fs from 'fs';
-import llvm from 'llvm-node';
 import path from 'path';
 import shell from 'shelljs';
 import ts from 'typescript';
@@ -9,44 +8,24 @@ import ts from 'typescript';
 import LLVMCodeGen from '../codegen';
 import Prelude from '../prelude';
 
-export async function runCode(
-  source: string,
-  options: ts.TranspileOptions = { compilerOptions: { module: ts.ModuleKind.ES2015 } }
-): Promise<boolean> {
-  const jsRet = await compileToJS(source, options);
-  const irPath = await compileToLLVMIR(source);
-  const llvmRet = shell.exec(`lli ${irPath}`, { async: false });
-  if (jsRet !== llvmRet.code && 256 + jsRet !== llvmRet.code) {
+async function runCode(source: string): Promise<boolean> {
+  const jsRet = await runWithNodeJS(source);
+  const irRet = await runWithLLVM(source);
+  if (jsRet !== irRet.code && 256 + jsRet !== irRet.code) {
     return false;
   }
-  if (llvmRet.stderr) {
+  if (irRet.stderr) {
     return false;
   }
   return true;
 }
 
-export function runTest(name: string, code: string): void {
-  test(name, async t => {
-    if (await runCode(code)) {
-      t.pass();
-    } else {
-      t.fail();
-    }
-  });
+async function runWithNodeJS(source: string): Promise<any> {
+  const result = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ES2015 } });
+  return eval(`${result.outputText}; main();`);
 }
 
-async function compileToJS(
-  source: string,
-  options: ts.TranspileOptions = { compilerOptions: { module: ts.ModuleKind.ES2015 } }
-): Promise<any> {
-  const result = ts.transpileModule(source, options);
-  return eval(`
-    ${result.outputText}
-    main();
-  `);
-}
-
-export async function compileToLLVMIR(source: string): Promise<string> {
+async function runWithLLVM(source: string): Promise<any> {
   const hash = crypto
     .createHash('md5')
     .update(source)
@@ -58,19 +37,21 @@ export async function compileToLLVMIR(source: string): Promise<string> {
   fs.writeFileSync(name, source);
 
   const prelude = new Prelude(name);
-  prelude.process();
+  const outputs = prelude.process();
+  const codegen = new LLVMCodeGen([outputs]);
+  codegen.genSourceFile(outputs);
 
-  const fullFile = [prelude.main, ...prelude.depends]
-    .map(e => path.relative(prelude.rootdir, e))
-    .map(e => path.join(prelude.tempdir, e));
-  const mainFile = fullFile[0];
+  const tmppath = path.join(path.dirname(outputs), 'output.ll');
+  fs.writeFileSync(tmppath, codegen.genText());
+  return shell.exec(`lli ${tmppath}`, { async: false });
+}
 
-  const program = ts.createProgram(fullFile, {});
-  const cgen = new LLVMCodeGen(prelude.tempdir, program);
-  cgen.genSourceFile(mainFile);
-  llvm.verifyModule(cgen.module);
-
-  const output = path.join(prelude.tempdir, 'output.ll');
-  fs.writeFileSync(output, cgen.genText());
-  return output;
+export function runTest(name: string, code: string): void {
+  test(name, async t => {
+    if (await runCode(code)) {
+      t.pass();
+    } else {
+      t.fail();
+    }
+  });
 }

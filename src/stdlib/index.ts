@@ -9,6 +9,15 @@ export class Stdlib {
     this.cgen = cgen;
   }
 
+  public malloc(args: llvm.Value[]): llvm.Value {
+    const name = 'malloc';
+    const i = [llvm.Type.getInt64Ty(this.cgen.context)];
+    const varg = false;
+    const o = llvm.Type.getInt8PtrTy(this.cgen.context);
+    const func = this.cgen.module.getOrInsertFunction(name, llvm.FunctionType.get(o, i, varg));
+    return this.cgen.builder.createCall(func, args);
+  }
+
   public printf(args: llvm.Value[]): llvm.Value {
     const name = 'printf';
     const i = [llvm.Type.getInt8PtrTy(this.cgen.context)];

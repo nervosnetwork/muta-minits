@@ -40,7 +40,7 @@ class Symtab {
   public data: Meso;
 
   constructor() {
-    this.data = new Meso(undefined, 'main');
+    this.data = new Meso(undefined, '');
   }
 
   public deep(): number {

@@ -23,16 +23,8 @@ export default class CodeGenPropertyAccessExpression {
 
     if (symtab.isMeso(parent)) {
       return parent.data.get(node.name.getText())!;
-    } else if (this.cgen.cgString.isStringLiteral(node.expression)) {
-      const p = parent as symtab.Leaf;
-      let v = p.data;
-      for (let i = 0; i < p.ptrs; i++) {
-        v = this.cgen.builder.createLoad(v);
-      }
-      const e = this.cgen.cgString.getPropertyAccessExpression(v, node.name.getText());
-      return new symtab.Leaf(e, 0);
     } else {
-      const e = this.cgen.cgObject.genPropertyAccessExpression(node);
+      const e = this.cgen.cgClassDeclaration.genPropertyAccessExpression(node);
       return new symtab.Leaf(e, 0);
     }
   }

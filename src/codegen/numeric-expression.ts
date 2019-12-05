@@ -15,6 +15,8 @@ export default class CodeGenNumeric {
     const bits = (() => {
       if (text.startsWith('0x')) {
         return 16;
+      } else if (text.startsWith('0b')) {
+        return 2;
       } else {
         return 10;
       }

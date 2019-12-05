@@ -75,21 +75,4 @@ export default class GenObject {
     const argLinkage = llvm.LinkageTypes.ExternalLinkage;
     return new llvm.GlobalVariable(this.cgen.module, structType, false, argLinkage, argInitializer);
   }
-
-  public genPropertyAccessExpressionPtr(node: ts.PropertyAccessExpression): llvm.Value {
-    const type = this.cgen.checker.getTypeAtLocation(node.expression);
-    const properties = this.cgen.checker.getPropertiesOfType(type);
-    const index = properties.findIndex(property => property.name === node.name.getText());
-    const value = this.cgen.genExpression(node.expression);
-
-    return this.cgen.builder.createInBoundsGEP(value, [
-      llvm.ConstantInt.get(this.cgen.context, 0, 32, true),
-      llvm.ConstantInt.get(this.cgen.context, index, 32, true)
-    ]);
-  }
-
-  public genPropertyAccessExpression(node: ts.PropertyAccessExpression): llvm.Value {
-    const ptr = this.genPropertyAccessExpressionPtr(node);
-    return this.cgen.builder.createLoad(ptr);
-  }
 }
