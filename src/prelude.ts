@@ -956,8 +956,7 @@ class PreludeLayer4 extends Base {
         throw new Error('Array type must be specified explicitly');
       }
       if (a.flags & ts.TypeFlags.Object && a.symbol.escapedName.toString() !== '__object') {
-        const b = (node.initializer as ts.NewExpression).expression.getText();
-        return ts.createTypeReferenceNode(b, undefined);
+        return ts.createTypeReferenceNode(a.symbol.escapedName.toString(), undefined);
       }
       return undefined;
     })();

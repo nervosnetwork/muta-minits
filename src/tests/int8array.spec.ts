@@ -15,5 +15,17 @@ function main(): number {
 }
 `;
 
+const srcReturnByFunction = `
+function func(): Int8Array {
+    return new Int8Array([0, 1, 2, 3]);
+}
+
+function main(): number {
+    const r = func();
+    return r[3];
+}
+`;
+
 runTest('test buffer: get and set', srcGetAndSet);
 runTest('test buffer: new with number array', srcNewWithNumberArray);
+runTest('test buffer: return by func', srcReturnByFunction);
