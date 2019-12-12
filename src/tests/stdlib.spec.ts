@@ -14,4 +14,14 @@ function main(): number {
 }
 `;
 
+const srcAtoI = `
+function main(): number {
+    const s = "100";
+    let d: number = parseInt(s);
+    d += 5; // 105
+    return d;
+}
+`;
+
 runTest('test stdlib: console.log', srcConsoleLog);
+runTest('test stdlib: atoi', srcAtoI);

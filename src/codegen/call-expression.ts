@@ -16,12 +16,20 @@ export default class CodeGenFuncDecl {
     const callArgs = node.arguments.map(item => this.cgen.genExpression(item));
 
     switch (funcName) {
+      case 'atoi':
+        return this.cgen.stdlib.atoi(callArgs);
       case 'console.log':
         return this.cgen.stdlib.printf(callArgs);
+      case 'itoa':
+        return this.cgen.stdlib.itoa(callArgs);
       case 'malloc':
         return this.cgen.stdlib.malloc(callArgs);
+      case 'parseInt':
+        return this.cgen.stdlib.atoi(callArgs);
       case 'printf':
         return this.cgen.stdlib.printf(callArgs);
+      case `sprintf`:
+        return this.cgen.stdlib.sprintf(callArgs);
       case 'strcat':
         return this.cgen.stdlib.strcat(callArgs);
       case 'strcmp':
