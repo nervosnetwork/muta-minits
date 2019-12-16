@@ -956,8 +956,7 @@ class PreludeLayer4 extends Base {
         throw new Error('Array type must be specified explicitly');
       }
       if (a.flags & ts.TypeFlags.Object && a.symbol.escapedName.toString() !== '__object') {
-        const b = (node.initializer as ts.NewExpression).expression.getText();
-        return ts.createTypeReferenceNode(b, undefined);
+        return ts.createTypeReferenceNode(a.symbol.escapedName.toString(), undefined);
       }
       return undefined;
     })();
@@ -1096,6 +1095,7 @@ export default class Prelude {
     option.entryfn = new PreludeLayer4(option).process();
     option.entryfn = new PreludeLayer5(option).process();
     const out = path.join(tempdir, 'output.ts');
+    debug(`Rename ${option.entryfn} => ${out}`);
     fs.copyFileSync(option.entryfn, out);
     return out;
   }

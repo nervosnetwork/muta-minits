@@ -49,7 +49,7 @@ function build(args: any, opts: any): BuildInfo {
   const prelude = new Prelude(args);
   const outputs = prelude.process();
 
-  const codegen = new LLVMCodeGen([outputs]);
+  const codegen = new LLVMCodeGen(outputs);
   const triple: string = opts.triple ? opts.triple : llvm.config.LLVM_DEFAULT_TARGET_TRIPLE;
   const target = llvm.TargetRegistry.lookupTarget(triple);
   const m = target.createTargetMachine(triple, 'generic');
