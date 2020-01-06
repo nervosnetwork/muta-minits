@@ -18,8 +18,9 @@ Then install minits:
 
 ```
 $ git clone https://github.com/cryptape/minits
-$ npm install
-$ npm run build
+$ cd minits
+$ yarn
+$ yarn run build
 ```
 
 # Writing and Compiling a TypeScript Program
